@@ -10,7 +10,8 @@ case "$version" in
   [0-9]*.[0-9]*.[0-9]*) ;;
   *) echo "Usage : $0 X.Y.Z (par exemple 0.2.0)" >&2; exit 1 ;;
 esac
-if [ -n "$(git status --porcelain)" ]; then
+# Les fichiers non suivis ne gênent pas : seuls les changements de fichiers suivis comptent.
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   echo "Des changements ne sont pas commités : commite-les d'abord." >&2
   exit 1
 fi
