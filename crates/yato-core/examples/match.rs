@@ -8,8 +8,15 @@ async fn main() {
     let yt = Arc::new(YouTubeMusicSource::new(std::env::temp_dir().join("yato-yt"), YtDlp::new(std::env::temp_dir().join("yato-ytdlp"), client.clone())).unwrap());
     let dz = DeezerSource::new(client.clone(), yt.clone());
     let rp = rustypipe::client::RustyPipe::builder().storage_dir(std::env::temp_dir().join("yato-yt")).build().unwrap();
-    let mut tracks = dz.featured(12).await.unwrap();
-    for q in ["serebro мало тебя", "sweat snoop dogg david guetta", "daft punk get lucky", "stromae alors on danse", "bohemian rhapsody"] {
+    // Recherches données en argument, sinon le top Deezer et quelques recherches connues.
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut tracks = if args.is_empty() { dz.featured(12).await.unwrap() } else { Vec::new() };
+    let queries: Vec<String> = if args.is_empty() {
+        ["serebro мало тебя", "sweat snoop dogg david guetta", "daft punk get lucky", "stromae alors on danse", "bohemian rhapsody"].map(String::from).to_vec()
+    } else {
+        args
+    };
+    for q in &queries {
         tracks.extend(dz.search(q, 1).await.unwrap());
     }
     let (mut ok, n) = (0, tracks.len());

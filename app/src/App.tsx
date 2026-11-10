@@ -5,11 +5,13 @@ import { AlbumView } from "./album";
 import { ArtistView } from "./artist";
 import { nameForTransition, transition } from "./motion";
 import { pageRequest, type Page } from "./nav";
-import { IconClose, IconCompass, IconFolderPlus, IconLibrary, IconNote, IconPlay, IconRefresh, IconSearch } from "./icons";
+import { IconClose, IconCompass, IconFolderPlus, IconHeart, IconLibrary, IconNote, IconPlay, IconPlus, IconRefresh, IconSearch } from "./icons";
+import { collection, createPlaylist, dismissToast, loadCollection, notify, toast } from "./collection";
+import { LikedView, PlaylistView } from "./playlist";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
-import { AlbumLink, ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, SourceTag, TrackCard, TrackList, YtDlpBadge } from "./ui";
+import { AlbumLink, ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, PlaylistArt, SourceTag, TrackCard, TrackList, TrackMenuHost, YtDlpBadge } from "./ui";
 
-type View = "discover" | "library" | "search" | "artist" | "album";
+type View = "discover" | "library" | "liked" | "playlist" | "search" | "artist" | "album";
 
 const EMPTY: Snapshot = {
   track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null,
@@ -25,7 +27,6 @@ export default function App() {
   const [query, setQuery] = createSignal("");
   const [results, setResults] = createSignal<Track[] | null>(null);
   const [snap, setSnap] = createSignal<Snapshot>(EMPTY);
-  const [toast, setToast] = createSignal<string | null>(null);
   const [ytdlp, setYtdlp] = createSignal<YtDlpStatus>({ state: "unknown" });
   /**
    * Vue « En lecture » : fermée, en ouverture, ouverte, en fermeture. Les états intermédiaires
@@ -45,6 +46,9 @@ export default function App() {
   const [history, setHistory] = createSignal<{ view: View; page: Page | null }[]>([]);
   /** Une fiche est en cours de chargement (fine barre lumineuse en haut). */
   const [navigating, setNavigating] = createSignal(false);
+  /** Playlist affichée (vue « playlist »), et si son nom est à saisir (elle vient d'être créée). */
+  const [playlistId, setPlaylistId] = createSignal<string | null>(null);
+  const [naming, setNaming] = createSignal(false);
   let content!: HTMLElement;
   let pageLoad = 0;
 
@@ -122,6 +126,22 @@ export default function App() {
     setHistory([]);
     if (view() !== v) switchTo(() => setView(v));
   };
+  const openPlaylist = (id: string, name = false) => {
+    if (expanded()) setNowPlaying(false);
+    pageLoad++;
+    setNavigating(false);
+    setHistory([]);
+    if (view() === "playlist" && playlistId() === id) return setNaming(name);
+    switchTo(() => {
+      setPlaylistId(id);
+      setNaming(name);
+      setView("playlist");
+    });
+  };
+  const newPlaylist = async () => {
+    const id = await createPlaylist();
+    if (id) openPlaylist(id, true);
+  };
   /** Ouvre ou ferme la vue « En lecture » ; les animations sont dans NowPlaying et styles.css. */
   const setNowPlaying = (open: boolean) => {
     if (open === expanded()) return;
@@ -136,12 +156,7 @@ export default function App() {
   };
 
   // ---------- Erreurs ----------
-  let toastTimer: number | undefined;
-  const fail = (e: unknown) => {
-    setToast(String(e));
-    clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(() => setToast(null), 5000);
-  };
+  const fail = (e: unknown) => notify(String(e), "error");
 
   // ---------- Position fluide ----------
   // Le cœur envoie l'état 4 fois par seconde ; entre deux, on extrapole à chaque image.
@@ -185,7 +200,7 @@ export default function App() {
     try {
       setSources(await api.sources());
       applySnap(await api.state());
-      await reloadLibrary();
+      await Promise.all([reloadLibrary(), loadCollection()]);
     } catch (e) {
       fail(e);
     }
@@ -304,13 +319,30 @@ export default function App() {
           <span>yato</span>
         </button>
         <SideNav
-          active={view()}
+          active={view() === "playlist" ? `pl:${playlistId()}` : view()}
           items={[
             { id: "discover", label: "Découvrir", icon: <IconCompass /> },
             { id: "library", label: "Bibliothèque", icon: <IconLibrary />, count: library().length },
+            { id: "liked", label: "Titres likés", icon: <IconHeart />, count: collection().liked.length },
+            ...collection().playlists.map((p, i) => ({
+              id: `pl:${p.id}`,
+              label: p.name,
+              icon: <PlaylistArt id={p.id} class="nav-art" />,
+              count: p.tracks.length,
+              before: i === 0 ? <PlaylistsHeading onNew={newPlaylist} /> : undefined,
+            })),
           ]}
-          onSelect={goTo}
+          onSelect={(id) => (id.startsWith("pl:") ? openPlaylist(id.slice(3)) : goTo(id as View))}
         />
+        <Show when={collection().playlists.length === 0}>
+          <div class="sidenav-extra">
+            <PlaylistsHeading onNew={newPlaylist} />
+            <button class="nav new-pl" onClick={newPlaylist}>
+              <IconPlus size={20} />
+              <span>Nouvelle playlist</span>
+            </button>
+          </div>
+        </Show>
         <YtDlpBadge status={ytdlp()} />
       </aside>
       <div classList={{ "nav-progress": true, on: navigating() }} aria-hidden="true" />
@@ -457,6 +489,14 @@ export default function App() {
               />
             </Match>
 
+            <Match when={view() === "liked"}>
+              <LikedView snap={snap()} onPlay={play} />
+            </Match>
+
+            <Match when={view() === "playlist" && playlistId()}>
+              {(id) => <PlaylistView id={id()} editing={naming()} snap={snap()} onPlay={play} onDeleted={() => goTo("library")} />}
+            </Match>
+
             <Match when={view() === "discover"}>
               <Show when={featured()} fallback={<Loader />}>
                 {(list) => (
@@ -489,10 +529,14 @@ export default function App() {
         <NowPlaying snap={snap()} position={position()} run={run} leaving={np() === "closing"} onClose={() => setNowPlaying(false)} />
       </Show>
 
-      <Show when={toast()}>
-        <div class="toast" role="alert" onClick={() => setToast(null)}>
-          {toast()}
-        </div>
+      <TrackMenuHost onOpenPlaylist={(id) => openPlaylist(id)} />
+
+      <Show when={toast()} keyed>
+        {(t) => (
+          <div classList={{ toast: true, info: t.kind === "info" }} role={t.kind === "error" ? "alert" : "status"} onClick={dismissToast}>
+            {t.text}
+          </div>
+        )}
       </Show>
     </div>
   );
@@ -537,7 +581,7 @@ function Hero(props: { track: Track; playing: boolean; onPlay: () => void; label
  */
 function SideNav<T extends string>(props: {
   active: string;
-  items: { id: T; label: string; icon: JSX.Element; count?: number }[];
+  items: { id: T; label: string; icon: JSX.Element; count?: number; before?: JSX.Element }[];
   onSelect: (id: T) => void;
 }) {
   const buttons = new Map<string, HTMLButtonElement>();
@@ -546,7 +590,8 @@ function SideNav<T extends string>(props: {
     const b = buttons.get(props.active);
     setMark(b ? { y: b.offsetTop, h: b.offsetHeight } : null);
   };
-  createEffect(on(() => props.active, () => requestAnimationFrame(measure)));
+  // Les entrées peuvent bouger (playlist ajoutée, renommée…) : on remesure aussi dans ce cas.
+  createEffect(on(() => [props.active, props.items], () => requestAnimationFrame(measure)));
   onMount(() => window.addEventListener("resize", measure));
   onCleanup(() => window.removeEventListener("resize", measure));
 
@@ -559,19 +604,35 @@ function SideNav<T extends string>(props: {
       />
       <For each={props.items}>
         {(item) => (
-          <button
-            ref={(el) => buttons.set(item.id, el)}
-            classList={{ nav: true, active: props.active === item.id }}
-            onClick={() => props.onSelect(item.id)}
-          >
-            {item.icon}
-            <span>{item.label}</span>
-            <Show when={item.count}>
-              <span class="nav-count">{item.count}</span>
-            </Show>
-          </button>
+          <>
+            {item.before}
+            <button
+              ref={(el) => buttons.set(item.id, el)}
+              classList={{ nav: true, active: props.active === item.id }}
+              title={item.label}
+              onClick={() => props.onSelect(item.id)}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+              <Show when={item.count}>
+                <span class="nav-count">{item.count}</span>
+              </Show>
+            </button>
+          </>
         )}
       </For>
     </nav>
+  );
+}
+
+/** Titre « Playlists » de la barre latérale, avec le bouton de création. */
+function PlaylistsHeading(props: { onNew: () => void }) {
+  return (
+    <div class="nav-heading">
+      <span>Playlists</span>
+      <button class="icon-btn" title="Nouvelle playlist" onClick={props.onNew}>
+        <IconPlus />
+      </button>
+    </div>
   );
 }

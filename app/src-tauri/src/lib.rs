@@ -10,7 +10,7 @@ use std::{
 };
 
 use yato_core::{
-    ArtistRef, Controller, Error, Snapshot, SourceInfo, SourceRegistry, Track,
+    ArtistRef, Collection, CollectionData, Controller, Error, Snapshot, SourceInfo, SourceRegistry, Track,
     lyrics::{Lyrics, LyricsClient},
     sources::{
         DeezerSource, LocalLibrary, YouTubeMusicSource,
@@ -31,6 +31,7 @@ struct AppState {
     library: Arc<LocalLibrary>,
     /// Source d'infos : fiches d'artistes et albums.
     deezer: Arc<DeezerSource>,
+    collection: Collection,
     cache_path: PathBuf,
 }
 
@@ -82,6 +83,49 @@ async fn remove_folder(state: State<'_, AppState>, path: PathBuf) -> Res<usize> 
 #[tauri::command]
 async fn rescan(state: State<'_, AppState>) -> Res<usize> {
     with_library(&state, |lib| lib.rescan()).await
+}
+
+// ---------- Collection : likes et playlists ----------
+// Chaque commande renvoie la collection entière : l'interface la remplace d'un bloc.
+
+#[tauri::command]
+fn collection(state: State<'_, AppState>) -> CollectionData {
+    state.collection.get()
+}
+
+#[tauri::command]
+fn toggle_like(state: State<'_, AppState>, track: Track) -> Res<CollectionData> {
+    state.collection.toggle_like(track)
+}
+
+#[tauri::command]
+fn create_playlist(state: State<'_, AppState>, name: String, tracks: Option<Vec<Track>>) -> Res<CollectionData> {
+    state.collection.create_playlist(name, tracks.unwrap_or_default())
+}
+
+#[tauri::command]
+fn rename_playlist(state: State<'_, AppState>, id: String, name: String) -> Res<CollectionData> {
+    state.collection.rename_playlist(&id, name)
+}
+
+#[tauri::command]
+fn delete_playlist(state: State<'_, AppState>, id: String) -> Res<CollectionData> {
+    state.collection.delete_playlist(&id)
+}
+
+#[tauri::command]
+fn add_to_playlist(state: State<'_, AppState>, id: String, tracks: Vec<Track>) -> Res<CollectionData> {
+    state.collection.add_to_playlist(&id, tracks)
+}
+
+#[tauri::command]
+fn remove_from_playlist(state: State<'_, AppState>, id: String, track_id: String) -> Res<CollectionData> {
+    state.collection.remove_from_playlist(&id, &track_id)
+}
+
+#[tauri::command]
+fn move_in_playlist(state: State<'_, AppState>, id: String, from: usize, to: usize) -> Res<CollectionData> {
+    state.collection.move_in_playlist(&id, from, to)
 }
 
 // ---------- Recherche ----------
@@ -238,6 +282,7 @@ pub fn run() {
             migrate_old_data(&app.path().app_data_dir()?);
             let cache_path = app.path().app_data_dir()?.join("library.json");
             let library = Arc::new(LocalLibrary::load(&cache_path));
+            let collection = Collection::load(&app.path().app_data_dir()?.join("collection.json"));
             let client = yato_core::http_client();
 
             // yt-dlp géré par yato : installé, vérifié (signature) et mis à jour automatiquement.
@@ -260,6 +305,7 @@ pub fn run() {
                 ytdlp: ytdlp.clone(),
                 library,
                 deezer,
+                collection,
                 cache_path,
             });
 
@@ -335,6 +381,14 @@ pub fn run() {
             ytdlp_status,
             player_state,
             queue,
+            collection,
+            toggle_like,
+            create_playlist,
+            rename_playlist,
+            delete_playlist,
+            add_to_playlist,
+            remove_from_playlist,
+            move_in_playlist,
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de yato");

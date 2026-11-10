@@ -1,7 +1,7 @@
 // Mode aperçu, pour travailler l'interface dans un simple navigateur (`npm run dev`).
 // Simule le cœur Rust : morceaux, lecture et paroles d'exemple.
 // Jamais inclus dans l'app : chargé seulement en développement, hors de Tauri.
-import type { AlbumPage, ArtistPage, Lyrics, Snapshot, Track } from "./api";
+import type { AlbumPage, ArtistPage, Collection, Lyrics, Snapshot, Track } from "./api";
 
 type Listener = (payload: unknown) => void;
 const listeners = new Map<string, Listener[]>();
@@ -70,10 +70,57 @@ const LYRICS: Lyrics = {
     "", "Les néons s'allument sur la ville", "On roule sans savoir où l'on va", "Ta main dans la mienne, tout est facile",
     "Et la nuit ne finit pas", "", "On danse au ralenti", "Comme dans une vieille cassette", "Les souvenirs en couleurs",
     "Que le temps ne rembobine pas", "", "Encore une fois", "Encore une fois",
-  ].map((text, i) => ({ time: i * 3.2, text })),
+  ].map((text, i) => {
+    // Mots répartis sur 2,4 s, au prorata de leur longueur (comme l'estimation du cœur).
+    const time = i * 3.2;
+    const parts = text.split(/(?<=\s)/).filter((p) => p.trim());
+    const total = parts.reduce((a, p) => a + p.length, 0);
+    let at = time;
+    const words = parts.map((p) => {
+      const w = { time: at, end: at + (2.4 * p.length) / total, text: p };
+      at = w.end;
+      return w;
+    });
+    return { time, end: at, text, words };
+  }),
+  wordSynced: false,
 };
 
+// Collection en mémoire (perdue au rechargement de la page).
+const coll: Collection = { liked: [], playlists: [] };
+let plCounter = 0;
+const copy = (): Collection => structuredClone(coll);
+const pl = (id: string) => {
+  const p = coll.playlists.find((x) => x.id === id);
+  if (!p) throw "cette playlist n'existe plus";
+  return p;
+};
+const pushUnique = (list: Track[], add: Track[]) => add.forEach((t) => list.some((x) => x.id === t.id) || list.push(t));
+
 const handlers: Record<string, (args: any) => unknown> = {
+  collection: copy,
+  toggle_like: ({ track }) => {
+    const i = coll.liked.findIndex((t) => t.id === track.id);
+    if (i >= 0) coll.liked.splice(i, 1);
+    else coll.liked.unshift(track);
+    return copy();
+  },
+  create_playlist: ({ name, tracks: t }) => {
+    const p = { id: `pl-${++plCounter}`, name: String(name).trim() || `Ma playlist n° ${coll.playlists.length + 1}`, tracks: [] as Track[], created: Date.now() };
+    pushUnique(p.tracks, t ?? []);
+    coll.playlists.push(p);
+    return copy();
+  },
+  rename_playlist: ({ id, name }) => ((pl(id).name = String(name).trim() || pl(id).name), copy()),
+  delete_playlist: ({ id }) => ((coll.playlists = coll.playlists.filter((p) => p.id !== id)), copy()),
+  add_to_playlist: ({ id, tracks: t }) => (pushUnique(pl(id).tracks, t), copy()),
+  remove_from_playlist: ({ id, trackId }) => ((pl(id).tracks = pl(id).tracks.filter((t) => t.id !== trackId)), copy()),
+  move_in_playlist: ({ id, from, to }) => {
+    const list = pl(id).tracks;
+    const [t] = list.splice(from, 1);
+    if (t) list.splice(Math.min(to, list.length), 0, t);
+    return copy();
+  },
   list_sources: () => [{ id: "local", name: "Ma bibliothèque" }, { id: "deezer", name: "Titres" }, { id: "youtube", name: "YouTube Music" }],
   library_tracks: () => [],
   library_folders: () => [],

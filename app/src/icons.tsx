@@ -111,3 +111,46 @@ export const IconUser = () => (
     <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
   </Svg>
 );
+export const IconHeart = (p: { filled?: boolean; size?: number }) => (
+  <Svg size={p.size ?? 18}>
+    <path
+      d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"
+      fill={p.filled ? "currentColor" : "none"}
+    />
+  </Svg>
+);
+export const IconMore = () => (
+  <Svg size={18}>
+    <circle cx="5.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+  </Svg>
+);
+export const IconPlus = (p: { size?: number }) => (
+  <Svg size={p.size ?? 18}>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+);
+export const IconPlaylist = (p: { size?: number }) => (
+  <Svg size={p.size ?? 20}>
+    <path d="M4 6h12M4 11h12M4 16h7" />
+    <circle cx="17" cy="17" r="2.5" />
+    <path d="M19.5 17V9l2-.8" />
+  </Svg>
+);
+export const IconTrash = () => (
+  <Svg size={18}>
+    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+  </Svg>
+);
+export const IconEdit = () => (
+  <Svg size={18}>
+    <path d="M4 20h4L19 9l-4-4L4 16z" />
+    <path d="M13.5 6.5l4 4" />
+  </Svg>
+);
+export const IconMinus = (p: { size?: number }) => (
+  <Svg size={p.size ?? 18}>
+    <path d="M5 12h14" />
+  </Svg>
+);

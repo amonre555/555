@@ -90,20 +90,46 @@ export type YtDlpStatus =
   | { state: "system"; path: string }
   | { state: "error"; message: string };
 
+/** Un mot (ou une syllabe), avec l'espace qui le suit s'il y en a une. */
+export interface LyricWord {
+  time: number;
+  end: number;
+  text: string;
+}
+
 export interface LyricLine {
   time: number;
+  /** Fin du chant de la ligne. */
+  end: number;
   text: string;
+  /** Vide pour une ligne vide (pause instrumentale). */
+  words: LyricWord[];
 }
 
 export interface Lyrics {
   lines: LyricLine[];
   plain: string | null;
   instrumental: boolean;
+  /** Minutage des mots donné par la source (sinon, estimé). */
+  wordSynced: boolean;
 }
 
 export interface SourceInfo {
   id: string;
   name: string;
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  tracks: Track[];
+  created: number;
+}
+
+/** Titres likés (le plus récent en premier) et playlists. */
+export interface Collection {
+  liked: Track[];
+  playlists: Playlist[];
 }
 
 export const api = {
@@ -129,6 +155,14 @@ export const api = {
   setVolume: (volume: number) => invoke<Snapshot>("set_volume", { volume }),
   state: () => invoke<Snapshot>("player_state"),
   queue: () => invoke<Track[]>("queue"),
+  collection: () => invoke<Collection>("collection"),
+  toggleLike: (track: Track) => invoke<Collection>("toggle_like", { track }),
+  createPlaylist: (name: string, tracks?: Track[]) => invoke<Collection>("create_playlist", { name, tracks: tracks ?? null }),
+  renamePlaylist: (id: string, name: string) => invoke<Collection>("rename_playlist", { id, name }),
+  deletePlaylist: (id: string) => invoke<Collection>("delete_playlist", { id }),
+  addToPlaylist: (id: string, tracks: Track[]) => invoke<Collection>("add_to_playlist", { id, tracks }),
+  removeFromPlaylist: (id: string, trackId: string) => invoke<Collection>("remove_from_playlist", { id, trackId }),
+  moveInPlaylist: (id: string, from: number, to: number) => invoke<Collection>("move_in_playlist", { id, from, to }),
   onPlayer: (cb: (s: Snapshot) => void): Promise<UnlistenFn> =>
     listen<Snapshot>("player", (e) => cb(e.payload)),
   ytdlpStatus: () => invoke<YtDlpStatus>("ytdlp_status"),

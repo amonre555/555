@@ -1,7 +1,8 @@
 // Fiche d'un album : pochette, artistes, année, morceaux.
 import { Show } from "solid-js";
 import { ALBUM_KIND, type AlbumPage, type Snapshot, type Track } from "./api";
-import { IconBack, IconNote, IconPlay } from "./icons";
+import { IconBack, IconMore, IconNote, IconPlay } from "./icons";
+import { openTrackMenu } from "./collection";
 import { ArtistLinks, Empty, Loader, TrackList } from "./ui";
 
 /** Durée longue lisible : « 1 h 02 min », « 46 min ». */
@@ -59,9 +60,14 @@ export function AlbumView(props: {
                   </div>
                   <p class="muted">{meta()}</p>
                   <Show when={count() > 0}>
-                    <button class="primary hero-play" onClick={() => props.onPlay(p().tracks, 0)}>
-                      <IconPlay size={18} /> Lecture
-                    </button>
+                    <div class="actions hero-play">
+                      <button class="primary" onClick={() => props.onPlay(p().tracks, 0)}>
+                        <IconPlay size={18} /> Lecture
+                      </button>
+                      <button class="icon-btn" title="Ajouter l'album à une playlist" onClick={(e) => openTrackMenu(e, p().tracks)}>
+                        <IconMore />
+                      </button>
+                    </div>
                   </Show>
                 </div>
               </header>

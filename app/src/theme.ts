@@ -26,6 +26,7 @@ const ROLES: Record<string, DynamicColor> = {
   "secondary-container": C.secondaryContainer,
   "on-secondary-container": C.onSecondaryContainer,
   tertiary: C.tertiary,
+  "tertiary-container": C.tertiaryContainer,
   surface: C.surface,
   "surface-container-lowest": C.surfaceContainerLowest,
   "surface-container-low": C.surfaceContainerLow,
@@ -35,7 +36,10 @@ const ROLES: Record<string, DynamicColor> = {
   "on-surface": C.onSurface,
   "on-surface-variant": C.onSurfaceVariant,
   "outline-variant": C.outlineVariant,
+  error: C.error,
   "error-container": C.errorContainer,
+  "inverse-surface": C.inverseSurface,
+  "inverse-on-surface": C.inverseOnSurface,
   "on-error-container": C.onErrorContainer,
 };
 

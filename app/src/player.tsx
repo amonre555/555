@@ -1,8 +1,8 @@
 // Lecteur : fond vivant, barre de lecture flottante, vue « En lecture » avec paroles.
-import { createEffect, createMemo, createSignal, For, on, onMount, Show } from "solid-js";
-import { api, bigCoverUrl, coverUrl, formatTime, type ArtistRef, type Lyrics, type Snapshot, type Track } from "./api";
-import { IconChevronDown, IconLyrics, IconNext, IconPause, IconPlay, IconPrev, IconVolume } from "./icons";
-import { AlbumLink, ArtistLinks, Cover } from "./ui";
+import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
+import { api, bigCoverUrl, coverUrl, formatTime, type ArtistRef, type LyricWord, type Lyrics, type Snapshot, type Track } from "./api";
+import { IconChevronDown, IconLyrics, IconMinus, IconNext, IconPause, IconPlay, IconPlus, IconPrev, IconVolume } from "./icons";
+import { AlbumLink, ArtistLinks, Cover, LikeButton } from "./ui";
 import { themeFromCover } from "./theme";
 import { cookie, PLAYER_COOKIE, roundedSquare } from "./shapes";
 
@@ -82,6 +82,7 @@ export function PlayerBar(props: {
             </button>
           )}
         </Show>
+        <LikeButton track={props.snap.track} class="now-like" />
       </div>
 
       <div class="transport">
@@ -317,6 +318,7 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
                 <Show when={artUrl()}>{(u) => <img src={u()} alt="" onError={() => setFailed((f) => [...f, u()])} />}</Show>
               </div>
               <div class="np-meta">
+                <LikeButton track={t()} class="np-like" size={26} />
                 <div class="np-title" title={t().title}>{t().title}</div>
                 <div class="np-sub" title={[t().artist, t().album].filter(Boolean).join(" · ")}>
                   <ArtistLinks track={t()} artists={artists()} />
@@ -332,7 +334,7 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
               <Transport snap={props.snap} run={props.run} playing={props.snap.status === "playing"} big />
             </div>
             <div class="np-right">
-              <LyricsView lyrics={lyrics()} position={props.position} run={props.run} />
+              <LyricsView lyrics={lyrics()} trackId={trackId()} position={props.position} run={props.run} />
             </div>
           </div>
         )}
@@ -342,15 +344,47 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
 }
 
 /** Paroles : la ligne en cours est mise en valeur et gardée au centre. Clic = aller à la ligne. */
-function LyricsView(props: { lyrics: Lyrics | null | undefined; position: number; run: Run }) {
+/**
+ * Décalage des paroles choisi pour un morceau (en secondes, positif = paroles plus tôt).
+ * Gardé dans le navigateur de l'app : simple confort, sans conséquence s'il se perd.
+ */
+const offsetKey = (id: string) => `yato.lyrics-offset.${id}`;
+function readOffset(id: string): number {
+  try {
+    return Number(localStorage.getItem(offsetKey(id))) || 0;
+  } catch {
+    return 0;
+  }
+}
+function saveOffset(id: string, value: number) {
+  try {
+    if (value) localStorage.setItem(offsetKey(id), String(value));
+    else localStorage.removeItem(offsetKey(id));
+  } catch {
+    // Stockage indisponible : le réglage vaut pour cette écoute seulement.
+  }
+}
+
+function LyricsView(props: { lyrics: Lyrics | null | undefined; trackId: string | undefined; position: number; run: Run }) {
   let box!: HTMLDivElement;
   const lines = () => props.lyrics?.lines ?? [];
+
+  // Les bases de paroles se contredisent parfois d'une seconde : réglage à la main, par morceau.
+  const [shift, setShift] = createSignal(0);
+  createEffect(on(() => props.trackId, (id) => setShift(id ? readOffset(id) : 0)));
+  const nudge = (delta: number) => {
+    const v = delta === 0 ? 0 : Math.round((shift() + delta) * 10) / 10;
+    setShift(v);
+    if (props.trackId) saveOffset(props.trackId, v);
+  };
+  /** Position dans le morceau, vue des paroles (avec le décalage choisi). */
+  const pos = () => props.position + shift();
 
   // Ligne en cours : recherche dichotomique (appelée à chaque image, doit rester légère).
   // Petite avance de 0,25 s : la ligne s'allume au moment où on l'entend, pas après.
   const active = createMemo(() => {
     const l = lines();
-    const t = props.position + 0.25;
+    const t = pos() + 0.25;
     let lo = 0;
     let hi = l.length - 1;
     let found = -1;
@@ -365,29 +399,63 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; position: number
   });
 
   /**
-   * Karaoké : part déjà chantée de la ligne en cours (0 à 1), du début de la ligne au début de
-   * la suivante. Lue seulement par la ligne en cours : les autres ne sont pas recalculées.
+   * Karaoké mot par mot : part déjà chantée d'un mot (0 à 1). Lignes passées : pleines ; lignes
+   * à venir : vides. Seule la ligne en cours lit la position : les autres ne sont pas recalculées
+   * à chaque image. Légère avance (0,1 s) : le mot s'allume quand on l'entend, pas après.
    */
-  const sung = () => {
-    const l = lines();
-    const i = active();
-    if (i < 0) return 0;
-    const start = l[i].time;
-    const end = l[i + 1]?.time ?? start + 5;
-    return Math.min(1, Math.max(0, (props.position + 0.25 - start) / Math.max(0.5, end - start)));
+  const fill = (line: number, w: LyricWord) => {
+    const a = active();
+    if (line < a) return 1;
+    if (line > a) return 0;
+    return Math.min(1, Math.max(0, (pos() + 0.1 - w.time) / Math.max(0.05, w.end - w.time)));
   };
 
   // Défilement à la main (molette, trackpad, glisser) : on arrête de suivre la ligne en cours
-  // pendant quelques secondes, au lieu de ramener la vue de force.
+  // pendant quelques secondes, au lieu de ramener la vue de force. Pendant ce temps, les lignes
+  // ne sont plus floutées (on cherche une ligne : tout doit être lisible).
   let userScrollUntil = 0;
-  const onUserScroll = () => (userScrollUntil = performance.now() + 4000);
+  const [browsing, setBrowsing] = createSignal(false);
+  let browseTimer: number | undefined;
+  const onUserScroll = () => {
+    userScrollUntil = performance.now() + 4000;
+    setBrowsing(true);
+    clearTimeout(browseTimer);
+    browseTimer = window.setTimeout(() => setBrowsing(false), 4000);
+  };
+  onCleanup(() => clearTimeout(browseTimer));
 
-  /** Place la ligne `i` aux 2/5 de la hauteur. Instantané à l'ouverture ou au changement de paroles. */
+  /**
+   * Place la ligne `i` aux 2/5 de la hauteur.
+   *
+   * En douceur, façon cascade : la vue saute à sa place, puis chaque ligne visible part de son
+   * ancienne position et glisse jusqu'à la nouvelle, avec un petit retard qui croît avec la
+   * distance à la ligne en cours (les lignes suivantes arrivent les unes après les autres).
+   * Les animations s'additionnent (`composite: "add"`) : un changement de ligne en plein
+   * mouvement repart de la position affichée, sans à-coup. On anime `translate`, distinct de la
+   * mise à l'échelle des lignes (`transform`), pour ne pas fausser le déplacement.
+   */
   const follow = (i: number, smooth: boolean) => {
     const el = box?.querySelector<HTMLElement>(`[data-line="${i}"]`);
     if (!el) return;
-    const top = el.offsetTop + el.offsetHeight / 2 - box.clientHeight * 0.4;
-    box.scrollTo({ top, behavior: smooth ? "smooth" : "auto" });
+    const target = el.offsetTop + el.offsetHeight / 2 - box.clientHeight * 0.4;
+    const before = box.scrollTop;
+    box.scrollTop = target;
+    const delta = box.scrollTop - before;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!smooth || reduced || Math.abs(delta) < 1 || Math.abs(delta) > box.clientHeight) return;
+    const top = box.scrollTop - Math.abs(delta) - 80;
+    const bottom = box.scrollTop + box.clientHeight + Math.abs(delta) + 80;
+    for (const line of box.querySelectorAll<HTMLElement>(".lyric")) {
+      if (line.offsetTop + line.offsetHeight < top || line.offsetTop > bottom) continue;
+      const d = Number(line.dataset.line) - i;
+      line.animate([{ translate: `0 ${delta}px` }, { translate: "0 0" }], {
+        duration: 820,
+        delay: Math.min(Math.max(d + 1, 0), 7) * 38,
+        easing: "cubic-bezier(0.2, 0.85, 0.25, 1)",
+        composite: "add",
+        fill: "backwards",
+      });
+    }
   };
 
   createEffect(
@@ -419,7 +487,7 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; position: number
           </Show>
         }
       >
-        <div class="lyrics" ref={box} onWheel={onUserScroll} onTouchMove={onUserScroll}>
+        <div classList={{ lyrics: true, browsing: browsing() }} ref={box} onWheel={onUserScroll} onTouchMove={onUserScroll}>
           <div class="lyrics-pad" />
           <For each={lines()}>
             {(line, i) => (
@@ -431,22 +499,46 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; position: number
                   "past": i() < active(),
                   "near": Math.abs(i() - active()) === 1,
                 }}
+                // Distance à la ligne en cours (pour le flou), plafonnée : au-delà, hors de l'écran.
+                style={{ "--d": Math.min(Math.abs(i() - active()), 4) }}
                 onClick={() => {
                   userScrollUntil = 0; // on reprend le suivi depuis la ligne choisie
-                  props.run(() => api.seek(line.time));
+                  props.run(() => api.seek(Math.max(0, line.time - shift())));
                 }}
               >
-                {/* Texte gris que le blanc recouvre de gauche à droite (ligne par ligne si elle se coupe). */}
-                <span
-                  class="lyric-text"
-                  style={{ "--p": `${(i() === active() ? sung() : i() < active() ? 1 : 0) * 100}%` }}
-                >
-                  {line.text || "♪"}
-                </span>
+                {/* Chaque mot : texte gris que le blanc recouvre de gauche à droite, à son rythme. */}
+                <Show when={line.words.length > 0} fallback={<span class="lyric-text" style={{ "--p": i() < active() ? "100%" : "0%" }}>♪</span>}>
+                  <For each={line.words}>
+                    {(w) => {
+                      const f = () => fill(i(), w);
+                      // L'espace reste hors du mot : les mots (blocs en ligne) se coupent entre eux.
+                      const space = /\s$/.test(w.text);
+                      return (
+                        <>
+                          <span classList={{ "lyric-word": true, singing: f() > 0 && f() < 1 }} style={{ "--p": `${f() * 120 - 10}%` }}>
+                            {w.text.trimEnd()}
+                          </span>
+                          {space ? " " : ""}
+                        </>
+                      );
+                    }}
+                  </For>
+                </Show>
               </button>
             )}
           </For>
           <div class="lyrics-pad" />
+        </div>
+        <div classList={{ "lyrics-sync": true, set: shift() !== 0 }}>
+          <button class="icon-btn" title="Les paroles arrivent trop tôt : les retarder de 0,1 s" onClick={() => nudge(-0.1)}>
+            <IconMinus />
+          </button>
+          <button class="lyrics-sync-value" title={shift() ? "Remettre la synchronisation d'origine" : "Synchronisation des paroles"} onClick={() => nudge(0)}>
+            {shift() ? `${shift() > 0 ? "+" : "−"}${Math.abs(shift()).toFixed(1).replace(".", ",")} s` : "Synchro"}
+          </button>
+          <button class="icon-btn" title="Les paroles arrivent trop tard : les avancer de 0,1 s" onClick={() => nudge(0.1)}>
+            <IconPlus />
+          </button>
         </div>
       </Show>
     </Show>

@@ -151,8 +151,9 @@ kbd { font: 700 11px/1 var(--font); color: var(--text-3); padding: 4px 7px; bord
 .content {
   flex: 1; overflow-y: auto; overflow-x: hidden; padding: 18px 28px 36px;
   scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
-  view-transition-name: page;
 }
+/* Nommée seulement pendant un morphing d'image (View Transitions) : voir motion.ts. */
+html[data-vt] .content { view-transition-name: page; }
 .page { max-width: 1280px; margin: 0 auto; }
 .content::-webkit-scrollbar { width: 10px; }
 .content::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
@@ -453,7 +454,22 @@ kbd { font: 700 11px/1 var(--font); color: var(--text-3); padding: 4px 7px; bord
 .np-album { color: var(--text-3); }
 .np-left .progress { max-width: none; }
 .np-left .buttons { justify-content: center; }
-.np-right { height: 100%; min-height: 0; }
+.np-right { position: relative; height: 100%; min-height: 0; }
+/*
+ * Réglage de la synchronisation des paroles : discret, il apparaît au survol des paroles, et
+ * reste visible tant qu'un décalage est appliqué.
+ */
+.lyrics-sync {
+  position: absolute; right: 8px; bottom: 8px; display: flex; align-items: center; gap: 2px; padding: 3px;
+  border-radius: 999px; background: color-mix(in srgb, var(--md-surface-container-high) 75%, transparent);
+  backdrop-filter: blur(12px); opacity: 0; transform: translateY(6px);
+  transition: opacity 0.3s var(--soft), transform 0.4s var(--soft);
+}
+.np-right:hover .lyrics-sync, .lyrics-sync.set, .lyrics-sync:focus-within { opacity: 1; transform: none; }
+.lyrics-sync .icon-btn { width: 32px; height: 32px; }
+.lyrics-sync-value { min-width: 70px; height: 32px; padding: 0 8px; border-radius: 999px; font-size: 13px; font-weight: 800; color: var(--text-2); font-variant-numeric: tabular-nums; transition: background 0.2s, color 0.2s; }
+.lyrics-sync-value:hover { background: var(--surface-2); color: var(--text); }
+.lyrics-sync.set .lyrics-sync-value { color: var(--accent); }
 
 /*
  * Paroles. La zone a de la marge sur les côtés : le survol d'une ligne est arrondi des deux
@@ -461,7 +477,7 @@ kbd { font: 700 11px/1 var(--font); color: var(--text-3); padding: 4px 7px; bord
  */
 .lyrics {
   /* `position` : les offsetTop des lignes se mesurent depuis cette boîte, pas depuis la vue entière. */
-  position: relative; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  position: relative; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 14px;
   padding: 0 16px;
   mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 70%, transparent 100%); scrollbar-width: none;
 }
@@ -469,15 +485,24 @@ kbd { font: 700 11px/1 var(--font); color: var(--text-3); padding: 4px 7px; bord
 /* Assez de marge pour que la première et la dernière ligne puissent venir aux 2/5 de la hauteur. */
 .lyrics-pad { flex: none; height: 40%; }
 .lyrics-pad:last-child { height: 60%; }
+/*
+ * Ligne en cours : nette, pleine, à taille normale. Les autres : plus petites, plus pâles et
+ * légèrement floues selon leur distance (`--d`). Les changements prennent le temps de la cascade
+ * de défilement (voir `follow` dans player.tsx), pour un passage d'une ligne à l'autre fondu.
+ */
 .lyric {
-  text-align: left; font: 800 34px/1.22 var(--font); letter-spacing: -0.02em;
-  padding: 8px 16px; border-radius: 20px; opacity: 0.5;
-  transform-origin: left center; transform: scale(0.95);
-  transition: opacity 0.5s var(--soft), transform 0.6s var(--soft), background 0.25s;
+  text-align: left; font: 800 34px/1.24 var(--font); letter-spacing: -0.02em;
+  padding: 10px 16px; border-radius: 22px; opacity: 0.45;
+  transform-origin: left center; transform: scale(0.94);
+  filter: blur(calc(var(--d, 0) * 0.55px));
+  transition: opacity 0.7s var(--soft), transform 0.8s cubic-bezier(0.2, 0.85, 0.25, 1), filter 0.7s var(--soft), background 0.25s;
 }
-.lyric.past { opacity: 0.4; }
-.lyric.on { opacity: 1; transform: scale(1); }
-.lyric:hover { opacity: 0.9; background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+.lyric.past { opacity: 0.32; }
+.lyric.on { opacity: 1; transform: scale(1); filter: none; }
+.lyric:hover { opacity: 0.9; filter: none; background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+/* Défilement à la main : tout redevient net et lisible. */
+.lyrics.browsing .lyric { filter: none; }
+.lyrics.browsing .lyric:not(.on) { opacity: 0.6; }
 /*
  * Karaoké : le texte est gris, et le blanc le recouvre de gauche à droite (`--p`). Sur un élément
  * en ligne, le fond est posé comme une seule bande à travers les retours à la ligne : une ligne
@@ -490,6 +515,21 @@ kbd { font: 700 11px/1 var(--font); color: var(--text-3); padding: 4px 7px; bord
     linear-gradient(color-mix(in srgb, var(--md-on-surface-variant) 38%, transparent), color-mix(in srgb, var(--md-on-surface-variant) 38%, transparent));
   -webkit-background-clip: text; background-clip: text;
 }
+/*
+ * Karaoké mot par mot : chaque mot a son propre remplissage (`--p` va de -10 % à 110 %), avec un
+ * bord adouci. Le mot en train d'être chanté (`.singing`, pas `.now` : déjà pris par le lecteur) se soulève un peu.
+ */
+.lyric-word {
+  display: inline-block; color: transparent;
+  background: linear-gradient(90deg,
+    var(--md-on-surface) calc(var(--p, -10%) - 10%),
+    color-mix(in srgb, var(--md-on-surface-variant) 38%, transparent) calc(var(--p, -10%) + 10%));
+  -webkit-background-clip: text; background-clip: text;
+  transition: transform 0.6s var(--soft);
+}
+.lyric-word.singing { transform: translateY(-2px); }
+/* Mots déjà chantés : ils retombent doucement en place. */
+.lyric.on .lyric-word { transition-duration: 0.9s; }
 .lyrics.plain { display: block; white-space: pre-line; font: 700 21px/1.6 var(--font); color: rgba(255, 255, 255, 0.82); padding: 20% 16px; }
 .lyrics-empty { height: 100%; display: grid; place-items: center; font: 700 20px var(--font); color: var(--text-3); }
 
@@ -561,4 +601,86 @@ html[data-vt="back"]::view-transition-new(page) { animation: blur-in-back 0.55s 
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* =========================================================================
+   Collection : likes, playlists, menu des morceaux
+   ========================================================================= */
+.like-btn { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: var(--text-3); transition: color 0.2s, background 0.2s, transform 0.35s var(--bounce); }
+.like-btn:hover:not(:disabled) { color: var(--text); background: var(--surface-2); }
+.like-btn:active:not(:disabled) { transform: scale(0.8); }
+.like-btn.liked { color: var(--accent); }
+.like-btn.liked svg { animation: pop 0.45s var(--bounce) both; }
+.like-btn:disabled { opacity: 0; pointer-events: none; }
+
+/* Lignes : cœur et « ⋯ » (visibles au survol, le cœur reste affiché quand il est plein). */
+.row { grid-template-columns: 34px 42px minmax(0, 1fr) 32px 56px 32px; }
+.with-album .row { grid-template-columns: 34px 42px minmax(0, 1.5fr) minmax(0, 1fr) 32px 56px 32px; }
+.row-like, .row-more { opacity: 0; transition: opacity 0.2s, color 0.2s, background 0.2s, transform 0.35s var(--bounce); }
+.row-like.liked, .row:hover .row-like, .row:focus-within .row-like, .row:hover .row-more, .row:focus-within .row-more { opacity: 1; }
+.row-more { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: var(--text-2); }
+.row-more:hover { color: var(--text); background: var(--surface-2); }
+.row[draggable="true"] { cursor: grab; }
+.row.dragging { opacity: 0.4; }
+.row.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+.row.drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
+
+.now { display: flex; align-items: center; gap: 4px; }
+.now-btn { flex: 0 1 auto; }
+.now-like { flex: none; }
+.np-meta { position: relative; padding-right: 48px; }
+.np-like { position: absolute; right: 0; top: 2px; width: 44px; height: 44px; }
+
+/* Image de playlist : icône, pochette unique ou mosaïque de 4. */
+.pl-art { flex: none; display: grid; place-items: center; overflow: hidden; width: 42px; height: 42px; border-radius: 10px; background: var(--surface-2); color: var(--text-3); }
+.pl-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pl-art.mosaic { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.pl-art.liked { color: var(--md-on-primary-container); background: linear-gradient(135deg, var(--md-primary-container), var(--md-tertiary-container, var(--md-secondary-container))); }
+.pl-art.xl { width: 210px; height: 210px; border-radius: var(--r-lg); box-shadow: 0 24px 50px -18px rgba(0, 0, 0, 0.7); }
+.pl-art.xl svg { width: 64px; height: 64px; }
+.pl-art.xs { width: 28px; height: 28px; border-radius: 7px; }
+.pl-art.xs svg { width: 16px; height: 16px; }
+.pl-art.nav-art { width: 26px; height: 26px; border-radius: 7px; margin: 0 -3px; }
+.pl-art.nav-art svg { width: 15px; height: 15px; }
+.nav span:not(.nav-count) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-count { flex: none; }
+
+.nav-heading { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 2px; padding: 0 4px 0 14px; font-size: 12px; font-weight: 800; color: var(--text-3); }
+.nav-heading .icon-btn { width: 30px; height: 30px; }
+.sidenav-extra { display: flex; flex-direction: column; gap: 4px; margin-top: -22px; }
+.new-pl { color: var(--text-3); }
+
+.pl-title { cursor: text; border-radius: 12px; }
+.pl-title:hover { background: color-mix(in srgb, var(--md-on-surface) 6%, transparent); }
+.pl-title-input { width: 100%; background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); border: 0; outline: 2px solid var(--accent); border-radius: 12px; color: var(--text); padding: 0 8px; margin-left: -8px; display: block; }
+.actions.hero-play { align-items: center; }
+.danger:hover:not(:disabled) { color: var(--md-error); }
+.ghost.danger { padding: 0 18px 0 14px; color: var(--md-on-error-container); background: var(--md-error-container); }
+
+/* Menu d'un morceau */
+.menu-layer { position: fixed; inset: 0; z-index: 90; }
+.menu {
+  position: fixed; width: 280px; max-height: min(480px, calc(100vh - 16px)); display: flex; flex-direction: column;
+  padding: 6px; border-radius: var(--r-md); background: var(--md-surface-container-high); box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  animation: pop-in 0.3s var(--bounce) both; transform-origin: top right;
+}
+.menu-head { display: flex; align-items: center; gap: 10px; padding: 6px 8px 10px; margin-bottom: 4px; border-bottom: 1px solid color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+.menu-head-text { min-width: 0; }
+.menu-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 40px; padding: 4px 12px; border-radius: 12px; text-align: left; font-weight: 700; font-size: 14px; color: var(--text); transition: background 0.15s; }
+.menu-item:hover, .menu-item:focus-visible { background: color-mix(in srgb, var(--md-on-surface) 9%, transparent); outline: none; }
+.menu-item > svg { flex: none; color: var(--text-2); }
+.menu-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-count { font-size: 12px; color: var(--text-3); }
+.menu-label { padding: 10px 12px 4px; font-size: 12px; font-weight: 800; color: var(--text-3); }
+.menu-scroll { overflow-y: auto; min-height: 0; }
+
+.toast.info { background: var(--md-inverse-surface, var(--md-surface-container-highest)); color: var(--md-inverse-on-surface, var(--text)); }
+
+@media (max-width: 900px) {
+  .nav-heading span, .new-pl span { display: none; }
+  .nav-heading { justify-content: center; padding: 0; }
+  .row-like { display: none; }
+  .row { grid-template-columns: 34px 42px minmax(0, 1fr) 56px 32px; }
+  .with-album .row { grid-template-columns: 34px 42px minmax(0, 1.5fr) minmax(0, 1fr) 56px 32px; }
+  .pl-art.xl { width: 160px; height: 160px; }
 }

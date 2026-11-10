@@ -11,12 +11,13 @@ Lecteur de musique léger et rapide, écrit en Rust avec Tauri.
 - **yt-dlp géré automatiquement** : téléchargé depuis les versions officielles, avec vérification de la signature OpenPGP de yt-dlp et de l'empreinte SHA-256, puis mis à jour toutes les 12 h sans coupure. On utilise la version « dossier », qui démarre en 0,5 s au lieu de 2 s.
 
 - **Fiches d'artistes** : photo, titres populaires, albums, singles et EP, artistes similaires. Chaque artiste d'un morceau (invités compris) est cliquable séparément.
+- **Titres likés et playlists** : un cœur sur chaque morceau (listes, lecteur, vue « En lecture »), et des playlists qui mélangent bibliothèque locale, Deezer et YouTube. Clic droit ou « ⋯ » sur un morceau pour l'ajouter, glisser-déposer pour réordonner, clic sur le nom pour renommer. Tout est gardé dans `collection.json`, dans les données de l'app.
 - **Fiches d'albums** : pochette, artistes, année, durée, liste des morceaux et maison de disques. Le nom d'un album est cliquable partout où il apparaît.
 - **Statut Discord** : « Écoute *titre* », l'artiste, la pochette et la barre de progression. Très peu d'envois (seulement aux changements), et rien ne se passe si Discord est fermé.
-- **Paroles synchronisées** via [LRCLIB](https://lrclib.net) : la ligne en cours s'allume, et un clic sur une ligne y amène la lecture.
+- **Paroles synchronisées au mot près** : NetEase Cloud Music (format YRC) pour le minutage de chaque mot, [LRCLIB](https://lrclib.net) en parallèle (lignes, ou mots en Enhanced LRC). Sans minutage au mot, il est estimé d'après la longueur des mots, sans s'étaler sur les pauses. Un clic sur une ligne y amène la lecture.
 - **Touches multimédia et panneau multimédia du système** (Windows, MPRIS sous Linux, macOS), avec titre, artiste et pochette.
 - **Interface Material 3 Expressive** : toute l'interface prend les couleurs de la pochette en cours (Material You, via [material-color-utilities](https://github.com/material-foundation/material-color-utilities)), police Google Sans Flex, formes « cookie », boutons qui changent de forme, barre de progression ondulée, transitions floues.
-- **Vue « En lecture »** : la pochette s'envole depuis le lecteur en changeant de forme, paroles façon karaoké (le blanc recouvre le gris au rythme de la chanson).
+- **Vue « En lecture »** : la pochette s'envole depuis le lecteur en changeant de forme, paroles façon karaoké : chaque mot se remplit de blanc au moment où il est chanté.
 
 ## Structure
 
@@ -26,6 +27,7 @@ crates/yato-core/   Cœur Rust, indépendant de l'interface
   src/sources/         Sources fournies (local, deezer, youtube)
   src/stream.rs        Lecteur HTTP progressif
   src/player.rs        Moteur audio (rodio + symphonia) et file d'attente
+  src/collection.rs    Titres likés et playlists (collection.json)
 app/                 Interface (SolidJS + Vite)
 app/src-tauri/       Pont Tauri : commandes, événements, protocole cover://
 ```
@@ -55,6 +57,7 @@ cargo run -p yato-core --example yt -- "vhs mattyeux"
 cargo run -p yato-core --example deezer -- "stromae alors on danse"   # recherche Deezer + lecture du son YouTube
 cargo run -p yato-core --example artist -- "sweat snoop dogg"   # crédits complets, fiches d'artistes, albums
 cargo run -p yato-core --example match   # relie le top Deezer et quelques recherches à YouTube Music
+cargo run -p yato-core --example lyrics -- "tout oublier angele"   # paroles, et minutage des mots (synchronisé ou estimé)
 cargo test -p yato-core -- --include-ignored   # dont la vérification de signature réelle
 ```
 
