@@ -18,18 +18,28 @@ type State =
   | { kind: "downloading"; update: Update; done: number; total: number | null }
   | { kind: "installing"; update: Update };
 
-export function UpdateCard() {
-  const [state, setState] = createSignal<State>({ kind: "idle" });
+// État partagé : la carte l'affiche, la page Réglages peut lancer une vérification.
+const [state, setState] = createSignal<State>({ kind: "idle" });
 
-  const lookup = async () => {
-    if (state().kind !== "idle") return;
-    try {
-      const update = await check();
-      if (update) setState({ kind: "available", update });
-    } catch {
-      // Pas de connexion, pas encore de version publiée, aperçu sans Tauri : on réessaiera.
-    }
-  };
+/**
+ * Cherche une mise à jour. Renvoie `"available"` (la carte apparaît), `"none"` (yato est à
+ * jour) ou `"error"` (pas de connexion…).
+ */
+export async function checkForUpdates(): Promise<"available" | "none" | "error"> {
+  if (state().kind !== "idle") return "available";
+  try {
+    const update = await check();
+    if (!update) return "none";
+    setState({ kind: "available", update });
+    return "available";
+  } catch {
+    return "error";
+  }
+}
+
+export function UpdateCard() {
+  // Échec silencieux (pas de connexion, aperçu sans Tauri…) : on réessaiera plus tard.
+  const lookup = () => void checkForUpdates();
 
   onMount(() => {
     const first = window.setTimeout(lookup, FIRST_CHECK_MS);

@@ -12,6 +12,11 @@ Lecteur de musique léger et rapide, écrit en Rust avec Tauri.
 
 - **Fiches d'artistes** : photo, titres populaires, albums, singles et EP, artistes similaires. Chaque artiste d'un morceau (invités compris) est cliquable séparément.
 - **Titres likés et playlists** : un cœur sur chaque morceau (listes, lecteur, vue « En lecture »), et des playlists qui mélangent bibliothèque locale, Deezer et YouTube. Clic droit ou « ⋯ » sur un morceau pour l'ajouter, glisser-déposer pour réordonner, clic sur le nom pour renommer. Tout est gardé dans `collection.json`, dans les données de l'app.
+- **Aléatoire, répétition (file ou morceau) et fondu enchaîné** réglable de 1 à 12 s (deux lecteurs mixés, courbes à puissance constante).
+- **Reprise de l'écoute** : au lancement, yato retrouve le dernier morceau, la file d'attente et la position.
+- **Écoutés récemment** sur la page Découvrir (un morceau compte après 20 s d'écoute).
+- **Import de playlists** depuis un lien Spotify (sans compte : les morceaux sont retrouvés sur Deezer), Deezer ou YouTube Music.
+- **Réglages** : fondu enchaîné, reprise de l'écoute, statut Discord, historique, mises à jour.
 - **Fiches d'albums** : pochette, artistes, année, durée, liste des morceaux et maison de disques. Le nom d'un album est cliquable partout où il apparaît.
 - **Statut Discord** : « Écoute *titre* », l'artiste, la pochette et la barre de progression. Très peu d'envois (seulement aux changements), et rien ne se passe si Discord est fermé.
 - **Paroles synchronisées au mot près** : NetEase Cloud Music (format YRC) pour le minutage de chaque mot, [LRCLIB](https://lrclib.net) en parallèle (lignes, ou mots en Enhanced LRC). Sans minutage au mot, il est estimé d'après la longueur des mots, sans s'étaler sur les pauses. Un clic sur une ligne y amène la lecture.
@@ -58,6 +63,8 @@ cargo run -p yato-core --example deezer -- "stromae alors on danse"   # recherch
 cargo run -p yato-core --example artist -- "sweat snoop dogg"   # crédits complets, fiches d'artistes, albums
 cargo run -p yato-core --example match   # relie le top Deezer et quelques recherches à YouTube Music
 cargo run -p yato-core --example lyrics -- "tout oublier angele"   # paroles, et minutage des mots (synchronisé ou estimé)
+cargo run -p yato-core --example import -- "https://open.spotify.com/playlist/…"   # import d'une playlist
+cargo run -p yato-core --example playback   # fondu enchaîné, répétition, reprise (à volume zéro)
 cargo test -p yato-core -- --include-ignored   # dont la vérification de signature réelle
 ```
 

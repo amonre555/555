@@ -72,6 +72,9 @@ export interface ArtistCard {
 
 export type Status = "idle" | "loading" | "playing" | "paused" | "error";
 
+/** Répétition : rien, toute la file, ou le morceau en cours. */
+export type Repeat = "off" | "all" | "one";
+
 export interface Snapshot {
   track: Track | null;
   status: Status;
@@ -81,6 +84,8 @@ export interface Snapshot {
   index: number | null;
   queueLen: number;
   error: string | null;
+  shuffle: boolean;
+  repeat: Repeat;
 }
 
 export type YtDlpStatus =
@@ -126,10 +131,35 @@ export interface Playlist {
   created: number;
 }
 
-/** Titres likés (le plus récent en premier) et playlists. */
+/** Un morceau écouté, et quand (millisecondes depuis 1970). */
+export interface Played {
+  track: Track;
+  at: number;
+}
+
+/** Titres likés et historique (le plus récent en premier), playlists. */
 export interface Collection {
   liked: Track[];
   playlists: Playlist[];
+  history: Played[];
+}
+
+/** Résultat d'un import de playlist. */
+export interface ImportResult {
+  collection: Collection;
+  id: string | null;
+  added: number;
+  missing: number;
+}
+
+/** Réglages de l'app (page Réglages). */
+export interface Settings {
+  /** Fondu enchaîné, en secondes (0 : aucun). */
+  crossfade: number;
+  /** Reprendre l'écoute au lancement. */
+  resume: boolean;
+  /** Statut Discord. */
+  discord: boolean;
 }
 
 export const api = {
@@ -163,6 +193,15 @@ export const api = {
   addToPlaylist: (id: string, tracks: Track[]) => invoke<Collection>("add_to_playlist", { id, tracks }),
   removeFromPlaylist: (id: string, trackId: string) => invoke<Collection>("remove_from_playlist", { id, trackId }),
   moveInPlaylist: (id: string, from: number, to: number) => invoke<Collection>("move_in_playlist", { id, from, to }),
+  clearHistory: () => invoke<Collection>("clear_history"),
+  importPlaylist: (url: string) => invoke<ImportResult>("import_playlist", { url }),
+  onImportProgress: (cb: (done: number, total: number) => void): Promise<UnlistenFn> =>
+    listen<[number, number]>("import-progress", (e) => cb(e.payload[0], e.payload[1])),
+  onCollection: (cb: (c: Collection) => void): Promise<UnlistenFn> => listen<Collection>("collection", (e) => cb(e.payload)),
+  getSettings: () => invoke<Settings>("get_settings"),
+  setSettings: (value: Settings) => invoke<Settings>("set_settings", { value }),
+  setShuffle: (on: boolean) => invoke<Snapshot>("set_shuffle", { on }),
+  setRepeat: (repeat: Repeat) => invoke<Snapshot>("set_repeat", { repeat }),
   onPlayer: (cb: (s: Snapshot) => void): Promise<UnlistenFn> =>
     listen<Snapshot>("player", (e) => cb(e.payload)),
   ytdlpStatus: () => invoke<YtDlpStatus>("ytdlp_status"),

@@ -1,4 +1,5 @@
-//! Ta collection : titres likés et playlists, gardés sur disque dans un petit fichier JSON.
+//! Ta collection : titres likés, playlists et historique d'écoute, gardés sur disque dans un
+//! petit fichier JSON.
 //!
 //! Les morceaux sont enregistrés en entier (titre, pochette, emplacement du son…) : une playlist
 //! se lit sans refaire de recherche, et mélange librement bibliothèque locale, Deezer et YouTube.
@@ -27,7 +28,18 @@ pub struct Playlist {
     pub created: u64,
 }
 
-/// Tout ce que l'interface affiche : likes (le plus récent en premier) et playlists.
+/// Un morceau écouté, et quand (millisecondes depuis 1970).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Played {
+    pub track: Track,
+    pub at: u64,
+}
+
+/// Nombre de morceaux gardés dans l'historique.
+const HISTORY_MAX: usize = 200;
+
+/// Tout ce que l'interface affiche : likes et historique (le plus récent en premier), playlists.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionData {
@@ -35,6 +47,8 @@ pub struct CollectionData {
     pub liked: Vec<Track>,
     #[serde(default)]
     pub playlists: Vec<Playlist>,
+    #[serde(default)]
+    pub history: Vec<Played>,
 }
 
 pub struct Collection {
@@ -132,6 +146,23 @@ impl Collection {
         })
     }
 
+    /// Note une écoute : le morceau passe en tête de l'historique (une seule fois).
+    pub fn record_play(&self, track: Track) -> Result<CollectionData> {
+        self.update(|d| {
+            d.history.retain(|p| p.track.id != track.id);
+            d.history.insert(0, Played { track, at: now_ms() });
+            d.history.truncate(HISTORY_MAX);
+            Ok(())
+        })
+    }
+
+    pub fn clear_history(&self) -> Result<CollectionData> {
+        self.update(|d| {
+            d.history.clear();
+            Ok(())
+        })
+    }
+
     /// Déplace un morceau dans une playlist (glisser-déposer).
     pub fn move_in_playlist(&self, id: &str, from: usize, to: usize) -> Result<CollectionData> {
         self.update(|d| {
@@ -210,6 +241,11 @@ mod tests {
         assert_eq!(d.liked.len(), 1);
         assert_eq!(d.playlists[0].name, "Été");
         assert_eq!(d.playlists[0].tracks.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(), ["z", "y"]);
+        c.record_play(track("h1")).unwrap();
+        c.record_play(track("h2")).unwrap();
+        let d = c.record_play(track("h1")).unwrap();
+        assert_eq!(d.history.iter().map(|p| p.track.id.as_str()).collect::<Vec<_>>(), ["h1", "h2"]);
+        assert!(c.clear_history().unwrap().history.is_empty());
         c.delete_playlist(&id).unwrap();
         assert!(Collection::load(&path).get().playlists.is_empty());
         let _ = fs::remove_dir_all(dir);

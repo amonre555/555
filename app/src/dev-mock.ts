@@ -10,7 +10,9 @@ const callbacks = new Map<number, (e: unknown) => void>();
 
 let tracks: Track[] = [];
 let queue: Track[] = [];
-let state: Snapshot = { track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null };
+let state: Snapshot = {
+  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off",
+};
 let startedAt = 0;
 
 const snap = (): Snapshot => {
@@ -23,6 +25,9 @@ setInterval(() => emit("player", snap()), 250);
 function playAt(i: number) {
   state = { ...state, track: queue[i], index: i, status: "playing", position: 0, duration: queue[i].duration, queueLen: queue.length };
   startedAt = performance.now();
+  // Historique : noté tout de suite dans l'aperçu (le cœur attend 20 s d'écoute).
+  coll.history = [{ track: queue[i], at: Date.now() }, ...coll.history.filter((p) => p.track.id !== queue[i].id)].slice(0, 200);
+  setTimeout(() => emit("collection", structuredClone(coll)), 0);
 }
 
 // Morceaux d'exemple (pochettes aléatoires de picsum.photos : l'aperçu n'a pas accès à Deezer).
@@ -87,7 +92,8 @@ const LYRICS: Lyrics = {
 };
 
 // Collection en mémoire (perdue au rechargement de la page).
-const coll: Collection = { liked: [], playlists: [] };
+const coll: Collection = { liked: [], playlists: [], history: [] };
+let settings = { crossfade: 0, resume: true, discord: true };
 let plCounter = 0;
 const copy = (): Collection => structuredClone(coll);
 const pl = (id: string) => {
@@ -99,6 +105,23 @@ const pushUnique = (list: Track[], add: Track[]) => add.forEach((t) => list.some
 
 const handlers: Record<string, (args: any) => unknown> = {
   collection: copy,
+  clear_history: () => ((coll.history = []), copy()),
+  get_settings: () => ({ ...settings }),
+  set_settings: ({ value }) => ((settings = { ...value }), { ...settings }),
+  set_shuffle: ({ on }) => ((state.shuffle = on), snap()),
+  set_repeat: ({ repeat }) => ((state.repeat = repeat), snap()),
+  import_playlist: async ({ url }) => {
+    if (!/spotify|deezer|youtube/.test(String(url))) throw "Lien non reconnu : colle le lien d'une playlist Spotify, Deezer ou YouTube Music.";
+    const all = tracks.length ? tracks : await loadTrending();
+    for (let k = 0; k <= 6; k += 2) {
+      emit("import-progress", [k, 6]);
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    const p = { id: `pl-${++plCounter}`, name: "Playlist importée", tracks: all.slice(2, 8), created: Date.now() };
+    coll.playlists.push(p);
+    return { collection: copy(), id: p.id, added: p.tracks.length, missing: 1 };
+  },
+  "plugin:app|version": () => "0.1.1",
   toggle_like: ({ track }) => {
     const i = coll.liked.findIndex((t) => t.id === track.id);
     if (i >= 0) coll.liked.splice(i, 1);

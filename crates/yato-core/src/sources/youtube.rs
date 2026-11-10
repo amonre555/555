@@ -33,6 +33,13 @@ pub struct YouTubeMusicSource {
 }
 
 impl YouTubeMusicSource {
+    /// Nom et morceaux d'une playlist YouTube / YouTube Music (jusqu'à 5000 morceaux).
+    pub async fn playlist(&self, id: &str) -> Result<(String, Vec<Track>)> {
+        let mut pl = self.rp.query().music_playlist(id).await.map_err(yt_err)?;
+        pl.tracks.extend_limit(self.rp.query(), 5000).await.map_err(yt_err)?;
+        Ok((pl.name, pl.tracks.items.into_iter().map(Track::from).collect()))
+    }
+
     /// `storage_dir` : dossier où rustypipe garde ses jetons en cache.
     /// `ytdlp` : gestionnaire de yt-dlp (installé automatiquement au premier besoin).
     pub fn new(storage_dir: PathBuf, ytdlp: Arc<YtDlp>) -> Result<Self> {

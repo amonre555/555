@@ -4,8 +4,32 @@
 import { createMemo, createSignal } from "solid-js";
 import { api, type Collection, type Playlist, type Track } from "./api";
 
-const [collection, setCollection] = createSignal<Collection>({ liked: [], playlists: [] });
+const [collection, setRawCollection] = createSignal<Collection>({ liked: [], playlists: [], history: [] });
 export { collection };
+
+/**
+ * Le cœur renvoie toute la collection à chaque changement, avec de nouveaux objets. Les listes
+ * (Solid) recréeraient alors chaque ligne et chaque carte, animations comprises. On réutilise
+ * donc l'objet déjà connu de chaque morceau (même identifiant) : seul ce qui change bouge.
+ */
+let known = new Map<string, Track>();
+function setCollection(c: Collection) {
+  const next = new Map<string, Track>();
+  const keep = (t: Track) => {
+    const prev = known.get(t.id);
+    const same = prev && JSON.stringify(prev) === JSON.stringify(t);
+    const kept = same ? prev : t;
+    next.set(t.id, kept);
+    return kept;
+  };
+  const stable: Collection = {
+    liked: c.liked.map(keep),
+    playlists: c.playlists.map((p) => ({ ...p, tracks: p.tracks.map(keep) })),
+    history: c.history.map((h) => ({ ...h, track: keep(h.track) })),
+  };
+  known = next;
+  setRawCollection(stable);
+}
 
 /** Identifiants des titres likés (test rapide pour chaque ligne). */
 const likedIds = createMemo(() => new Set(collection().liked.map((t) => t.id)));
@@ -41,6 +65,37 @@ async function apply(action: Promise<Collection>): Promise<Collection | null> {
 
 export async function loadCollection() {
   await apply(api.collection());
+  // Le cœur prévient quand il note une écoute (historique) : on suit sans redemander.
+  api.onCollection(setCollection).catch(() => {});
+}
+
+export async function clearHistory() {
+  if (await apply(api.clearHistory())) notify("Historique effacé");
+}
+
+/** Morceaux écoutés récemment, sans doublons, du plus récent au plus ancien. */
+export const recentTracks = createMemo(() => collection().history.map((p) => p.track));
+
+/**
+ * Importe une playlist depuis un lien. `onProgress` suit la recherche des morceaux (Spotify).
+ * Renvoie l'identifiant de la nouvelle playlist, ou `null` en cas d'échec (déjà signalé).
+ */
+export async function importPlaylist(url: string, onProgress: (done: number, total: number) => void): Promise<string | null> {
+  const stop = await api.onImportProgress(onProgress).catch(() => null);
+  try {
+    const r = await api.importPlaylist(url);
+    setCollection(r.collection);
+    const name = r.collection.playlists.find((p) => p.id === r.id)?.name ?? "la playlist";
+    const titles = (n: number) => `${n} titre${n > 1 ? "s" : ""}`;
+    const missing = r.missing ? `, ${r.missing} introuvable${r.missing > 1 ? "s" : ""}` : "";
+    notify(`« ${name} » importée : ${titles(r.added)}${missing}`);
+    return r.id;
+  } catch (e) {
+    fail(e);
+    return null;
+  } finally {
+    stop?.();
+  }
 }
 
 export async function toggleLike(t: Track) {

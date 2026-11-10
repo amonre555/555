@@ -300,7 +300,7 @@ html[data-vt] .content { view-transition-name: page; }
 @keyframes bob { 0%, 100% { opacity: 0.3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-6px); } }
 
 .toast {
-  position: fixed; left: 50%; bottom: calc(var(--player-h) + var(--gap) * 3); translate: -50% 0; z-index: 80;
+  position: fixed; left: 50%; bottom: calc(var(--player-h) + var(--gap) * 3); translate: -50% 0; z-index: 100; /* au-dessus des fenêtres */
   max-width: min(560px, 90vw); padding: 13px 20px; border-radius: 999px; cursor: pointer;
   background: var(--md-error-container); color: var(--md-on-error-container); box-shadow: var(--shadow); animation: pop-in 0.45s var(--bounce) both;
 }
@@ -366,6 +366,12 @@ html[data-vt] .content { view-transition-name: page; }
 @keyframes pop { from { opacity: 0; transform: scale(0.5); } }
 @keyframes breathe { 50% { transform: scale(0.92); opacity: 0.7; } }
 .buttons.big { gap: 30px; }
+/* Aléatoire et répétition : plus discrets que les commandes de lecture ; un point quand ils sont actifs. */
+.icon-btn.mode { position: relative; width: 34px; height: 34px; color: var(--text-3); }
+.icon-btn.mode.active { color: var(--accent); }
+.icon-btn.mode.active::after { content: ""; position: absolute; bottom: 2px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: currentColor; }
+.buttons.big .icon-btn.mode { width: 44px; height: 44px; color: var(--text-2); }
+.buttons.big .icon-btn.mode.active { color: var(--accent); }
 .buttons.big .play-btn { width: 76px; height: 76px; background: var(--md-primary-container); color: var(--md-on-primary-container); }
 .buttons.big .icon-btn { width: 50px; height: 50px; color: var(--text); }
 
@@ -692,3 +698,46 @@ html[data-vt="back"]::view-transition-new(page) { animation: blur-in-back 0.55s 
   .with-album .row { grid-template-columns: 34px 42px minmax(0, 1.5fr) minmax(0, 1fr) 56px 32px; }
   .pl-art.xl { width: 160px; height: 160px; }
 }
+
+/* =========================================================================
+   Réglages, import de playlist
+   ========================================================================= */
+/* Réglages en bas de la barre latérale ; carte de mise à jour et moteur YouTube juste dessous. */
+.nav-settings { margin-top: auto; flex: none; }
+.nav-settings.active { background: var(--md-secondary-container); }
+.nav-settings ~ .update-card, .nav-settings ~ .engine { margin-top: -16px; }
+.nav-heading-actions { display: flex; gap: 2px; }
+
+.settings-page { max-width: 760px; }
+.settings-group { margin-top: 30px; }
+.settings-group .section-title { margin-bottom: 8px; }
+.setting {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 16px 18px;
+  background: var(--surface); border-radius: 6px;
+}
+.setting:first-of-type { border-top-left-radius: var(--r-md); border-top-right-radius: var(--r-md); }
+.setting:last-of-type { border-bottom-left-radius: var(--r-md); border-bottom-right-radius: var(--r-md); }
+.setting + .setting { margin-top: 2px; }
+.setting-title { font-weight: 700; }
+.setting-hint { margin-top: 2px; font-size: 13px; color: var(--text-2); }
+.setting-control { flex: none; display: flex; align-items: center; }
+.setting-control .ghost { height: 38px; padding: 0 16px; font-size: 13px; }
+.setting-range { display: flex; align-items: center; gap: 12px; }
+.setting-range .slider { width: 160px; flex: none; }
+.setting-value { min-width: 72px; font-size: 13px; font-weight: 700; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+/* Interrupteur Material 3 : le rond grossit et glisse quand il est activé. */
+.switch { position: relative; width: 52px; height: 32px; border-radius: 999px; background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--md-outline-variant, var(--text-3)); transition: background 0.25s, box-shadow 0.25s; }
+.switch-thumb { position: absolute; top: 50%; left: 8px; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; background: var(--text-3); transition: transform 0.35s var(--bounce), width 0.25s, height 0.25s, margin 0.25s, background 0.25s; }
+.switch.on { background: var(--md-primary); box-shadow: none; }
+.switch.on .switch-thumb { transform: translateX(20px); width: 24px; height: 24px; margin-top: -12px; margin-left: -4px; background: var(--md-on-primary); }
+.switch:active .switch-thumb { width: 28px; height: 28px; margin-top: -14px; margin-left: -6px; }
+
+.dialog-layer { position: fixed; inset: 0; z-index: 95; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.45); animation: fade-in 0.2s var(--soft) both; }
+.dialog { width: min(520px, 100%); padding: 22px; border-radius: var(--r-lg); background: var(--md-surface-container-high); box-shadow: var(--shadow); animation: pop-in 0.35s var(--bounce) both; display: flex; flex-direction: column; gap: 12px; }
+.dialog-head { display: flex; align-items: center; justify-content: space-between; }
+.dialog-head h2 { margin: 0; }
+.dialog-input { height: 46px; padding: 0 16px; border-radius: 14px; border: 0; outline: 0; background: var(--surface-2); color: var(--text); font: inherit; box-shadow: 0 0 0 2px transparent; transition: box-shadow 0.2s; }
+.dialog-input:focus { box-shadow: 0 0 0 2px var(--accent); }
+.dialog-progress { display: flex; flex-direction: column; gap: 6px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }

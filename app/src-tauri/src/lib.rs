@@ -2,6 +2,7 @@
 
 mod discord;
 mod media;
+mod settings;
 
 use std::{
     path::{Path, PathBuf},
@@ -10,7 +11,7 @@ use std::{
 };
 
 use yato_core::{
-    ArtistRef, Collection, CollectionData, Controller, Error, Snapshot, SourceInfo, SourceRegistry, Track,
+    ArtistRef, Collection, CollectionData, Controller, Error, Repeat, Session, Snapshot, SourceInfo, SourceRegistry, Track,
     lyrics::{Lyrics, LyricsClient},
     sources::{
         DeezerSource, LocalLibrary, YouTubeMusicSource,
@@ -20,7 +21,9 @@ use yato_core::{
     ytdlp::{YtDlp, YtDlpStatus},
 };
 use percent_encoding::percent_decode_str;
-use tauri::{Emitter, Manager, State, http};
+use parking_lot::Mutex;
+use settings::Settings;
+use tauri::{Emitter, Manager, RunEvent, State, http};
 
 type Res<T> = Result<T, Error>;
 
@@ -32,7 +35,21 @@ struct AppState {
     /// Source d'infos : fiches d'artistes et albums.
     deezer: Arc<DeezerSource>,
     collection: Collection,
+    youtube: Arc<YouTubeMusicSource>,
+    client: yato_core::reqwest::Client,
     cache_path: PathBuf,
+    settings: Mutex<Settings>,
+    settings_path: PathBuf,
+    /// Écoute en cours, gardée pour le prochain lancement.
+    session_path: PathBuf,
+}
+
+impl AppState {
+    fn save_session(&self) {
+        if self.settings.lock().resume {
+            let _ = settings::save(&self.session_path, &self.controller.session());
+        }
+    }
 }
 
 const SEARCH_LIMIT: usize = 50;
@@ -124,6 +141,56 @@ fn remove_from_playlist(state: State<'_, AppState>, id: String, track_id: String
 }
 
 #[tauri::command]
+fn clear_history(state: State<'_, AppState>) -> Res<CollectionData> {
+    state.collection.clear_history()
+}
+
+/// Résultat d'un import : la collection à jour, la nouvelle playlist, et ce qui manque.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ImportResult {
+    collection: CollectionData,
+    id: Option<String>,
+    added: usize,
+    missing: usize,
+}
+
+/// Importe une playlist depuis un lien (Spotify, Deezer, YouTube Music) et la crée ici.
+/// L'avancement (recherche des morceaux Spotify) arrive par l'événement `import-progress`.
+#[tauri::command]
+async fn import_playlist(app: tauri::AppHandle, state: State<'_, AppState>, url: String) -> Res<ImportResult> {
+    let progress = |done: usize, total: usize| {
+        let _ = app.emit("import-progress", (done, total));
+    };
+    let found = yato_core::import::import(&url, &state.client, &state.deezer, &state.youtube, progress).await?;
+    if found.tracks.is_empty() {
+        return Err(Error::Other("Aucun morceau de cette playlist n'a été trouvé.".into()));
+    }
+    let added = found.tracks.len();
+    let collection = state.collection.create_playlist(found.name, found.tracks)?;
+    let id = collection.playlists.last().map(|p| p.id.clone());
+    Ok(ImportResult { collection, id, added, missing: found.missing })
+}
+
+// ---------- Réglages ----------
+
+#[tauri::command]
+fn get_settings(state: State<'_, AppState>) -> Settings {
+    state.settings.lock().clone()
+}
+
+#[tauri::command]
+fn set_settings(state: State<'_, AppState>, value: Settings) -> Res<Settings> {
+    state.controller.set_crossfade(value.crossfade);
+    *state.settings.lock() = value.clone();
+    settings::save(&state.settings_path, &value)?;
+    if !value.resume {
+        let _ = std::fs::remove_file(&state.session_path);
+    }
+    Ok(value)
+}
+
+#[tauri::command]
 fn move_in_playlist(state: State<'_, AppState>, id: String, from: usize, to: usize) -> Res<CollectionData> {
     state.collection.move_in_playlist(&id, from, to)
 }
@@ -193,6 +260,18 @@ async fn seek(state: State<'_, AppState>, position: f64) -> Res<Snapshot> {
 async fn prefetch(state: State<'_, AppState>, track: Track) -> Res<()> {
     state.controller.prefetch(track);
     Ok(())
+}
+
+#[tauri::command]
+fn set_shuffle(state: State<'_, AppState>, on: bool) -> Snapshot {
+    state.controller.set_shuffle(on);
+    state.controller.snapshot()
+}
+
+#[tauri::command]
+fn set_repeat(state: State<'_, AppState>, repeat: Repeat) -> Snapshot {
+    state.controller.set_repeat(repeat);
+    state.controller.snapshot()
 }
 
 #[tauri::command]
@@ -272,7 +351,7 @@ fn cover_response(uri_path: &str) -> http::Response<Vec<u8>> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         // Mises à jour automatiques, publiées dans les Releases GitHub (voir .github/workflows).
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -286,6 +365,9 @@ pub fn run() {
             let cache_path = app.path().app_data_dir()?.join("library.json");
             let library = Arc::new(LocalLibrary::load(&cache_path));
             let collection = Collection::load(&app.path().app_data_dir()?.join("collection.json"));
+            let settings_path = app.path().app_data_dir()?.join("settings.json");
+            let session_path = app.path().app_data_dir()?.join("session.json");
+            let prefs: Settings = settings::load(&settings_path);
             let client = yato_core::http_client();
 
             // yt-dlp géré par yato : installé, vérifié (signature) et mis à jour automatiquement.
@@ -299,17 +381,26 @@ pub fn run() {
             let mut sources = SourceRegistry::new();
             sources.register(library.clone());
             sources.register(deezer.clone());
-            sources.register(youtube);
+            sources.register(youtube.clone());
 
             let controller = Controller::new(Arc::new(sources), client.clone())?;
+            controller.set_crossfade(prefs.crossfade);
+            if prefs.resume {
+                controller.restore(settings::load::<Session>(&session_path));
+            }
             app.manage(AppState {
                 controller: controller.clone(),
-                lyrics: LyricsClient::new(client),
+                lyrics: LyricsClient::new(client.clone()),
                 ytdlp: ytdlp.clone(),
                 library,
                 deezer,
                 collection,
+                youtube,
+                client: client.clone(),
                 cache_path,
+                settings: Mutex::new(prefs),
+                settings_path,
+                session_path,
             });
 
             // Touches multimédia et panneau multimédia du système.
@@ -335,26 +426,69 @@ pub fn run() {
             });
             tauri::async_runtime::spawn(async move { ytdlp.maintain().await });
 
-            // Boucle d'état : enchaîne les morceaux et pousse l'état à l'interface 4 fois par seconde.
+            // Boucle d'état, 4 fois par seconde : enchaîne les morceaux (et les fondus), pousse
+            // l'état à l'interface, note les écoutes et garde la session.
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
+                let state = handle.state::<AppState>();
                 let mut interval = tokio::time::interval(Duration::from_millis(250));
                 let mut last: Option<Snapshot> = None;
+                let mut last_discord: Option<Snapshot> = None;
+                let mut recorded: Option<String> = None;
+                let mut saved: Option<Session> = None;
+                let mut saved_at = std::time::Instant::now();
                 loop {
                     interval.tick().await;
-                    if controller.tick() {
-                        let _ = controller.next().await;
-                    }
+                    controller.tick().await;
                     let snap = controller.snapshot();
                     if last.as_ref() != Some(&snap) {
                         if let Some(media) = &media {
                             let _ = media.send(snap.clone());
                         }
-                        if let Some(discord) = &discord {
-                            let _ = discord.send(snap.clone());
-                        }
                         let _ = handle.emit("player", &snap);
-                        last = Some(snap);
+                        last = Some(snap.clone());
+                    }
+
+                    // Discord : statut effacé quand il est désactivé dans les réglages.
+                    if let Some(discord) = &discord {
+                        let shown = if state.settings.lock().discord {
+                            snap.clone()
+                        } else {
+                            Snapshot { track: None, status: yato_core::Status::Idle, ..snap.clone() }
+                        };
+                        if last_discord.as_ref() != Some(&shown) {
+                            let _ = discord.send(shown.clone());
+                            last_discord = Some(shown);
+                        }
+                    }
+
+                    // Historique : un morceau compte comme écouté après 20 s (ou la moitié s'il
+                    // est court), une fois par passage.
+                    if let Some(track) = &snap.track {
+                        if recorded.as_deref() != Some(track.id.as_str()) && snap.status == yato_core::Status::Playing {
+                            let needed = snap.duration.map_or(20.0, |d| (d / 2.0).min(20.0));
+                            if snap.position >= needed {
+                                recorded = Some(track.id.clone());
+                                if let Ok(c) = state.collection.record_play(track.clone()) {
+                                    let _ = handle.emit("collection", &c);
+                                }
+                            }
+                        }
+                    }
+
+                    // Session : enregistrée quand elle change, et toutes les 10 s pendant la lecture.
+                    let session = controller.session();
+                    let changed = saved.as_ref().is_none_or(|s| {
+                        s.index != session.index || s.queue.len() != session.queue.len() || s.shuffle != session.shuffle
+                            || s.repeat != session.repeat || s.volume != session.volume
+                    });
+                    let playing = snap.status == yato_core::Status::Playing;
+                    if changed || (playing && saved_at.elapsed() >= Duration::from_secs(10)) {
+                        if saved.as_ref() != Some(&session) {
+                            state.save_session();
+                        }
+                        saved = Some(session);
+                        saved_at = std::time::Instant::now();
                     }
                 }
             });
@@ -392,7 +526,19 @@ pub fn run() {
             add_to_playlist,
             remove_from_playlist,
             move_in_playlist,
+            clear_history,
+            import_playlist,
+            get_settings,
+            set_settings,
+            set_shuffle,
+            set_repeat,
         ])
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .expect("erreur au lancement de yato");
+    app.run(|handle, event| {
+        // En quittant : la position exacte, pour reprendre pile au même endroit.
+        if let RunEvent::Exit = event {
+            handle.state::<AppState>().save_session();
+        }
+    });
 }

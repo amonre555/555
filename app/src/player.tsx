@@ -1,7 +1,7 @@
 // Lecteur : fond vivant, barre de lecture flottante, vue « En lecture » avec paroles.
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
 import { api, bigCoverUrl, coverUrl, formatTime, type ArtistRef, type LyricWord, type Lyrics, type Snapshot, type Track } from "./api";
-import { IconChevronDown, IconLyrics, IconMinus, IconNext, IconPause, IconPlay, IconPlus, IconPrev, IconVolume } from "./icons";
+import { IconChevronDown, IconLyrics, IconMinus, IconNext, IconPause, IconPlay, IconPlus, IconPrev, IconRepeat, IconShuffle, IconVolume } from "./icons";
 import { AlbumLink, ArtistLinks, Cover, LikeButton } from "./ui";
 import { themeFromCover } from "./theme";
 import { cookie, PLAYER_COOKIE, roundedSquare } from "./shapes";
@@ -105,9 +105,25 @@ export function PlayerBar(props: {
   );
 }
 
+/** Répétition suivante quand on clique : rien → toute la file → ce morceau → rien. */
+const NEXT_REPEAT = { off: "all", all: "one", one: "off" } as const;
+const REPEAT_TITLE = {
+  off: "Répéter la file",
+  all: "Répéter ce morceau",
+  one: "Ne plus répéter",
+} as const;
+
 function Transport(props: { snap: Snapshot; run: Run; playing: boolean; big?: boolean }) {
   return (
     <div classList={{ buttons: true, big: !!props.big }}>
+      <button
+        classList={{ "icon-btn": true, mode: true, active: props.snap.shuffle }}
+        title={props.snap.shuffle ? "Désactiver la lecture aléatoire" : "Lecture aléatoire"}
+        aria-pressed={props.snap.shuffle}
+        onClick={() => props.run(() => api.setShuffle(!props.snap.shuffle))}
+      >
+        <IconShuffle />
+      </button>
       <button class="icon-btn" title="Précédent (Alt+←)" onClick={() => props.run(api.previous)} disabled={!props.snap.track}>
         <IconPrev />
       </button>
@@ -123,6 +139,14 @@ function Transport(props: { snap: Snapshot; run: Run; playing: boolean; big?: bo
       </button>
       <button class="icon-btn" title="Suivant (Alt+→)" onClick={() => props.run(api.next)} disabled={!props.snap.track}>
         <IconNext />
+      </button>
+      <button
+        classList={{ "icon-btn": true, mode: true, active: props.snap.repeat !== "off" }}
+        title={REPEAT_TITLE[props.snap.repeat]}
+        aria-label={REPEAT_TITLE[props.snap.repeat]}
+        onClick={() => props.run(() => api.setRepeat(NEXT_REPEAT[props.snap.repeat]))}
+      >
+        <IconRepeat one={props.snap.repeat === "one"} />
       </button>
     </div>
   );

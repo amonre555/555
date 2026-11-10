@@ -5,17 +5,18 @@ import { AlbumView } from "./album";
 import { ArtistView } from "./artist";
 import { nameForTransition, transition } from "./motion";
 import { pageRequest, type Page } from "./nav";
-import { IconClose, IconCompass, IconFolderPlus, IconHeart, IconLibrary, IconNote, IconPlay, IconPlus, IconRefresh, IconSearch } from "./icons";
-import { collection, createPlaylist, dismissToast, loadCollection, notify, toast } from "./collection";
+import { IconClose, IconCompass, IconFolderPlus, IconHeart, IconLibrary, IconLink, IconNote, IconPlay, IconPlus, IconRefresh, IconSearch, IconSettings } from "./icons";
+import { collection, createPlaylist, dismissToast, loadCollection, notify, recentTracks, toast } from "./collection";
+import { ImportDialog, SettingsView } from "./settings";
 import { LikedView, PlaylistView } from "./playlist";
 import { UpdateCard } from "./update";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
 import { AlbumLink, ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, PlaylistArt, SourceTag, TrackCard, TrackList, TrackMenuHost, YtDlpBadge } from "./ui";
 
-type View = "discover" | "library" | "liked" | "playlist" | "search" | "artist" | "album";
+type View = "discover" | "library" | "liked" | "playlist" | "settings" | "search" | "artist" | "album";
 
 const EMPTY: Snapshot = {
-  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null,
+  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off",
 };
 
 export default function App() {
@@ -50,6 +51,8 @@ export default function App() {
   /** Playlist affichée (vue « playlist »), et si son nom est à saisir (elle vient d'être créée). */
   const [playlistId, setPlaylistId] = createSignal<string | null>(null);
   const [naming, setNaming] = createSignal(false);
+  /** Fenêtre « Importer une playlist » ouverte. */
+  const [importing, setImporting] = createSignal(false);
   let content!: HTMLElement;
   let pageLoad = 0;
 
@@ -330,20 +333,24 @@ export default function App() {
               label: p.name,
               icon: <PlaylistArt id={p.id} class="nav-art" />,
               count: p.tracks.length,
-              before: i === 0 ? <PlaylistsHeading onNew={newPlaylist} /> : undefined,
+              before: i === 0 ? <PlaylistsHeading onNew={newPlaylist} onImport={() => setImporting(true)} /> : undefined,
             })),
           ]}
           onSelect={(id) => (id.startsWith("pl:") ? openPlaylist(id.slice(3)) : goTo(id as View))}
         />
         <Show when={collection().playlists.length === 0}>
           <div class="sidenav-extra">
-            <PlaylistsHeading onNew={newPlaylist} />
+            <PlaylistsHeading onNew={newPlaylist} onImport={() => setImporting(true)} />
             <button class="nav new-pl" onClick={newPlaylist}>
               <IconPlus size={20} />
               <span>Nouvelle playlist</span>
             </button>
           </div>
         </Show>
+        <button classList={{ nav: true, "nav-settings": true, active: view() === "settings" }} title="Réglages" onClick={() => goTo("settings")}>
+          <IconSettings />
+          <span>Réglages</span>
+        </button>
         <UpdateCard />
         <YtDlpBadge status={ytdlp()} />
       </aside>
@@ -499,11 +506,25 @@ export default function App() {
               {(id) => <PlaylistView id={id()} editing={naming()} snap={snap()} onPlay={play} onDeleted={() => goTo("library")} />}
             </Match>
 
+            <Match when={view() === "settings"}>
+              <SettingsView onImport={() => setImporting(true)} onLibrary={() => goTo("library")} />
+            </Match>
+
             <Match when={view() === "discover"}>
               <Show when={featured()} fallback={<Loader />}>
                 {(list) => (
                   <Show when={list().length > 0} fallback={<Empty text="Impossible de charger le top du moment." />}>
                     <Hero track={list()[0]} playing={isCurrent(list()[0])} onPlay={() => play(list(), 0)} label="N°1 du moment" />
+                    <Show when={recentTracks().length > 0}>
+                      <section class="section">
+                        <h2 class="section-title">Écoutés récemment</h2>
+                        <div class="grid recent">
+                          <For each={recentTracks().slice(0, 6)}>
+                            {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(recentTracks(), i())} />}
+                          </For>
+                        </div>
+                      </section>
+                    </Show>
                     <section class="section">
                       <h2 class="section-title">En ce moment</h2>
                       <div class="grid">
@@ -532,6 +553,16 @@ export default function App() {
       </Show>
 
       <TrackMenuHost onOpenPlaylist={(id) => openPlaylist(id)} />
+
+      <Show when={importing()}>
+        <ImportDialog
+          onClose={() => setImporting(false)}
+          onDone={(id) => {
+            setImporting(false);
+            openPlaylist(id);
+          }}
+        />
+      </Show>
 
       <Show when={toast()} keyed>
         {(t) => (
@@ -627,14 +658,19 @@ function SideNav<T extends string>(props: {
   );
 }
 
-/** Titre « Playlists » de la barre latérale, avec le bouton de création. */
-function PlaylistsHeading(props: { onNew: () => void }) {
+/** Titre « Playlists » de la barre latérale, avec l'import et la création. */
+function PlaylistsHeading(props: { onNew: () => void; onImport: () => void }) {
   return (
     <div class="nav-heading">
       <span>Playlists</span>
-      <button class="icon-btn" title="Nouvelle playlist" onClick={props.onNew}>
-        <IconPlus />
-      </button>
+      <div class="nav-heading-actions">
+        <button class="icon-btn" title="Importer une playlist (Spotify, Deezer, YouTube Music)" onClick={props.onImport}>
+          <IconLink />
+        </button>
+        <button class="icon-btn" title="Nouvelle playlist" onClick={props.onNew}>
+          <IconPlus />
+        </button>
+      </div>
     </div>
   );
 }

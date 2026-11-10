@@ -5,7 +5,11 @@
 //! le même enregistrement sur YouTube Music ([`YouTubeMusicSource::find_match`]) et c'est lui qu'on
 //! lit. Comme dans Nuclear : une source pour les infos, une source pour le son.
 
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use async_trait::async_trait;
 use parking_lot::Mutex;
@@ -20,6 +24,9 @@ use crate::{
 const API: &str = "https://api.deezer.com";
 /// Correspondances Deezer → YouTube gardées en mémoire.
 const MATCHES_MAX: usize = 2000;
+/// Deezer accepte 50 requêtes par 5 s : on reste un peu en dessous.
+const QUOTA: usize = 45;
+const QUOTA_WINDOW: Duration = Duration::from_secs(5);
 
 pub struct DeezerSource {
     client: reqwest::Client,
@@ -28,6 +35,8 @@ pub struct DeezerSource {
     matches: Mutex<HashMap<String, String>>,
     /// Artistes complets d'un morceau (avec les invités), déjà demandés.
     credits: Mutex<HashMap<String, Vec<ArtistRef>>>,
+    /// Heures des dernières requêtes, pour respecter le quota de Deezer.
+    sent: Mutex<VecDeque<Instant>>,
 }
 
 // ---------- Ce que renvoie l'API ----------
@@ -207,10 +216,51 @@ fn to_track(t: DzTrack, album: Option<AlbumInfo>) -> Track {
 
 impl DeezerSource {
     pub fn new(client: reqwest::Client, youtube: Arc<YouTubeMusicSource>) -> Self {
-        Self { client, youtube, matches: Mutex::new(HashMap::new()), credits: Mutex::new(HashMap::new()) }
+        Self {
+            client,
+            youtube,
+            matches: Mutex::new(HashMap::new()),
+            credits: Mutex::new(HashMap::new()),
+            sent: Mutex::new(VecDeque::new()),
+        }
+    }
+
+    /// Attend, si besoin, que le quota de Deezer permette une nouvelle requête (utile pendant
+    /// un import de playlist, qui en enchaîne beaucoup ; sans effet en usage normal).
+    async fn wait_quota(&self) {
+        loop {
+            let wait = {
+                let mut sent = self.sent.lock();
+                let now = Instant::now();
+                while sent.front().is_some_and(|t| now.duration_since(*t) >= QUOTA_WINDOW) {
+                    sent.pop_front();
+                }
+                if sent.len() < QUOTA {
+                    sent.push_back(now);
+                    return;
+                }
+                QUOTA_WINDOW - now.duration_since(sent[0])
+            };
+            tokio::time::sleep(wait).await;
+        }
     }
 
     async fn get<T: DeserializeOwned>(&self, path: &str, query: &[(&str, String)]) -> Result<T> {
+        // Quota dépassé malgré tout (autre appli sur la même connexion…) : on attend et on
+        // réessaie, deux fois au plus.
+        for attempt in 0.. {
+            match self.get_once(path, query).await {
+                Err(Error::Other(msg)) if msg.contains("Quota") && attempt < 2 => {
+                    tokio::time::sleep(QUOTA_WINDOW).await;
+                }
+                other => return other,
+            }
+        }
+        unreachable!()
+    }
+
+    async fn get_once<T: DeserializeOwned>(&self, path: &str, query: &[(&str, String)]) -> Result<T> {
+        self.wait_quota().await;
         let body: serde_json::Value = self
             .client
             .get(format!("{API}{path}"))
@@ -239,6 +289,51 @@ impl DeezerSource {
     async fn tracks(&self, path: &str, query: &[(&str, String)]) -> Result<Vec<Track>> {
         let data: Vec<DzTrack> = self.list(path, query).await?;
         Ok(data.into_iter().filter(|t| t.readable).map(|t| to_track(t, None)).collect())
+    }
+
+    /// Nom et morceaux d'une playlist publique Deezer (toutes les pages).
+    pub async fn playlist(&self, id: &str) -> Result<(String, Vec<Track>)> {
+        #[derive(Deserialize)]
+        struct Info {
+            title: String,
+        }
+        let info: Info = self.get(&format!("/playlist/{id}"), &[]).await?;
+        const PAGE: usize = 400;
+        let mut tracks = Vec::new();
+        loop {
+            let page: Vec<DzTrack> =
+                self.list(&format!("/playlist/{id}/tracks"), &[("index", tracks.len().to_string()), ("limit", PAGE.to_string())]).await?;
+            let n = page.len();
+            tracks.extend(page.into_iter().filter(|t| t.readable).map(|t| to_track(t, None)));
+            if n < PAGE || tracks.len() >= 5000 {
+                break;
+            }
+        }
+        Ok((info.title, tracks))
+    }
+
+    /// Le morceau Deezer qui correspond à un titre, un artiste et une durée venus d'ailleurs
+    /// (import d'une playlist Spotify) : recherche précise, puis large ; durée à ±5 s.
+    pub async fn find_track(&self, title: &str, artist: &str, duration: Option<f64>) -> Result<Option<Track>> {
+        let norm = |s: &str| s.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect::<String>();
+        let (t, a) = (norm(title), norm(artist));
+        let fits = |x: &Track| {
+            let close = match (duration, x.duration) {
+                (Some(d), Some(e)) => (d - e).abs() <= 5.0,
+                _ => true,
+            };
+            let xt = norm(&x.title);
+            let xa = norm(&x.artist);
+            close && (xt.contains(&t) || t.contains(&xt)) && (xa.contains(&a) || a.contains(&xa) || a.is_empty())
+        };
+        let precise = format!("track:\"{title}\" artist:\"{artist}\"");
+        for q in [precise, format!("{artist} {title}")] {
+            let found = self.tracks("/search", &[("q", q), ("limit", "10".into())]).await?;
+            if let Some(hit) = found.into_iter().find(|x| fits(x)) {
+                return Ok(Some(hit));
+            }
+        }
+        Ok(None)
     }
 
     /// L'identifiant YouTube du même morceau (trouvé une fois, puis gardé).
