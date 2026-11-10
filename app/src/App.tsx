@@ -1,11 +1,13 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { createMemo, createSignal, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
-import { api, bigCoverUrl, formatTime, type Snapshot, type SourceInfo, type Track, type YtDlpStatus } from "./api";
+import { createEffect, createMemo, createSignal, For, Match, on, onCleanup, onMount, Show, Switch } from "solid-js";
+import { api, bigCoverUrl, formatTime, type ArtistPage, type ArtistRef, type Snapshot, type SourceInfo, type Track, type YtDlpStatus } from "./api";
+import { ArtistView } from "./artist";
+import { artistRequest } from "./nav";
 import { IconClose, IconCompass, IconFolderPlus, IconLibrary, IconNote, IconPlay, IconRefresh, IconSearch } from "./icons";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
-import { cancelHover, Cover, Empty, hoverPrefetch, Loader, SourceTag, TrackCard, TrackList, YtDlpBadge } from "./ui";
+import { ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, SourceTag, TrackCard, TrackList, YtDlpBadge } from "./ui";
 
-type View = "discover" | "library" | "search";
+type View = "discover" | "library" | "search" | "artist";
 
 const EMPTY: Snapshot = {
   track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null,
@@ -25,6 +27,49 @@ export default function App() {
   const [ytdlp, setYtdlp] = createSignal<YtDlpStatus>({ state: "unknown" });
   const [expanded, setExpanded] = createSignal(false);
   let searchInput!: HTMLInputElement;
+
+  // ---------- Fiches d'artistes ----------
+  // Historique pour « Retour » : la page d'où l'on vient (et l'artiste affiché, le cas échéant).
+  const [artist, setArtist] = createSignal<ArtistRef | null>(null);
+  const [artistPage, setArtistPage] = createSignal<ArtistPage | null | undefined>(undefined);
+  const [history, setHistory] = createSignal<{ view: View; artist: ArtistRef | null }[]>([]);
+  let artistLoad = 0;
+  const showArtist = async (a: ArtistRef) => {
+    setArtist(a);
+    setArtistPage(undefined);
+    setView("artist");
+    document.querySelector(".content")?.scrollTo({ top: 0 });
+    const id = ++artistLoad;
+    try {
+      const page = await api.artist(a);
+      if (id === artistLoad) setArtistPage(page);
+    } catch (e) {
+      if (id === artistLoad) setArtistPage(null);
+      fail(e);
+    }
+  };
+  createEffect(
+    on(artistRequest, (req) => {
+      if (!req) return;
+      setExpanded(false);
+      const same = view() === "artist" && artist()?.name === req.artist.name;
+      if (!same) setHistory((h) => [...h, { view: view(), artist: artist() }]);
+      showArtist(req.artist);
+    }, { defer: true }),
+  );
+  const goBack = () => {
+    const h = history();
+    const last = h[h.length - 1];
+    if (!last) return setView("discover");
+    setHistory(h.slice(0, -1));
+    if (last.view === "artist" && last.artist) showArtist(last.artist);
+    else setView(last.view);
+  };
+  /** Changement de page depuis le menu : l'historique repart de zéro. */
+  const goTo = (v: View) => {
+    setHistory([]);
+    setView(v);
+  };
 
   // ---------- Erreurs ----------
   let toastTimer: number | undefined;
@@ -191,10 +236,10 @@ export default function App() {
           <span>Ondes</span>
         </div>
         <nav>
-          <button classList={{ nav: true, active: view() === "discover" }} onClick={() => setView("discover")}>
+          <button classList={{ nav: true, active: view() === "discover" }} onClick={() => goTo("discover")}>
             <IconCompass /> <span>Découvrir</span>
           </button>
-          <button classList={{ nav: true, active: view() === "library" }} onClick={() => setView("library")}>
+          <button classList={{ nav: true, active: view() === "library" }} onClick={() => goTo("library")}>
             <IconLibrary /> <span>Bibliothèque</span>
             <Show when={library().length > 0}>
               <span class="count">{library().length}</span>
@@ -325,11 +370,23 @@ export default function App() {
               </Show>
             </Match>
 
+            <Match when={view() === "artist"}>
+              <ArtistView
+                page={artistPage()}
+                name={artist()?.name ?? ""}
+                snap={snap()}
+                canGoBack={history().length > 0}
+                onBack={goBack}
+                onPlay={play}
+                onError={fail}
+              />
+            </Match>
+
             <Match when={view() === "discover"}>
               <Show when={featured()} fallback={<Loader />}>
                 {(list) => (
-                  <Show when={list().length > 0} fallback={<Empty text="Impossible de charger le top Deezer." />}>
-                    <Hero track={list()[0]} playing={isCurrent(list()[0])} onPlay={() => play(list(), 0)} label="N°1 du top Deezer" />
+                  <Show when={list().length > 0} fallback={<Empty text="Impossible de charger le top du moment." />}>
+                    <Hero track={list()[0]} playing={isCurrent(list()[0])} onPlay={() => play(list(), 0)} label="N°1 du moment" />
                     <section class="section">
                       <h2 class="section-title">En ce moment</h2>
                       <div class="grid">
@@ -382,7 +439,7 @@ function Hero(props: { track: Track; playing: boolean; onPlay: () => void; label
         <div class="hero-title">{props.track.title}</div>
         <div class="hero-sub">
           <SourceTag source={props.track.source} />
-          {props.track.artist}
+          <ArtistLinks track={props.track} />
           <Show when={props.track.album}>{(a) => <span class="muted"> · {a()}</span>}</Show>
         </div>
         <button class="primary hero-play" onClick={props.onPlay}>

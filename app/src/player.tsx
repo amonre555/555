@@ -1,10 +1,34 @@
 // Lecteur : fond vivant, barre de lecture flottante, vue « En lecture » avec paroles.
 import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
-import { api, bigCoverUrl, coverUrl, formatTime, type Lyrics, type Snapshot } from "./api";
+import { api, bigCoverUrl, coverUrl, formatTime, type ArtistRef, type Lyrics, type Snapshot, type Track } from "./api";
 import { IconChevronDown, IconLyrics, IconNext, IconPause, IconPlay, IconPrev, IconVolume } from "./icons";
-import { Cover } from "./ui";
+import { ArtistLinks, Cover } from "./ui";
 
 type Run = (a: () => Promise<Snapshot>) => void;
+
+// Crédits complets des morceaux déjà demandés (la recherche Deezer ne donne que l'artiste principal).
+const creditsCache = new Map<string, ArtistRef[]>();
+
+/** Tous les artistes du morceau en cours, invités compris (chargés une fois par morceau). */
+function useFullArtists(track: () => Track | null | undefined) {
+  const id = createMemo(() => track()?.id);
+  const [artists, setArtists] = createSignal<ArtistRef[] | undefined>(undefined);
+  createEffect(
+    on(id, (current) => {
+      const t = track();
+      setArtists(current ? creditsCache.get(current) : undefined);
+      if (!t || !current || creditsCache.has(current)) return;
+      api
+        .trackArtists(t)
+        .then((list) => {
+          creditsCache.set(current, list);
+          if (id() === current) setArtists(list);
+        })
+        .catch(() => {});
+    }),
+  );
+  return artists;
+}
 
 /**
  * Fond de toute l'app : la pochette en cours, très floutée et saturée, qui dérive lentement.
@@ -36,6 +60,7 @@ export function PlayerBar(props: {
   expanded: boolean;
 }) {
   const playing = () => props.snap.status === "playing";
+  const artists = useFullArtists(() => props.snap.track);
   return (
     <footer class="player glass">
       <div class="now">
@@ -45,7 +70,9 @@ export function PlayerBar(props: {
               <Cover track={t()} size="md" />
               <div class="now-text">
                 <div class="now-title">{t().title}</div>
-                <div class="now-sub">{t().artist}</div>
+                <div class="now-sub">
+                  <ArtistLinks track={t()} artists={artists()} />
+                </div>
               </div>
             </button>
           )}
@@ -152,6 +179,7 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
   // relance l'effet à chaque notification même si l'identifiant n'a pas changé. Sans ce mémo,
   // les paroles étaient effacées puis rechargées sans arrêt (défilement remis à zéro).
   const trackId = createMemo(() => track()?.id);
+  const artists = useFullArtists(track);
 
   // Grande pochette : version HD, sinon la normale, sinon rien. Les échecs sont oubliés à
   // chaque changement de morceau (avant, une seule erreur masquait toutes les pochettes suivantes).
@@ -190,7 +218,7 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
               <div class="np-meta">
                 <div class="np-title" title={t().title}>{t().title}</div>
                 <div class="np-sub" title={[t().artist, t().album].filter(Boolean).join(" · ")}>
-                  {t().artist}
+                  <ArtistLinks track={t()} artists={artists()} />
                   <Show when={t().album !== t().title && t().album}>{(a) => <span class="np-album"> · {a()}</span>}</Show>
                 </div>
               </div>

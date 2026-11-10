@@ -1,7 +1,7 @@
 // Mode aperçu, pour travailler l'interface dans un simple navigateur (`npm run dev`).
 // Simule le cœur Rust : morceaux, lecture et paroles d'exemple.
 // Jamais inclus dans l'app : chargé seulement en développement, hors de Tauri.
-import type { Lyrics, Snapshot, Track } from "./api";
+import type { ArtistPage, Lyrics, Snapshot, Track } from "./api";
 
 type Listener = (payload: unknown) => void;
 const listeners = new Map<string, Listener[]>();
@@ -37,7 +37,28 @@ async function loadTrending(): Promise<Track[]> {
     id: `deezer:demo${i}`, source: "deezer", title, artist, album: null, duration: 150 + i * 13,
     trackNumber: null, discNumber: null, artwork: `https://picsum.photos/seed/ondes${i}/480`, hasCover: false,
     location: { kind: "remote", remoteId: `demo${i}` },
+    artists: artist.split(", ").map((name) => ({ name, id: `demo-${name}` })),
   }));
+}
+
+/** Fiche d'exemple : les morceaux de l'artiste dans la liste, des albums et des voisins inventés. */
+async function demoArtist(name: string): Promise<ArtistPage> {
+  const all = tracks.length ? tracks : await loadTrending();
+  const mine = all.filter((t) => t.artists?.some((a) => a.name === name));
+  const seed = encodeURIComponent(name);
+  return {
+    id: `demo-${name}`, name, picture: `https://picsum.photos/seed/${seed}/600`,
+    top: [...mine, ...all.filter((t) => !mine.includes(t)).slice(0, 7 - mine.length)],
+    albums: [
+      { id: `${seed}-a1`, title: "Cassettes et néons", cover: `https://picsum.photos/seed/${seed}a1/480`, year: "2024", kind: "album" },
+      { id: `${seed}-a2`, title: "Premières lumières", cover: `https://picsum.photos/seed/${seed}a2/480`, year: "2019", kind: "album" },
+      { id: `${seed}-s1`, title: "Fin de soirée", cover: `https://picsum.photos/seed/${seed}s1/480`, year: "2025", kind: "single" },
+      { id: `${seed}-e1`, title: "Ralenti EP", cover: `https://picsum.photos/seed/${seed}e1/480`, year: "2022", kind: "ep" },
+    ],
+    related: ["Clara Vent", "VHS Club", "Nuit Blanche", "Sable Rose", "Orbite"]
+      .filter((n) => n !== name)
+      .map((n) => ({ id: `demo-${n}`, name: n, picture: `https://picsum.photos/seed/${encodeURIComponent(n)}/400` })),
+  };
 }
 
 const LYRICS: Lyrics = {
@@ -80,6 +101,9 @@ const handlers: Record<string, (args: any) => unknown> = {
   queue: () => queue,
   prefetch: () => null,
   lyrics: () => LYRICS,
+  artist: ({ name }) => demoArtist(name),
+  album_tracks: async () => (tracks.length ? tracks : await loadTrending()).slice(0, 8),
+  track_artists: ({ track }) => track.artists ?? [{ name: track.artist }],
   ytdlp_status: () => ({ state: "ready" }),
 };
 

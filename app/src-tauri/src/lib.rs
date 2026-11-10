@@ -9,9 +9,13 @@ use std::{
 };
 
 use ondes_core::{
-    Controller, Error, Snapshot, SourceInfo, SourceRegistry, Track,
+    ArtistRef, Controller, Error, Snapshot, SourceInfo, SourceRegistry, Track,
     lyrics::{Lyrics, LyricsClient},
-    sources::{DeezerSource, LocalLibrary, YouTubeMusicSource, read_cover},
+    sources::{
+        DeezerSource, LocalLibrary, YouTubeMusicSource,
+        deezer::ArtistPage,
+        read_cover,
+    },
     ytdlp::{YtDlp, YtDlpStatus},
 };
 use percent_encoding::percent_decode_str;
@@ -24,6 +28,8 @@ struct AppState {
     lyrics: LyricsClient,
     ytdlp: Arc<YtDlp>,
     library: Arc<LocalLibrary>,
+    /// Source d'infos : fiches d'artistes et albums.
+    deezer: Arc<DeezerSource>,
     cache_path: PathBuf,
 }
 
@@ -150,6 +156,26 @@ fn set_volume(state: State<'_, AppState>, volume: f32) -> Snapshot {
     state.controller.snapshot()
 }
 
+// ---------- Artistes et albums (Deezer) ----------
+
+/// Fiche d'un artiste, par son identifiant Deezer ou, à défaut, par son nom.
+#[tauri::command]
+async fn artist(state: State<'_, AppState>, id: Option<String>, name: String) -> Res<ArtistPage> {
+    state.deezer.artist(id.as_deref(), &name).await
+}
+
+/// Morceaux d'un album Deezer.
+#[tauri::command]
+async fn album_tracks(state: State<'_, AppState>, id: String) -> Res<Vec<Track>> {
+    state.deezer.album_tracks(&id).await
+}
+
+/// Tous les artistes d'un morceau, invités compris.
+#[tauri::command]
+async fn track_artists(state: State<'_, AppState>, track: Track) -> Res<Vec<ArtistRef>> {
+    state.deezer.track_artists(&track).await
+}
+
 /// Paroles (synchronisées si possible) d'un morceau.
 #[tauri::command]
 async fn lyrics(state: State<'_, AppState>, track: Track) -> Res<Option<Lyrics>> {
@@ -210,7 +236,7 @@ pub fn run() {
             // YouTube reste cherchable : versions absentes de Deezer (remixes, lives…).
             let mut sources = SourceRegistry::new();
             sources.register(library.clone());
-            sources.register(deezer);
+            sources.register(deezer.clone());
             sources.register(youtube);
 
             let controller = Controller::new(Arc::new(sources), client.clone())?;
@@ -219,6 +245,7 @@ pub fn run() {
                 lyrics: LyricsClient::new(client),
                 ytdlp: ytdlp.clone(),
                 library,
+                deezer,
                 cache_path,
             });
 
@@ -283,6 +310,9 @@ pub fn run() {
             set_volume,
             prefetch,
             lyrics,
+            artist,
+            album_tracks,
+            track_artists,
             ytdlp_status,
             player_state,
             queue,

@@ -18,7 +18,7 @@ pub mod stream;
 pub mod ytdlp;
 
 pub use error::{Error, Result};
-pub use model::{Location, Track};
+pub use model::{ArtistRef, Location, Track};
 pub use player::{Controller, Snapshot, Status};
 pub use source::{MusicSource, SourceInfo, SourceRegistry, StreamData};
 

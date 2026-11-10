@@ -20,7 +20,7 @@ use rustypipe::{
     param::Country,
 };
 
-use crate::{Error, Location, MusicSource, Result, StreamData, Track, stream::Download, ytdlp::YtDlp};
+use crate::{ArtistRef, Error, Location, MusicSource, Result, StreamData, Track, stream::Download, ytdlp::YtDlp};
 
 /// Nombre de morceaux gardés en mémoire (un morceau ≈ 3 à 8 Mo).
 const CACHE_TRACKS: usize = 8;
@@ -233,6 +233,8 @@ impl From<TrackItem> for Track {
             artwork: best_cover(&t.cover),
             has_cover: false,
             location: Location::Remote { remote_id: t.id },
+            // Identifiants YouTube inutiles pour les fiches (Deezer) : retrouvées par le nom.
+            artists: t.artists.iter().map(|a| ArtistRef::named(&a.name)).collect(),
         }
     }
 }

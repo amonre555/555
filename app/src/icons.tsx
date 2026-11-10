@@ -100,3 +100,14 @@ export const IconChevronDown = () => (
     <path d="M6 9l6 6 6-6" />
   </Svg>
 );
+export const IconBack = () => (
+  <Svg size={20}>
+    <path d="M15 18l-6-6 6-6" />
+  </Svg>
+);
+export const IconUser = () => (
+  <Svg size={40}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+  </Svg>
+);

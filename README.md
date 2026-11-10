@@ -10,6 +10,7 @@ Lecteur de musique léger et rapide, écrit en Rust avec Tauri.
 - **Anticipation** : le morceau suivant, le premier résultat d'une recherche et les morceaux survolés sont téléchargés à l'avance en mémoire (8 morceaux maximum). Au clic, le son démarre instantanément. Sinon, il faut environ 2 s.
 - **yt-dlp géré automatiquement** : téléchargé depuis les versions officielles, avec vérification de la signature OpenPGP de yt-dlp et de l'empreinte SHA-256, puis mis à jour toutes les 12 h sans coupure. On utilise la version « dossier », qui démarre en 0,5 s au lieu de 2 s.
 
+- **Fiches d'artistes** : photo, titres populaires, albums, singles et EP, artistes similaires. Chaque artiste d'un morceau (invités compris) est cliquable séparément.
 - **Paroles synchronisées** via [LRCLIB](https://lrclib.net) : la ligne en cours s'allume, et un clic sur une ligne y amène la lecture.
 - **Touches multimédia et panneau multimédia du système** (Windows, MPRIS sous Linux, macOS), avec titre, artiste et pochette.
 - **Interface immersive** : le fond prend les couleurs de la pochette en cours, avec des panneaux en verre et une vue « En lecture » plein écran.
@@ -49,6 +50,7 @@ Tests rapides, sans interface :
 ```bash
 cargo run -p ondes-core --example yt -- "vhs mattyeux"
 cargo run -p ondes-core --example deezer -- "stromae alors on danse"   # recherche Deezer + lecture du son YouTube
+cargo run -p ondes-core --example artist -- "sweat snoop dogg"   # crédits complets, fiches d'artistes, albums
 cargo run -p ondes-core --example match   # relie le top Deezer et quelques recherches à YouTube Music
 cargo test -p ondes-core -- --include-ignored   # dont la vérification de signature réelle
 ```

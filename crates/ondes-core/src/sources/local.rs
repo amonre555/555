@@ -16,7 +16,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::{Location, MusicSource, Result, StreamData, Track};
+use crate::{ArtistRef, Location, MusicSource, Result, StreamData, Track};
 
 const AUDIO_EXTENSIONS: &[&str] = &[
     "mp3", "flac", "ogg", "oga", "m4a", "mp4", "aac", "wav", "aif", "aiff", "caf", "mka", "webm",
@@ -229,6 +229,7 @@ fn read_track(path: &Path) -> Option<Track> {
     let album = tag.and_then(|t| t.album()).and_then(clean);
     let duration = file.properties().duration().as_secs_f64();
     let has_cover = tag.is_some_and(|t| !t.pictures().is_empty()) || folder_cover(path).is_some();
+    let artists = crate::model::split_artists(&artist).into_iter().map(ArtistRef::named).collect();
 
     Some(Track {
         id: format!("local:{}", path.display()),
@@ -242,6 +243,7 @@ fn read_track(path: &Path) -> Option<Track> {
         artwork: None,
         has_cover,
         location: Location::File { path: path.to_owned() },
+        artists,
     })
 }
 

@@ -16,6 +16,37 @@ export interface Track {
   artwork: string | null;
   hasCover: boolean;
   location: Location;
+  /** Chaque artiste séparément. Peut être vide (anciens morceaux en cache) : voir `artistsOf`. */
+  artists?: ArtistRef[];
+}
+
+/** Un artiste cité par un morceau. `id` : identifiant Deezer, sinon la fiche est cherchée par nom. */
+export interface ArtistRef {
+  name: string;
+  id?: string | null;
+}
+
+export interface ArtistPage {
+  id: string;
+  name: string;
+  picture: string | null;
+  top: Track[];
+  albums: Album[];
+  related: ArtistCard[];
+}
+
+export interface Album {
+  id: string;
+  title: string;
+  cover: string | null;
+  year: string | null;
+  kind: "album" | "single" | "ep" | "compile" | string;
+}
+
+export interface ArtistCard {
+  id: string;
+  name: string;
+  picture: string | null;
 }
 
 export type Status = "idle" | "loading" | "playing" | "paused" | "error";
@@ -71,6 +102,9 @@ export const api = {
   seek: (position: number) => invoke<Snapshot>("seek", { position }),
   prefetch: (track: Track) => invoke<void>("prefetch", { track }),
   lyrics: (track: Track) => invoke<Lyrics | null>("lyrics", { track }),
+  artist: (ref: ArtistRef) => invoke<ArtistPage>("artist", { id: ref.id ?? null, name: ref.name }),
+  albumTracks: (id: string) => invoke<Track[]>("album_tracks", { id }),
+  trackArtists: (track: Track) => invoke<ArtistRef[]>("track_artists", { track }),
   setVolume: (volume: number) => invoke<Snapshot>("set_volume", { volume }),
   state: () => invoke<Snapshot>("player_state"),
   queue: () => invoke<Track[]>("queue"),
@@ -80,6 +114,16 @@ export const api = {
   onYtdlp: (cb: (s: YtDlpStatus) => void): Promise<UnlistenFn> =>
     listen<YtDlpStatus>("ytdlp", (e) => cb(e.payload)),
 };
+
+/** Les artistes d'un morceau, un par un (repli : découpe du texte « A, B & C feat. D »). */
+export function artistsOf(t: Track): ArtistRef[] {
+  if (t.artists?.length) return t.artists;
+  return t.artist
+    .split(/, | & | feat\.? | ft\. | featuring /i)
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .map((name) => ({ name }));
+}
 
 /** URL de la pochette d'un morceau, distante ou servie par le protocole `cover://`. */
 export function coverUrl(t: Track | null | undefined): string | null {

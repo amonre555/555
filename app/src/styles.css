@@ -334,6 +334,34 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 .slider:active::-webkit-slider-thumb { opacity: 1; }
 .slider:disabled { cursor: default; }
 
+/* ---------- Liens vers les artistes ---------- */
+.artist-link { cursor: pointer; border-radius: 3px; transition: color 0.15s; }
+.artist-link:hover, .artist-link:focus-visible { color: var(--text); text-decoration: underline; text-underline-offset: 3px; outline: none; }
+
+/* ---------- Fiche artiste ---------- */
+.back { margin: 4px 0 14px; }
+.artist-head {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; gap: 34px; padding: 34px; border-radius: 24px;
+  border: 1px solid var(--line); background: rgba(10, 10, 14, 0.3);
+}
+.artist-photo {
+  flex: none; width: 210px; height: 210px; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center; color: var(--text-3);
+  background: rgba(255, 255, 255, 0.06); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.artist-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.artist-photo.sm { width: 100%; height: auto; aspect-ratio: 1; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4); }
+.artist-body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.artist-name {
+  font-size: clamp(40px, 6vw, 72px); font-weight: 850; letter-spacing: -0.045em; line-height: 1;
+  overflow-wrap: anywhere;
+}
+.artist-card { text-align: center; }
+.card.loading { opacity: 0.55; pointer-events: none; }
+.link-btn { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--text-2); }
+.link-btn:hover { color: var(--text); }
+
 /* ---------- Vue « En lecture » ---------- */
 .nowplaying {
   position: fixed; inset: 0; z-index: 70; padding: 56px 64px 48px;
@@ -402,6 +430,8 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   .np-right { display: none; }
 }
 @media (max-width: 900px) {
+  .artist-head { flex-direction: column; align-items: flex-start; padding: 24px; }
+  .artist-photo { width: 150px; height: 150px; }
   :root { --sidebar-w: 76px; }
   .brand span, .nav span, .sidebar .ghost span { display: none; }
   .nav, .sidebar .ghost { justify-content: center; }

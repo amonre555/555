@@ -1,6 +1,7 @@
 // Briques d'interface réutilisables : pochettes, listes, états vides.
 import { createSignal, For, Match, Show, Switch } from "solid-js";
-import { api, coverUrl, formatTime, type Snapshot, type Track, type YtDlpStatus } from "./api";
+import { api, artistsOf, coverUrl, formatTime, type ArtistRef, type Snapshot, type Track, type YtDlpStatus } from "./api";
+import { openArtist } from "./nav";
 import { IconNote, IconPlay } from "./icons";
 
 export function Loader() {
@@ -45,6 +46,45 @@ export function hoverPrefetch(t: Track) {
 }
 export function cancelHover() {
   clearTimeout(hoverTimer);
+}
+
+/**
+ * Les artistes d'un morceau, chacun cliquable vers sa fiche. `artists` : liste déjà complète
+ * (crédits Deezer du morceau en cours) ; sinon, celle du morceau.
+ */
+export function ArtistLinks(props: { track: Track; artists?: ArtistRef[] }) {
+  const list = () => props.artists ?? artistsOf(props.track);
+  return (
+    <span class="artists">
+      <For each={list()}>
+        {(a, i) => (
+          <>
+            <Show when={i() > 0}>{", "}</Show>
+            <span
+              class="artist-link"
+              role="link"
+              tabIndex={0}
+              title={`Voir la fiche de ${a.name}`}
+              onClick={(e) => {
+                // Dans une ligne ou une carte : ne pas lancer la lecture en même temps.
+                e.stopPropagation();
+                openArtist(a);
+              }}
+              onDblClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.stopPropagation();
+                  openArtist(a);
+                }
+              }}
+            >
+              {a.name}
+            </span>
+          </>
+        )}
+      </For>
+    </span>
+  );
 }
 
 /** Petite étiquette de source (YouTube…). Rien pour la bibliothèque locale. */
@@ -97,7 +137,7 @@ export function TrackList(props: {
                   <Show when={props.showSource}>
                     <SourceTag source={t.source} />
                   </Show>
-                  {t.artist}
+                  <ArtistLinks track={t} />
                 </div>
               </div>
               <Show when={props.showAlbum}>
@@ -126,7 +166,9 @@ export function TrackCard(props: { track: Track; playing: boolean; onPlay: () =>
         <span class="card-play"><IconPlay size={20} /></span>
       </div>
       <div class="card-title">{props.track.title}</div>
-      <div class="card-sub">{props.track.artist}</div>
+      <div class="card-sub">
+        <ArtistLinks track={props.track} />
+      </div>
     </button>
   );
 }
