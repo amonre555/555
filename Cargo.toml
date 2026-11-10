@@ -1,0 +1,18 @@
+[workspace]
+resolver = "3"
+members = ["crates/ondes-core", "app/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+opt-level = 3
+
+[profile.dev.package."*"]
+# Les dépendances (décodeurs audio surtout) restent rapides même en debug.
+opt-level = 2

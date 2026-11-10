@@ -1,0 +1,22 @@
+[package]
+name = "ondes"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "ondes_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+ondes-core = { path = "../../crates/ondes-core" }
+percent-encoding = "2.3.2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+souvlaki = "0.9.3"
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tokio = { version = "1.54.1", features = ["time"] }

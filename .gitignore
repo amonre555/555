@@ -1,0 +1,13 @@
+# Compilation
+target/
+dist/
+node_modules/
+app/src-tauri/gen/
+
+# Configuration locale (chemin de compilation propre à chaque machine)
+.cargo/
+
+# Divers
+*.log
+.DS_Store
+Thumbs.db
