@@ -12,6 +12,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+discord-rich-presence = "1.1.0"
 ondes-core = { path = "../../crates/ondes-core" }
 percent-encoding = "2.3.2"
 serde = { version = "1.0.229", features = ["derive"] }

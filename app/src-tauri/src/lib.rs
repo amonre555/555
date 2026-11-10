@@ -1,5 +1,6 @@
 //! Couche Tauri : expose le cœur (`ondes-core`) à l'interface. Aucune logique métier ici.
 
+mod discord;
 mod media;
 
 use std::{
@@ -258,6 +259,8 @@ pub fn run() {
             #[cfg(not(windows))]
             let hwnd = None;
             let media = media::spawn(hwnd, app.path().app_cache_dir()?.join("now-playing"), controller.clone());
+            // Statut Discord (« Écoute … »), s'il est configuré.
+            let discord = discord::spawn();
 
             // Installation / mise à jour de yt-dlp en arrière-plan, état relayé à l'interface.
             let handle = app.handle().clone();
@@ -284,6 +287,9 @@ pub fn run() {
                     if last.as_ref() != Some(&snap) {
                         if let Some(media) = &media {
                             let _ = media.send(snap.clone());
+                        }
+                        if let Some(discord) = &discord {
+                            let _ = discord.send(snap.clone());
                         }
                         let _ = handle.emit("player", &snap);
                         last = Some(snap);

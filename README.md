@@ -12,6 +12,7 @@ Lecteur de musique léger et rapide, écrit en Rust avec Tauri.
 
 - **Fiches d'artistes** : photo, titres populaires, albums, singles et EP, artistes similaires. Chaque artiste d'un morceau (invités compris) est cliquable séparément.
 - **Fiches d'albums** : pochette, artistes, année, durée, liste des morceaux et maison de disques. Le nom d'un album est cliquable partout où il apparaît.
+- **Statut Discord** : « Écoute *titre* », l'artiste, la pochette et la barre de progression. Très peu d'envois (seulement aux changements), et rien ne se passe si Discord est fermé.
 - **Paroles synchronisées** via [LRCLIB](https://lrclib.net) : la ligne en cours s'allume, et un clic sur une ligne y amène la lecture.
 - **Touches multimédia et panneau multimédia du système** (Windows, MPRIS sous Linux, macOS), avec titre, artiste et pochette.
 - **Interface immersive** : le fond prend les couleurs de la pochette en cours, avec des panneaux en verre et une vue « En lecture » plein écran.
