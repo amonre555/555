@@ -26,7 +26,7 @@ sed -i.bak "/^\[workspace.package\]/,/^\[/s/^version = \".*\"/version = \"$versi
 cargo update --workspace --quiet
 
 git add Cargo.toml Cargo.lock app/package.json app/package-lock.json
-git commit -q -m "yato $version"
+git commit -q -m "555 $version"
 git tag "v$version"
 echo "Version $version ready. To publish it:"
 echo "  git push && git push origin v$version"
