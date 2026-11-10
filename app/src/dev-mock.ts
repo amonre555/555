@@ -170,10 +170,12 @@ const handlers: Record<string, (args: any) => unknown> = {
       // karaoke layout shows, never readable lyrics attributed to a real song.
       queue = [vhs, ...tracks.filter((t) => t.id !== vhs.id)];
       playAt(0);
-      startedAt -= demo === "lyrics" ? -6_000 : 62_000;
+      // Lyrics screen: captured during an instrumental break (the active line is ♪, sharp);
+      // the made-up sample lines around it stay unreadable, like distant lines in the app.
+      startedAt -= demo === "lyrics" ? -(20_000 - 16_700) : 62_000;
       if (demo === "lyrics") {
         const style = document.createElement("style");
-        style.textContent = ".lyric { filter: blur(9px) !important; } .lyric.on { filter: blur(8px) !important; }";
+        style.textContent = ".lyric:not(.on) { filter: blur(calc(5px + var(--d, 1) * 1.5px)) !important; }";
         document.head.append(style);
       }
       {
