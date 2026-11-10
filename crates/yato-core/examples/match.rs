@@ -27,9 +27,9 @@ async fn main() {
                 ok += 1;
                 let d = rp.query().music_details(&id).await.ok();
                 let (name, artists, dur) = d.map(|d| (d.track.name, d.track.artists.iter().map(|a| a.name.clone()).collect::<Vec<_>>().join(", "), d.track.duration)).unwrap_or_default();
-                println!("✓ {} — {} ({:?}s)\n    → {} — {} ({:?}s) en {:?}", t.title, t.artist, t.duration, name, artists, dur, t0.elapsed());
+                println!("✓ {} - {} ({:?}s)\n    → {} - {} ({:?}s) en {:?}", t.title, t.artist, t.duration, name, artists, dur, t0.elapsed());
             }
-            Err(e) => println!("✗ {} — {} : {e}", t.title, t.artist),
+            Err(e) => println!("✗ {} - {} : {e}", t.title, t.artist),
         }
     }
     println!("{ok}/{n} trouvés");

@@ -783,7 +783,7 @@ html[data-vt="back"]::view-transition-new(page) { animation: blur-in-back 0.55s 
 .history-page .actions .danger { color: var(--md-error, #ff8a80); }
 
 /* =========================================================================
-   555 — art direction layer
+   555 - art direction layer
    Ultramarine → black gradients, paper grain, wide white titles, spaced uppercase labels.
    ========================================================================= */
 /* Background: a big blue glow sinking into black, under a paper grain. */

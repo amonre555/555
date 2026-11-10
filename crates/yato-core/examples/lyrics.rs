@@ -22,16 +22,16 @@ async fn main() {
                 Ok(Some(l)) if !l.lines.is_empty() => {
                     let first = l.lines.iter().find(|x| !x.words.is_empty());
                     println!(
-                        "✓ {} — {} : {} lignes, mots {} en {:?}",
+                        "✓ {} - {} : {} lignes, mots {} en {:?}",
                         t.title, t.artist, l.lines.len(), if l.word_synced { "SYNCHRONISÉS" } else { "estimés" }, t0.elapsed(),
                     );
                     if let Some(line) = first {
                         let words: Vec<String> = line.words.iter().map(|w| format!("{}@{:.2}", w.text.trim(), w.time)).collect();
-                        println!("    [{:.2}–{:.2}] {}", line.time, line.end, words.join(" "));
+                        println!("    [{:.2}-{:.2}] {}", line.time, line.end, words.join(" "));
                     }
                 }
-                Ok(Some(l)) => println!("~ {} — {} : paroles simples ({} car.), instrumental={}", t.title, t.artist, l.plain.map(|p| p.len()).unwrap_or(0), l.instrumental),
-                Ok(None) => println!("✗ {} — {} : aucune parole", t.title, t.artist),
+                Ok(Some(l)) => println!("~ {} - {} : paroles simples ({} car.), instrumental={}", t.title, t.artist, l.plain.map(|p| p.len()).unwrap_or(0), l.instrumental),
+                Ok(None) => println!("✗ {} - {} : aucune parole", t.title, t.artist),
                 Err(e) => println!("! {} : {e}", t.title),
             }
         }

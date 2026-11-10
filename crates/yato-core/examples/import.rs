@@ -12,7 +12,7 @@ async fn main() {
         let t0 = std::time::Instant::now();
         match import(&url, &client, &dz, &yt, |_, _| {}).await {
             Ok(p) => println!(
-                "✓ « {} » : {} morceaux, {} introuvables, en {:?}\n    1er : {} — {}",
+                "✓ « {} » : {} morceaux, {} introuvables, en {:?}\n    1er : {} - {}",
                 p.name, p.tracks.len(), p.missing, t0.elapsed(),
                 p.tracks.first().map_or("", |t| t.title.as_str()), p.tracks.first().map_or("", |t| t.artist.as_str()),
             ),

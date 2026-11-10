@@ -9,7 +9,7 @@ async fn main() {
     let yt = Arc::new(YouTubeMusicSource::new(std::env::temp_dir().join("yato-yt"), YtDlp::new(std::env::temp_dir().join("yato-ytdlp"), client.clone())).unwrap());
     let dz = DeezerSource::new(client, yt);
     let t = &dz.search(&q, 1).await.unwrap()[0];
-    println!("« {} » — recherche : {:?}", t.title, t.artists);
+    println!("« {} » - recherche : {:?}", t.title, t.artists);
     let full = dz.track_artists(t).await.unwrap();
     println!("crédits complets : {full:?}");
     // Album retrouvé par son titre, comme pour un morceau YouTube ou local.
@@ -20,7 +20,7 @@ async fn main() {
         let t0 = std::time::Instant::now();
         let p = dz.artist(a.id.as_deref(), &a.name).await.unwrap();
         println!("\n{} (id {}) : {} titres populaires, {} albums, {} similaires, en {:?}", p.name, p.id, p.top.len(), p.albums.len(), p.related.len(), t0.elapsed());
-        for x in p.top.iter().take(3) { println!("  ♪ {} — {:?}", x.title, x.artists.iter().map(|a| &a.name).collect::<Vec<_>>()); }
+        for x in p.top.iter().take(3) { println!("  ♪ {} - {:?}", x.title, x.artists.iter().map(|a| &a.name).collect::<Vec<_>>()); }
         for al in p.albums.iter().take(3) { println!("  ◼ {} ({:?}, {})", al.title, al.year, al.kind); }
         if let Some(al) = p.albums.first() {
             let al = dz.album(Some(&al.id), &al.title, None).await.unwrap();

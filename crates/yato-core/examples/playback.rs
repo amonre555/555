@@ -42,7 +42,7 @@ async fn run_for(c: &Arc<Controller>, secs: f64, label: &str) {
     while t0.elapsed().as_secs_f64() < secs {
         c.tick().await;
         let s = c.snapshot();
-        let now = format!("{:?} {}", s.status, s.track.as_ref().map_or("—", |t| t.title.as_str()));
+        let now = format!("{:?} {}", s.status, s.track.as_ref().map_or("-", |t| t.title.as_str()));
         if now != last {
             println!("  [{label} {:>5.2}s] {now} (position {:.2})", t0.elapsed().as_secs_f64(), s.position);
             last = now;
