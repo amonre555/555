@@ -6,8 +6,8 @@
 
 <p align="center">
   A light, fast music player, written in Rust with Tauri.<br />
-  <a href="https://amonre555.github.io/ondes/">Website</a> ·
-  <a href="https://github.com/amonre555/ondes/releases/latest">Download</a>
+  <a href="https://amonre555.github.io/555/">Website</a> ·
+  <a href="https://github.com/amonre555/555/releases/latest">Download</a>
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@
 
 ## Install
 
-Installers are in the [Releases](https://github.com/amonre555/ondes/releases): `.dmg` for macOS (Apple Silicon and Intel), `-setup.exe` for Windows. Once installed, 555 checks for a new version on launch (then every 6 h) and offers to install it in one click. Updates are signed, and the app refuses any whose signature doesn't match.
+Installers are in the [Releases](https://github.com/amonre555/555/releases): `.dmg` for macOS (Apple Silicon and Intel), `-setup.exe` for Windows. Once installed, 555 checks for a new version on launch (then every 6 h) and offers to install it in one click. Updates are signed, and the app refuses any whose signature doesn't match.
 
 The app isn't signed by Apple or Microsoft:
 - **macOS**: on first launch, right-click 555 → "Open" (or `xattr -cr /Applications/555.app`);
