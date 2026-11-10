@@ -36,13 +36,14 @@
     <filter id="mist" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="70"/>
     </filter>
+    <radialGradient id="mist-violet"><stop offset="0" stop-color="#6c4dff" stop-opacity="0.45"/><stop offset="1" stop-color="#6c4dff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="mist-cyan"><stop offset="0" stop-color="#34c8ff" stop-opacity="0.38"/><stop offset="1" stop-color="#34c8ff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="mist-pink"><stop offset="0" stop-color="#ff6fb5" stop-opacity="0.25"/><stop offset="1" stop-color="#ff6fb5" stop-opacity="0"/></radialGradient>
   </defs>
-  <!-- Mist: soft coloured haze behind the mark -->
-  <g filter="url(#mist)" opacity="0.55">
-    <ellipse cx="380" cy="560" rx="250" ry="210" fill="#6c4dff" opacity="0.85"/>
-    <ellipse cx="660" cy="430" rx="220" ry="180" fill="#34c8ff" opacity="0.7"/>
-    <ellipse cx="560" cy="760" rx="260" ry="120" fill="#ff6fb5" opacity="0.45"/>
-  </g>
+  <!-- Mist: soft coloured haze, fading out before the edges (no visible border). -->
+  <ellipse cx="430" cy="560" rx="300" ry="260" fill="url(#mist-violet)"/>
+  <ellipse cx="640" cy="470" rx="250" ry="210" fill="url(#mist-cyan)"/>
+  <ellipse cx="560" cy="740" rx="300" ry="140" fill="url(#mist-pink)"/>
   <!-- Ripples on the water, spreading from where the orb touches it -->
   <g fill="none" stroke="url(#ring)" stroke-linecap="round">
     <ellipse cx="512" cy="700" rx="380" ry="96" stroke-width="10" opacity="0.28"/>

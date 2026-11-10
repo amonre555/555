@@ -92,12 +92,6 @@
     }
     .shot img { display: block; width: 100%; height: auto; border-radius: 18px; box-shadow: 0 0 0 1px var(--line), 0 40px 120px -30px rgba(0, 0, 0, 0.9); }
 
-    /* Stats */
-    .stats { display: flex; justify-content: center; gap: clamp(28px, 8vw, 90px); margin: 64px 0 20px; }
-    .stat { text-align: center; }
-    .stat b { display: block; font-size: clamp(36px, 6vw, 54px); font-weight: 300; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-    .stat span { font-size: 14px; color: var(--text-3); }
-
     /* Sections */
     section { padding: 90px 0 0; }
     .eyebrow { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; }
@@ -185,7 +179,7 @@
     </div>
     <a class="btn btn-ghost btn-sm" href="https://github.com/amonre555/ondes" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.4c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.04 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>
-      <span>Star</span><span id="nav-stars"></span>
+      <span>Star</span>
     </a>
   </nav>
 
@@ -206,11 +200,6 @@
 
       <div class="shot reveal">
         <img src="assets/screenshot.jpg" width="2400" height="1500" alt="yato's Discover page, with the cover of the current song coloring the whole window" />
-      </div>
-
-      <div class="stats" id="stats" hidden>
-        <div class="stat"><b id="stat-downloads">–</b><span>downloads</span></div>
-        <div class="stat"><b id="stat-stars">–</b><span>GitHub stars</span></div>
       </div>
     </header>
 
@@ -322,7 +311,7 @@
       <a href="https://github.com/amonre555/ondes" target="_blank" rel="noopener">GitHub</a>
       <a href="https://github.com/amonre555/ondes/releases" target="_blank" rel="noopener">Releases</a>
       <a href="https://github.com/amonre555/ondes/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a>
-      <span>For personal use. Playing YouTube outside its official player is against its terms.</span>
+      <span>For personal use.</span>
     </div>
   </footer>
 
@@ -339,9 +328,7 @@
       if (os === "linux") main.href = `https://github.com/${REPO}#run-from-source`;
     }
 
-    const fmt = (n) => (n >= 10000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
-
-    // Latest release: direct installer links, version, and download count (all releases).
+    // Latest release: direct installer links and version.
     fetch(`https://api.github.com/repos/${REPO}/releases?per_page=100`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((releases) => {
@@ -356,19 +343,6 @@
         }
         const date = new Date(latest.published_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
         document.getElementById("hero-meta").textContent = `Version ${latest.tag_name.replace(/^v/, "")} · ${date} · Free and open source.`;
-        const total = releases.flatMap((r) => r.assets).filter((a) => /\.(dmg|exe)$/.test(a.name)).reduce((n, a) => n + a.download_count, 0);
-        if (total > 0) {
-          document.getElementById("stat-downloads").textContent = fmt(total);
-          document.getElementById("stats").hidden = false;
-        }
-      })
-      .catch(() => {});
-
-    fetch(`https://api.github.com/repos/${REPO}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((repo) => {
-        document.getElementById("stat-stars").textContent = fmt(repo.stargazers_count);
-        document.getElementById("nav-stars").textContent = repo.stargazers_count ? ` · ${fmt(repo.stargazers_count)}` : "";
       })
       .catch(() => {});
 
