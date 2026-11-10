@@ -3,9 +3,9 @@
 Lecteur de musique léger et rapide, écrit en Rust avec Tauri.
 
 - **Ta bibliothèque locale** : MP3, FLAC, OGG, M4A/AAC, WAV, AIFF… scan en parallèle sur tous les cœurs, cache sur disque, recherche instantanée.
-- **Sources en ligne** via un système de sources interchangeables :
-  - **YouTube Music** (comme Nuclear) : recherche via [rustypipe](https://codeberg.org/ThetaDev/rustypipe), son via [yt-dlp](https://github.com/yt-dlp/yt-dlp).
-  - **Audius** : API publique officielle, musique publiée par les artistes eux-mêmes.
+- **Une source pour les infos, une source pour le son** (comme Nuclear) :
+  - **Deezer** (API publique, sans clé) : recherche, top du moment, titres et albums propres, pochettes en 1000 × 1000.
+  - **YouTube Music** : au moment de jouer, Ondes cherche le même enregistrement (titre, artiste, durée, en écartant les versions live, remix, accélérées…) via [rustypipe](https://codeberg.org/ThetaDev/rustypipe), et le son arrive par [yt-dlp](https://github.com/yt-dlp/yt-dlp). La recherche YouTube reste disponible pour les versions absentes de Deezer.
 - **Streaming progressif** : le son démarre pendant le téléchargement, et l'avance rapide est immédiate.
 - **Anticipation** : le morceau suivant, le premier résultat d'une recherche et les morceaux survolés sont téléchargés à l'avance en mémoire (8 morceaux maximum). Au clic, le son démarre instantanément. Sinon, il faut environ 2 s.
 - **yt-dlp géré automatiquement** : téléchargé depuis les versions officielles, avec vérification de la signature OpenPGP de yt-dlp et de l'empreinte SHA-256, puis mis à jour toutes les 12 h sans coupure. On utilise la version « dossier », qui démarre en 0,5 s au lieu de 2 s.
@@ -19,7 +19,7 @@ Lecteur de musique léger et rapide, écrit en Rust avec Tauri.
 ```
 crates/ondes-core/   Cœur Rust, indépendant de l'interface
   src/source.rs        Trait MusicSource : ajouter une source = l'implémenter
-  src/sources/         Sources fournies (local, youtube, audius)
+  src/sources/         Sources fournies (local, deezer, youtube)
   src/stream.rs        Lecteur HTTP progressif
   src/player.rs        Moteur audio (rodio + symphonia) et file d'attente
 app/                 Interface (SolidJS + Vite)
@@ -42,13 +42,14 @@ Version optimisée : `npm run tauri build`.
 
 Sous Windows, si le dossier du projet est très profond, l'éditeur de liens peut dépasser la limite de 260 caractères. Il suffit alors de compiler ailleurs, par exemple `set CARGO_TARGET_DIR=C:\ondes-target`.
 
-Pour travailler l'interface dans un navigateur, sans Tauri : `npm run dev` puis http://localhost:1420. Le cœur est alors simulé (tendances Audius réelles, paroles d'exemple), voir `app/src/dev-mock.ts`. Ce mode n'est jamais inclus dans l'app.
+Pour travailler l'interface dans un navigateur, sans Tauri : `npm run dev` puis http://localhost:1420. Le cœur est alors simulé (morceaux et paroles d'exemple), voir `app/src/dev-mock.ts`. Ce mode n'est jamais inclus dans l'app.
 
 Tests rapides, sans interface :
 
 ```bash
 cargo run -p ondes-core --example yt -- "vhs mattyeux"
-cargo run -p ondes-core --example smoke
+cargo run -p ondes-core --example deezer -- "stromae alors on danse"   # recherche Deezer + lecture du son YouTube
+cargo run -p ondes-core --example match   # relie le top Deezer et quelques recherches à YouTube Music
 cargo test -p ondes-core -- --include-ignored   # dont la vérification de signature réelle
 ```
 

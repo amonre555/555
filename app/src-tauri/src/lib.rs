@@ -11,7 +11,7 @@ use std::{
 use ondes_core::{
     Controller, Error, Snapshot, SourceInfo, SourceRegistry, Track,
     lyrics::{Lyrics, LyricsClient},
-    sources::{AudiusSource, LocalLibrary, YouTubeMusicSource, read_cover},
+    sources::{DeezerSource, LocalLibrary, YouTubeMusicSource, read_cover},
     ytdlp::{YtDlp, YtDlpStatus},
 };
 use percent_encoding::percent_decode_str;
@@ -202,13 +202,16 @@ pub fn run() {
 
             // yt-dlp géré par Ondes : installé, vérifié (signature) et mis à jour automatiquement.
             let ytdlp = YtDlp::new(app.path().app_data_dir()?.join("bin").join("yt-dlp"), client.clone());
-            let youtube = YouTubeMusicSource::new(app.path().app_cache_dir()?.join("youtube"), ytdlp.clone())?;
+            let youtube = Arc::new(YouTubeMusicSource::new(app.path().app_cache_dir()?.join("youtube"), ytdlp.clone())?);
+            // Deezer donne les infos (titres, albums, pochettes, top), YouTube Music le son.
+            let deezer = Arc::new(DeezerSource::new(client.clone(), youtube.clone()));
 
             // L'ordre d'enregistrement = l'ordre des résultats de recherche.
+            // YouTube reste cherchable : versions absentes de Deezer (remixes, lives…).
             let mut sources = SourceRegistry::new();
             sources.register(library.clone());
-            sources.register(Arc::new(youtube));
-            sources.register(Arc::new(AudiusSource::new(client.clone())));
+            sources.register(deezer);
+            sources.register(youtube);
 
             let controller = Controller::new(Arc::new(sources), client.clone())?;
             app.manage(AppState {

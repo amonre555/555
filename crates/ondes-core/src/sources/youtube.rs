@@ -17,6 +17,7 @@ use parking_lot::Mutex;
 use rustypipe::{
     client::RustyPipe,
     model::{Thumbnail, TrackItem},
+    param::Country,
 };
 
 use crate::{Error, Location, MusicSource, Result, StreamData, Track, stream::Download, ytdlp::YtDlp};
@@ -98,6 +99,105 @@ impl YouTubeMusicSource {
         cache.push((id.to_owned(), Instant::now(), download.clone()));
         Ok(download)
     }
+
+    /// Le son d'une vidéo YouTube Music, par son identifiant.
+    pub async fn stream_id(&self, id: &str) -> Result<StreamData> {
+        Ok(StreamData::Buffered { download: self.download(id).await?, hint: Some("m4a") })
+    }
+
+    /// Lance à l'avance le téléchargement d'une vidéo YouTube Music.
+    pub async fn prefetch_id(&self, id: &str) {
+        let _ = self.download(id).await;
+    }
+
+    /// Trouve sur YouTube Music l'enregistrement d'un morceau décrit par une autre source
+    /// (Deezer…) et renvoie son identifiant.
+    ///
+    /// On cherche « artiste titre », puis on note les premiers résultats : titre et artiste
+    /// ressemblants, durée proche, et pas de version live / remix / accélérée… si l'original
+    /// n'en est pas une.
+    pub async fn find_match(&self, title: &str, artist: &str, duration: Option<f64>) -> Result<String> {
+        let query = format!("{artist} {title}");
+        let res = self.rp.query().music_search_tracks(&query).await.map_err(yt_err)?;
+        res.items
+            .items
+            .iter()
+            .take(10)
+            .map(|c| (match_score(c, title, artist, duration), c))
+            .filter(|(s, _)| *s >= MATCH_MIN_SCORE)
+            .max_by(|a, b| a.0.total_cmp(&b.0))
+            .map(|(_, c)| c.id.clone())
+            .ok_or_else(|| Error::Other(format!("« {title} » de {artist} introuvable sur YouTube Music")))
+    }
+}
+
+/// En dessous, le résultat ressemble trop peu au morceau cherché : mieux vaut une erreur
+/// claire qu'un autre morceau.
+const MATCH_MIN_SCORE: f64 = 2.0;
+
+/// Mots qui signalent une autre version que l'originale.
+const VERSION_WORDS: &[&str] = &[
+    "live", "remix", "sped", "slowed", "reverb", "nightcore", "karaoke", "cover", "instrumental", "acoustic",
+    "acoustique", "8d", "edit", "extended", "version",
+];
+
+/// Mots en minuscules, sans ponctuation (fonctionne aussi en cyrillique, en japonais…).
+fn words(s: &str) -> Vec<String> {
+    s.to_lowercase()
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+/// Part des mots de `wanted` présents dans `got` (0 à 1).
+fn overlap(wanted: &[String], got: &[String]) -> f64 {
+    if wanted.is_empty() {
+        return 0.0;
+    }
+    wanted.iter().filter(|w| got.contains(w)).count() as f64 / wanted.len() as f64
+}
+
+fn match_score(c: &TrackItem, title: &str, artist: &str, duration: Option<f64>) -> f64 {
+    let (want_title, got_title) = (words(title), words(&c.name));
+    let want_artist = words(artist);
+    let got_artist: Vec<String> = c.artists.iter().flat_map(|a| words(&a.name)).collect();
+
+    let mut score = overlap(&want_title, &got_title) * 3.0 + overlap(&want_artist, &got_artist) * 2.0;
+    if let (Some(d), Some(cd)) = (duration, c.duration) {
+        let gap = (d - f64::from(cd)).abs();
+        score += match gap {
+            g if g <= 3.0 => 2.0,
+            g if g <= 8.0 => 1.0,
+            g if g <= 20.0 => 0.0,
+            _ => -2.0,
+        };
+    }
+    for w in VERSION_WORDS {
+        let w = (*w).to_owned();
+        if got_title.contains(&w) && !want_title.contains(&w) {
+            score -= 1.5;
+        }
+    }
+    score
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn words_handles_any_script() {
+        assert_eq!(words("Мало тебя (Remix)"), vec!["мало", "тебя", "remix"]);
+        assert_eq!(words("Sweat - Snoop Dogg vs. David Guetta"), vec!["sweat", "snoop", "dogg", "vs", "david", "guetta"]);
+    }
+
+    #[test]
+    fn overlap_counts_wanted_words() {
+        let want = words("Dai Dai");
+        assert_eq!(overlap(&want, &words("Dai Dai (Official)")), 1.0);
+        assert_eq!(overlap(&want, &words("Hips Don't Lie")), 0.0);
+    }
 }
 
 fn yt_err(e: rustypipe::error::Error) -> Error {
@@ -160,6 +260,35 @@ impl MusicSource for YouTubeMusicSource {
         }
         let res = self.rp.query().music_search_tracks(query).await.map_err(yt_err)?;
         Ok(res.items.items.into_iter().take(limit).map(Into::into).collect())
+    }
+
+    /// Classements YouTube Music en France.
+    ///
+    /// YouTube ne met plus les morceaux directement dans les classements (`top_tracks` et
+    /// `trending_tracks` arrivent vides) : ils sont dans des playlists (« Trending 20 France »,
+    /// « Top 100 Music Videos France »…), lues dans l'ordre, sans doublons.
+    async fn featured(&self, limit: usize) -> Result<Vec<Track>> {
+        let charts = self.rp.query().music_charts(Some(Country::Fr)).await.map_err(yt_err)?;
+        let mut seen = std::collections::HashSet::new();
+        let mut tracks: Vec<Track> = charts
+            .top_tracks
+            .into_iter()
+            .chain(charts.trending_tracks)
+            .filter(|t| seen.insert(t.id.clone()))
+            .map(Into::into)
+            .collect();
+        for playlist in &charts.playlists {
+            if tracks.len() >= limit {
+                break;
+            }
+            let Ok(pl) = self.rp.query().music_playlist(&playlist.id).await else { continue };
+            tracks.extend(pl.tracks.items.into_iter().filter(|t| seen.insert(t.id.clone())).map(Track::from));
+        }
+        if tracks.is_empty() {
+            return Err(Error::Other("YouTube Music : classements vides".into()));
+        }
+        tracks.truncate(limit);
+        Ok(tracks)
     }
 
     async fn prefetch(&self, track: &Track) {

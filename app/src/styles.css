@@ -182,7 +182,6 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   background: rgba(255, 255, 255, 0.1); color: var(--text-2);
 }
 .tag-youtube { background: rgba(255, 0, 51, 0.18); color: #ffb3c1; }
-.tag-audius { background: rgba(124, 58, 237, 0.22); color: #ddd6fe; }
 
 /* ---------- Pochettes ---------- */
 .cover {
@@ -343,28 +342,44 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   animation: np-in 0.45s var(--ease);
 }
 @keyframes np-in { from { opacity: 0; transform: translateY(24px) scale(0.985); } }
-.np-close { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); color: var(--text); }
+/* `translate` et non `transform` : l'effet de clic des boutons (transform: scale) écrasait le centrage. */
+.np-close { position: absolute; top: 16px; left: 50%; translate: -50% 0; z-index: 1; color: var(--text); }
 .np-grid { height: 100%; display: grid; grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.1fr); gap: 64px; align-items: center; }
-.np-left { display: flex; flex-direction: column; align-items: stretch; gap: 22px; max-width: 520px; justify-self: end; width: 100%; }
+.np-left {
+  display: flex; flex-direction: column; align-items: stretch; gap: 22px;
+  max-width: 520px; max-height: 100%; min-width: 0; justify-self: end; width: 100%;
+}
+/* La pochette cède la place quand la fenêtre est basse : titre, barre et boutons restent visibles.
+   400px ≈ marges de la vue + titre (2 lignes max) + artiste + barre + boutons. */
 .np-art {
-  width: 100%; aspect-ratio: 1; border-radius: 20px; overflow: hidden;
+  width: min(100%, max(140px, 100vh - 400px)); align-self: center; flex: none;
+  aspect-ratio: 1; border-radius: 20px; overflow: hidden;
   background: rgba(255, 255, 255, 0.06); box-shadow: 0 40px 100px rgba(0, 0, 0, 0.55);
 }
 .np-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.np-title { font-size: 30px; font-weight: 850; letter-spacing: -0.03em; line-height: 1.1; }
-.np-sub { font-size: 17px; color: var(--text-2); margin-top: 4px; }
+.np-meta { min-width: 0; }
+/* Titres longs : 2 lignes au plus pour le titre, 1 pour l'artiste (texte complet au survol). */
+.np-title {
+  font-size: 30px; font-weight: 850; letter-spacing: -0.03em; line-height: 1.1;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.np-sub { font-size: 17px; color: var(--text-2); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .np-album { color: var(--text-3); }
 .np-left .progress { max-width: none; }
 .np-left .buttons { justify-content: center; }
 .np-right { height: 100%; min-height: 0; }
 
 .lyrics {
-  height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  /* `position` : les offsetTop des lignes se mesurent depuis cette boîte, pas depuis la vue entière. */
+  position: relative; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
   mask-image: linear-gradient(to bottom, transparent 0%, #000 22%, #000 70%, transparent 100%);
   scrollbar-width: none;
 }
 .lyrics::-webkit-scrollbar { display: none; }
+/* Assez de marge pour que la première et la dernière ligne puissent venir aux 2/5 de la hauteur. */
 .lyrics-pad { flex: none; height: 40%; }
+.lyrics-pad:last-child { height: 60%; }
 .lyric {
   text-align: left; font-size: 34px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.22;
   padding: 6px 10px; margin-left: -10px; border-radius: 12px;

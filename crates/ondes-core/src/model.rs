@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct Track {
     /// Identifiant unique, de la forme `"<source>:<id>"`.
     pub id: String,
-    /// Identifiant de la source qui sait jouer ce morceau (`"local"`, `"audius"`…).
+    /// Identifiant de la source qui sait jouer ce morceau (`"local"`, `"youtube"`…).
     pub source: String,
     pub title: String,
     pub artist: String,

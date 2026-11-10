@@ -16,12 +16,17 @@ export function Empty(props: { text: string }) {
 }
 
 export function Cover(props: { track: Track | null | undefined; size?: "sm" | "md" | "lg" | "xl"; hd?: boolean }) {
-  const [broken, setBroken] = createSignal(false);
-  const url = () => (broken() ? null : coverUrl(props.track));
+  // On retient l'adresse qui a échoué, pas un simple « cassé » : sinon, quand le même composant
+  // affiche un autre morceau (barre de lecture), la nouvelle pochette restait masquée.
+  const [broken, setBroken] = createSignal<string | null>(null);
+  const url = () => {
+    const u = coverUrl(props.track);
+    return u && u !== broken() ? u : null;
+  };
   return (
     <div class={`cover ${props.size ?? "sm"}`}>
       <Show when={url()} fallback={<IconNote />}>
-        {(u) => <img src={u()} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />}
+        {(u) => <img src={u()} alt="" loading="lazy" decoding="async" onError={() => setBroken(u())} />}
       </Show>
     </div>
   );
@@ -42,9 +47,9 @@ export function cancelHover() {
   clearTimeout(hoverTimer);
 }
 
-/** Petite étiquette de source (YouTube, Audius…). Rien pour la bibliothèque locale. */
+/** Petite étiquette de source (YouTube…). Rien pour la bibliothèque locale. */
 export function SourceTag(props: { source: string }) {
-  const label = () => ({ youtube: "YouTube", audius: "Audius" } as Record<string, string>)[props.source];
+  const label = () => ({ youtube: "YouTube" } as Record<string, string>)[props.source];
   return (
     <Show when={label()}>
       <span class={`tag tag-${props.source}`}>{label()}</span>

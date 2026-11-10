@@ -1,5 +1,5 @@
 // Mode aperçu, pour travailler l'interface dans un simple navigateur (`npm run dev`).
-// Simule le cœur Rust : tendances Audius réelles, lecture factice, paroles d'exemple.
+// Simule le cœur Rust : morceaux, lecture et paroles d'exemple.
 // Jamais inclus dans l'app : chargé seulement en développement, hors de Tauri.
 import type { Lyrics, Snapshot, Track } from "./api";
 
@@ -25,18 +25,19 @@ function playAt(i: number) {
   startedAt = performance.now();
 }
 
+// Morceaux d'exemple (pochettes aléatoires de picsum.photos : l'aperçu n'a pas accès à Deezer).
 async function loadTrending(): Promise<Track[]> {
-  try {
-    const r = await fetch("https://api.audius.co/v1/tracks/trending?app_name=ondes&limit=30");
-    const j = await r.json();
-    return j.data.map((t: any) => ({
-      id: `audius:${t.id}`, source: "audius", title: t.title, artist: t.user.name, album: null, duration: t.duration,
-      trackNumber: null, discNumber: null, artwork: t.artwork?.["480x480"] ?? null, hasCover: false,
-      location: { kind: "remote", remoteId: t.id },
-    }));
-  } catch {
-    return [];
-  }
+  const names: [string, string][] = [
+    ["Néons sur la ville", "Les Cassettes"], ["Minuit à Lisbonne", "Clara Vent"], ["Rembobine", "VHS Club"],
+    ["Encore une fois", "Mattéo Rive"], ["Lumières basses", "Nuit Blanche"], ["Sweat (Snoop Dogg vs David Guetta Remix)", "Snoop Dogg, David Guetta"],
+    ["Autoroute", "Les Phares"], ["Été 98", "Sable Rose"], ["Pluie d'août", "Inès Marée"], ["Satellite", "Orbite"],
+    ["Ralenti", "Duo Polaroïd"], ["Fin de soirée", "Les Cassettes"], ["Néon bleu", "Clara Vent"],
+  ];
+  return names.map(([title, artist], i) => ({
+    id: `deezer:demo${i}`, source: "deezer", title, artist, album: null, duration: 150 + i * 13,
+    trackNumber: null, discNumber: null, artwork: `https://picsum.photos/seed/ondes${i}/480`, hasCover: false,
+    location: { kind: "remote", remoteId: `demo${i}` },
+  }));
 }
 
 const LYRICS: Lyrics = {
@@ -50,7 +51,7 @@ const LYRICS: Lyrics = {
 };
 
 const handlers: Record<string, (args: any) => unknown> = {
-  list_sources: () => [{ id: "local", name: "Ma bibliothèque" }, { id: "youtube", name: "YouTube Music" }, { id: "audius", name: "Audius" }],
+  list_sources: () => [{ id: "local", name: "Ma bibliothèque" }, { id: "deezer", name: "Titres" }, { id: "youtube", name: "YouTube Music" }],
   library_tracks: () => [],
   library_folders: () => [],
   featured: async () => (tracks = tracks.length ? tracks : await loadTrending()),
@@ -59,7 +60,7 @@ const handlers: Record<string, (args: any) => unknown> = {
     const q = String(query).toLowerCase();
     const hits = all.filter((t) => (t.title + t.artist).toLowerCase().includes(q));
     const list = hits.length ? hits : all.slice(0, 8);
-    return [...list.map((t) => ({ ...t, id: `youtube:${t.id}`, source: "youtube" })), ...list.slice(0, 4)];
+    return list;
   },
   play_queue: ({ tracks: t, index }) => ((queue = t), playAt(index), snap()),
   play_index: ({ index }) => (playAt(index), snap()),

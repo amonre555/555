@@ -2,7 +2,7 @@
 //!
 //! - [`model`]   : les types partagés (morceau, emplacement du son)
 //! - [`source`]  : le trait [`source::MusicSource`] que chaque source de musique implémente
-//! - [`sources`] : les sources fournies (bibliothèque locale, Audius)
+//! - [`sources`] : les sources fournies (bibliothèque locale, Deezer pour les infos, YouTube Music pour le son)
 //! - [`stream`]  : lecteur HTTP progressif (la lecture démarre avant la fin du téléchargement)
 //! - [`player`]  : moteur de lecture + file d'attente
 //!

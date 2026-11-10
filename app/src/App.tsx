@@ -80,7 +80,7 @@ export default function App() {
     } catch (e) {
       fail(e);
     }
-    api.featured("audius").then(setFeatured).catch((e) => {
+    api.featured("deezer").then(setFeatured).catch((e) => {
       setFeatured([]);
       fail(e);
     });
@@ -105,8 +105,8 @@ export default function App() {
         const r = await api.search(q.trim());
         if (id !== searchId) return;
         setResults(r);
-        // Le premier résultat YouTube est le plus souvent cliqué : on le prépare tout de suite.
-        const first = r.find((t) => t.source === "youtube");
+        // Le premier résultat en ligne est le plus souvent cliqué : on le prépare tout de suite.
+        const first = r.find((t) => t.source === "deezer" || t.source === "youtube");
         if (first) api.prefetch(first);
       } catch (e) {
         fail(e);
@@ -120,7 +120,7 @@ export default function App() {
       .map((s) => ({ source: s, tracks: r.filter((t) => t.source === s.id) }))
       .filter((g) => g.tracks.length > 0);
   });
-  const best = createMemo(() => grouped().find((g) => g.source.id === "youtube") ?? grouped()[0]);
+  const best = createMemo(() => grouped().find((g) => g.source.id === "deezer") ?? grouped()[0]);
 
   // ---------- Lecture ----------
   const play = async (tracks: Track[], index: number) => {
@@ -269,7 +269,7 @@ export default function App() {
                         <Show when={rest().length > 0}>
                           <section class="section">
                             <h2 class="section-title">
-                              {skip() ? `Plus de résultats ${g.source.name}` : g.source.name}
+                              {skip() ? (g.source.id === "deezer" ? "Plus de titres" : `Plus de résultats ${g.source.name}`) : g.source.name}
                               <span class="muted count-inline">{rest().length}</span>
                             </h2>
                             <TrackList
@@ -328,8 +328,8 @@ export default function App() {
             <Match when={view() === "discover"}>
               <Show when={featured()} fallback={<Loader />}>
                 {(list) => (
-                  <Show when={list().length > 0} fallback={<Empty text="Impossible de charger les tendances." />}>
-                    <Hero track={list()[0]} playing={isCurrent(list()[0])} onPlay={() => play(list(), 0)} label="N°1 des tendances Audius" />
+                  <Show when={list().length > 0} fallback={<Empty text="Impossible de charger le top Deezer." />}>
+                    <Hero track={list()[0]} playing={isCurrent(list()[0])} onPlay={() => play(list(), 0)} label="N°1 du top Deezer" />
                     <section class="section">
                       <h2 class="section-title">En ce moment</h2>
                       <div class="grid">
@@ -339,7 +339,7 @@ export default function App() {
                       </div>
                     </section>
                     <section class="section">
-                      <h2 class="section-title">Toutes les tendances</h2>
+                      <h2 class="section-title">Tout le top</h2>
                       <TrackList tracks={list()} current={snap().track?.id} status={snap().status} onPlay={(i) => play(list(), i)} />
                     </section>
                   </Show>

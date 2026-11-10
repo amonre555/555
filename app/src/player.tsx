@@ -1,6 +1,6 @@
 // Lecteur : fond vivant, barre de lecture flottante, vue « En lecture » avec paroles.
 import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
-import { api, bigCoverUrl, formatTime, type Lyrics, type Snapshot } from "./api";
+import { api, bigCoverUrl, coverUrl, formatTime, type Lyrics, type Snapshot } from "./api";
 import { IconChevronDown, IconLyrics, IconNext, IconPause, IconPlay, IconPrev, IconVolume } from "./icons";
 import { Cover } from "./ui";
 
@@ -148,10 +148,20 @@ function Volume(props: { snap: Snapshot; run: Run }) {
 export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; onClose: () => void }) {
   const [lyrics, setLyrics] = createSignal<Lyrics | null | undefined>(undefined); // undefined = chargement
   const track = () => props.snap.track;
+  // Mémo obligatoire : l'état arrive 4 fois par seconde avec un nouvel objet `track`, et `on`
+  // relance l'effet à chaque notification même si l'identifiant n'a pas changé. Sans ce mémo,
+  // les paroles étaient effacées puis rechargées sans arrêt (défilement remis à zéro).
+  const trackId = createMemo(() => track()?.id);
+
+  // Grande pochette : version HD, sinon la normale, sinon rien. Les échecs sont oubliés à
+  // chaque changement de morceau (avant, une seule erreur masquait toutes les pochettes suivantes).
+  const [failed, setFailed] = createSignal<string[]>([]);
+  createEffect(on(trackId, () => setFailed([])));
+  const artUrl = () => [bigCoverUrl(track()), coverUrl(track())].find((u) => u && !failed().includes(u)) ?? null;
 
   createEffect(
     on(
-      () => track()?.id,
+      trackId,
       () => {
         const t = track();
         setLyrics(undefined);
@@ -175,13 +185,13 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
           <div class="np-grid">
             <div class="np-left">
               <div class="np-art">
-                <img src={bigCoverUrl(t()) ?? ""} alt="" onError={(e) => (e.currentTarget.style.visibility = "hidden")} />
+                <Show when={artUrl()}>{(u) => <img src={u()} alt="" onError={() => setFailed((f) => [...f, u()])} />}</Show>
               </div>
               <div class="np-meta">
-                <div class="np-title">{t().title}</div>
-                <div class="np-sub">
+                <div class="np-title" title={t().title}>{t().title}</div>
+                <div class="np-sub" title={[t().artist, t().album].filter(Boolean).join(" · ")}>
                   {t().artist}
-                  <Show when={t().album}>{(a) => <span class="np-album"> · {a()}</span>}</Show>
+                  <Show when={t().album !== t().title && t().album}>{(a) => <span class="np-album"> · {a()}</span>}</Show>
                 </div>
               </div>
               <Progress snap={props.snap} position={props.position} run={props.run} />
@@ -220,10 +230,27 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; position: number
     return found;
   });
 
+  // Défilement à la main (molette, trackpad, glisser) : on arrête de suivre la ligne en cours
+  // pendant quelques secondes, au lieu de ramener la vue de force.
+  let userScrollUntil = 0;
+  const onUserScroll = () => (userScrollUntil = performance.now() + 4000);
+
+  /** Place la ligne `i` aux 2/5 de la hauteur. Instantané à l'ouverture ou au changement de paroles. */
+  const follow = (i: number, smooth: boolean) => {
+    const el = box?.querySelector<HTMLElement>(`[data-line="${i}"]`);
+    if (!el) return;
+    const top = el.offsetTop + el.offsetHeight / 2 - box.clientHeight * 0.4;
+    box.scrollTo({ top, behavior: smooth ? "smooth" : "auto" });
+  };
+
   createEffect(
-    on(active, (i) => {
-      const el = box?.querySelector<HTMLElement>(`[data-line="${i}"]`);
-      if (el) box.scrollTo({ top: el.offsetTop - box.clientHeight * 0.38, behavior: "smooth" });
+    on([active, lines], ([i, l], prev) => {
+      const newLyrics = !prev || prev[1] !== l;
+      if (newLyrics) userScrollUntil = 0;
+      else if (performance.now() < userScrollUntil) return;
+      // Le DOM des nouvelles lignes doit être en place avant de mesurer.
+      if (newLyrics) requestAnimationFrame(() => follow(i, false));
+      else follow(i, true);
     }),
   );
 
@@ -245,7 +272,7 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; position: number
           </Show>
         }
       >
-        <div class="lyrics" ref={box}>
+        <div class="lyrics" ref={box} onWheel={onUserScroll} onTouchMove={onUserScroll}>
           <div class="lyrics-pad" />
           <For each={lines()}>
             {(line, i) => (
@@ -257,7 +284,10 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; position: number
                   "past": i() < active(),
                   "near": Math.abs(i() - active()) === 1,
                 }}
-                onClick={() => props.run(() => api.seek(line.time))}
+                onClick={() => {
+                  userScrollUntil = 0; // on reprend le suivi depuis la ligne choisie
+                  props.run(() => api.seek(line.time));
+                }}
               >
                 {line.text || "♪"}
               </button>
