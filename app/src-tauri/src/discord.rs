@@ -19,11 +19,11 @@ use discord_rich_presence::{
 };
 use yato_core::{Snapshot, Status};
 
-/// Identifiant de l'application Discord « yato » (portail développeurs de Discord).
-/// Peut être remplacé à la compilation : `YATO_DISCORD_CLIENT_ID=… npm run tauri build`.
+/// ID of the "555" Discord application (Discord developer portal).
+/// Can be overridden at build time: `YATO_DISCORD_CLIENT_ID=… npm run tauri build`.
 const CLIENT_ID: &str = match option_env!("YATO_DISCORD_CLIENT_ID") {
     Some(id) => id,
-    None => "1484848496363307078",
+    None => "1569805294308167701",
 };
 
 /// Intervalle minimal entre deux envois (Discord limite à 5 mises à jour par 20 s).
