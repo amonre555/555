@@ -5,14 +5,15 @@ import type { AlbumRef, ArtistRef } from "./api";
 
 export type Page = { kind: "artist"; artist: ArtistRef } | { kind: "album"; album: AlbumRef };
 
-const [pageRequest, setPageRequest] = createSignal<{ page: Page; at: number } | null>(null);
+/** `from` : image cliquée (pochette, photo), qui se transforme en celle de la fiche. */
+const [pageRequest, setPageRequest] = createSignal<{ page: Page; from?: Element; at: number } | null>(null);
 
 export { pageRequest };
 
 /** Ouvre une fiche (même si elle est déjà affichée : `at` force la mise à jour). */
-function open(page: Page) {
-  setPageRequest({ page, at: performance.now() });
+function open(page: Page, from?: Element) {
+  setPageRequest({ page, from, at: performance.now() });
 }
 
-export const openArtist = (artist: ArtistRef) => open({ kind: "artist", artist });
-export const openAlbum = (album: AlbumRef) => open({ kind: "album", album });
+export const openArtist = (artist: ArtistRef, from?: Element) => open({ kind: "artist", artist }, from);
+export const openAlbum = (album: AlbumRef, from?: Element) => open({ kind: "album", album }, from);

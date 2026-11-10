@@ -1,13 +1,13 @@
 //! Test : relie des morceaux Deezer (top + recherches) à YouTube Music et affiche le résultat.
 use std::sync::Arc;
-use ondes_core::{MusicSource, sources::{DeezerSource, YouTubeMusicSource}, ytdlp::YtDlp};
+use yato_core::{MusicSource, sources::{DeezerSource, YouTubeMusicSource}, ytdlp::YtDlp};
 
 #[tokio::main]
 async fn main() {
-    let client = ondes_core::http_client();
-    let yt = Arc::new(YouTubeMusicSource::new(std::env::temp_dir().join("ondes-yt"), YtDlp::new(std::env::temp_dir().join("ondes-ytdlp"), client.clone())).unwrap());
+    let client = yato_core::http_client();
+    let yt = Arc::new(YouTubeMusicSource::new(std::env::temp_dir().join("yato-yt"), YtDlp::new(std::env::temp_dir().join("yato-ytdlp"), client.clone())).unwrap());
     let dz = DeezerSource::new(client.clone(), yt.clone());
-    let rp = rustypipe::client::RustyPipe::builder().storage_dir(std::env::temp_dir().join("ondes-yt")).build().unwrap();
+    let rp = rustypipe::client::RustyPipe::builder().storage_dir(std::env::temp_dir().join("yato-yt")).build().unwrap();
     let mut tracks = dz.featured(12).await.unwrap();
     for q in ["serebro мало тебя", "sweat snoop dogg david guetta", "daft punk get lucky", "stromae alors on danse", "bohemian rhapsody"] {
         tracks.extend(dz.search(q, 1).await.unwrap());

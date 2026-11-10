@@ -3,7 +3,7 @@
 //! - **Source** : les versions « nightly » officielles de yt-dlp, qui reçoivent les correctifs
 //!   YouTube en premier.
 //! - **Sécurité** : le fichier d'empreintes `SHA2-256SUMS` doit porter une signature OpenPGP
-//!   valide de la clé officielle de yt-dlp (intégrée à Ondes), puis l'archive téléchargée doit
+//!   valide de la clé officielle de yt-dlp (intégrée à yato), puis l'archive téléchargée doit
 //!   avoir l'empreinte SHA-256 annoncée. Sinon, rien n'est installé.
 //! - **Rapidité** : on prend la version « dossier » (zip), qui démarre en ~0,5 s au lieu de ~2 s
 //!   pour l'exécutable unique (qui doit se décompresser à chaque lancement).
@@ -41,7 +41,7 @@ pub enum YtDlpStatus {
     Unknown,
     /// Téléchargement en cours (`progress` de 0 à 1).
     Installing { progress: f32 },
-    /// Version gérée par Ondes, prête.
+    /// Version gérée par yato, prête.
     Ready,
     /// Pas de version gérée, mais une version du système est utilisée.
     System { path: PathBuf },
@@ -374,7 +374,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn official_sums_are_signed() {
-        let y = YtDlp::new(std::env::temp_dir().join("ondes-ytdlp-test"), reqwest::Client::new());
+        let y = YtDlp::new(std::env::temp_dir().join("yato-ytdlp-test"), reqwest::Client::new());
         let sums = y.signed_sums().await.expect("signature valide");
         assert!(hash_for(&sums, asset_name()).is_some());
     }

@@ -1,11 +1,11 @@
-# Ondes
+# yato
 
 Lecteur de musique léger et rapide, écrit en Rust avec Tauri.
 
 - **Ta bibliothèque locale** : MP3, FLAC, OGG, M4A/AAC, WAV, AIFF… scan en parallèle sur tous les cœurs, cache sur disque, recherche instantanée.
 - **Une source pour les infos, une source pour le son** (comme Nuclear) :
   - **Deezer** (API publique, sans clé) : recherche, top du moment, titres et albums propres, pochettes en 1000 × 1000.
-  - **YouTube Music** : au moment de jouer, Ondes cherche le même enregistrement (titre, artiste, durée, en écartant les versions live, remix, accélérées…) via [rustypipe](https://codeberg.org/ThetaDev/rustypipe), et le son arrive par [yt-dlp](https://github.com/yt-dlp/yt-dlp). La recherche YouTube reste disponible pour les versions absentes de Deezer.
+  - **YouTube Music** : au moment de jouer, yato cherche le même enregistrement (titre, artiste, durée, en écartant les versions live, remix, accélérées…) via [rustypipe](https://codeberg.org/ThetaDev/rustypipe), et le son arrive par [yt-dlp](https://github.com/yt-dlp/yt-dlp). La recherche YouTube reste disponible pour les versions absentes de Deezer.
 - **Streaming progressif** : le son démarre pendant le téléchargement, et l'avance rapide est immédiate.
 - **Anticipation** : le morceau suivant, le premier résultat d'une recherche et les morceaux survolés sont téléchargés à l'avance en mémoire (8 morceaux maximum). Au clic, le son démarre instantanément. Sinon, il faut environ 2 s.
 - **yt-dlp géré automatiquement** : téléchargé depuis les versions officielles, avec vérification de la signature OpenPGP de yt-dlp et de l'empreinte SHA-256, puis mis à jour toutes les 12 h sans coupure. On utilise la version « dossier », qui démarre en 0,5 s au lieu de 2 s.
@@ -15,12 +15,13 @@ Lecteur de musique léger et rapide, écrit en Rust avec Tauri.
 - **Statut Discord** : « Écoute *titre* », l'artiste, la pochette et la barre de progression. Très peu d'envois (seulement aux changements), et rien ne se passe si Discord est fermé.
 - **Paroles synchronisées** via [LRCLIB](https://lrclib.net) : la ligne en cours s'allume, et un clic sur une ligne y amène la lecture.
 - **Touches multimédia et panneau multimédia du système** (Windows, MPRIS sous Linux, macOS), avec titre, artiste et pochette.
-- **Interface immersive** : le fond prend les couleurs de la pochette en cours, avec des panneaux en verre et une vue « En lecture » plein écran.
+- **Interface Material 3 Expressive** : toute l'interface prend les couleurs de la pochette en cours (Material You, via [material-color-utilities](https://github.com/material-foundation/material-color-utilities)), police Google Sans Flex, formes « cookie », boutons qui changent de forme, barre de progression ondulée, transitions floues.
+- **Vue « En lecture »** : la pochette s'envole depuis le lecteur en changeant de forme, paroles façon karaoké (le blanc recouvre le gris au rythme de la chanson).
 
 ## Structure
 
 ```
-crates/ondes-core/   Cœur Rust, indépendant de l'interface
+crates/yato-core/   Cœur Rust, indépendant de l'interface
   src/source.rs        Trait MusicSource : ajouter une source = l'implémenter
   src/sources/         Sources fournies (local, deezer, youtube)
   src/stream.rs        Lecteur HTTP progressif
@@ -33,7 +34,7 @@ Le cœur ne connaît pas Tauri : il pourra servir à une version mobile (Tauri v
 
 ## Lancer
 
-Prérequis : Rust stable, Node.js 22+, outils de build MSVC (Windows). Rien d'autre : yt-dlp s'installe tout seul au premier lancement (dans `<données de l'app>/bin/yt-dlp`). Si l'installation échoue (hors ligne…), Ondes utilise un yt-dlp déjà présent sur le système (PATH ou winget).
+Prérequis : Rust stable, Node.js 22+, outils de build MSVC (Windows). Rien d'autre : yt-dlp s'installe tout seul au premier lancement (dans `<données de l'app>/bin/yt-dlp`). Si l'installation échoue (hors ligne…), yato utilise un yt-dlp déjà présent sur le système (PATH ou winget).
 
 ```bash
 cd app
@@ -43,23 +44,23 @@ npm run tauri dev
 
 Version optimisée : `npm run tauri build`.
 
-Sous Windows, si le dossier du projet est très profond, l'éditeur de liens peut dépasser la limite de 260 caractères. Il suffit alors de compiler ailleurs, par exemple `set CARGO_TARGET_DIR=C:\ondes-target`.
+Sous Windows, si le dossier du projet est très profond, l'éditeur de liens peut dépasser la limite de 260 caractères. Il suffit alors de compiler ailleurs, par exemple `set CARGO_TARGET_DIR=C:\yato-target`.
 
 Pour travailler l'interface dans un navigateur, sans Tauri : `npm run dev` puis http://localhost:1420. Le cœur est alors simulé (morceaux et paroles d'exemple), voir `app/src/dev-mock.ts`. Ce mode n'est jamais inclus dans l'app.
 
 Tests rapides, sans interface :
 
 ```bash
-cargo run -p ondes-core --example yt -- "vhs mattyeux"
-cargo run -p ondes-core --example deezer -- "stromae alors on danse"   # recherche Deezer + lecture du son YouTube
-cargo run -p ondes-core --example artist -- "sweat snoop dogg"   # crédits complets, fiches d'artistes, albums
-cargo run -p ondes-core --example match   # relie le top Deezer et quelques recherches à YouTube Music
-cargo test -p ondes-core -- --include-ignored   # dont la vérification de signature réelle
+cargo run -p yato-core --example yt -- "vhs mattyeux"
+cargo run -p yato-core --example deezer -- "stromae alors on danse"   # recherche Deezer + lecture du son YouTube
+cargo run -p yato-core --example artist -- "sweat snoop dogg"   # crédits complets, fiches d'artistes, albums
+cargo run -p yato-core --example match   # relie le top Deezer et quelques recherches à YouTube Music
+cargo test -p yato-core -- --include-ignored   # dont la vérification de signature réelle
 ```
 
 ## Ajouter une source
 
-Implémenter `ondes_core::MusicSource` (`search`, `featured`, `resolve`) puis l'enregistrer dans `app/src-tauri/src/lib.rs` :
+Implémenter `yato_core::MusicSource` (`search`, `featured`, `resolve`) puis l'enregistrer dans `app/src-tauri/src/lib.rs` :
 
 ```rust
 sources.register(Arc::new(MaSource::new(client.clone())));

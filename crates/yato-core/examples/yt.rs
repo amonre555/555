@@ -1,10 +1,10 @@
 //! Test sans interface : yt-dlp géré (installé si besoin), recherche YouTube Music,
 //! lecture au 1er clic puis lecture d'un morceau anticipé.
-use ondes_core::{MusicSource, StreamData, sources::YouTubeMusicSource, ytdlp::YtDlp};
+use yato_core::{MusicSource, StreamData, sources::YouTubeMusicSource, ytdlp::YtDlp};
 use rodio::{Decoder, Source};
 use std::time::{Duration, Instant};
 
-async fn play(yt: &YouTubeMusicSource, t: &ondes_core::Track, label: &str) {
+async fn play(yt: &YouTubeMusicSource, t: &yato_core::Track, label: &str) {
     let t0 = Instant::now();
     let StreamData::Buffered { download, hint } = yt.resolve(t).await.expect("resolve") else { panic!() };
     let reader = download.reader().await.expect("flux");
@@ -26,13 +26,13 @@ async fn play(yt: &YouTubeMusicSource, t: &ondes_core::Track, label: &str) {
 #[tokio::main]
 async fn main() {
     let q = std::env::args().nth(1).unwrap_or_else(|| "vhs mattyeux".into());
-    let client = ondes_core::http_client();
-    let dir = std::env::args().nth(2).map(Into::into).unwrap_or_else(|| std::env::temp_dir().join("ondes-ytdlp"));
+    let client = yato_core::http_client();
+    let dir = std::env::args().nth(2).map(Into::into).unwrap_or_else(|| std::env::temp_dir().join("yato-ytdlp"));
     let ytdlp = YtDlp::new(dir, client.clone());
     let t = Instant::now();
     let path = ytdlp.path().await.expect("yt-dlp");
     println!("yt-dlp prêt en {:?} : {} ({:?})", t.elapsed(), path.display(), ytdlp.status());
-    let yt = YouTubeMusicSource::new(std::env::temp_dir().join("ondes-yt"), ytdlp).unwrap();
+    let yt = YouTubeMusicSource::new(std::env::temp_dir().join("yato-yt"), ytdlp).unwrap();
     let t = Instant::now();
     let tracks = yt.search(&q, 5).await.expect("recherche");
     println!("recherche « {q} » : {} résultats en {:?}", tracks.len(), t.elapsed());

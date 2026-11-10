@@ -1,5 +1,11 @@
 import { render } from "solid-js/web";
+// Google Sans Flex (licence OFL), intégrée : l'app reste utilisable hors ligne. La version
+// complète expose l'axe « rond » (ROND), qu'on utilise pour des titres plus doux.
+import "@fontsource-variable/google-sans-flex/full.css";
 import "./styles.css";
+import { installShapes } from "./shapes";
+
+installShapes();
 
 async function start() {
   // Aperçu dans un navigateur, hors de Tauri : on simule le cœur Rust (développement seulement).

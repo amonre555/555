@@ -39,7 +39,7 @@ export function ArtistView(props: {
           <>
             <header class="artist-head">
               <div class="hero-bg" style={{ "background-image": p().picture ? `url("${p().picture}")` : "none" }} />
-              <div class="artist-photo">
+              <div class="artist-photo hero-art">
                 <Show when={p().picture} fallback={<IconUser />}>
                   {(src) => <img src={src()} alt="" />}
                 </Show>
@@ -82,7 +82,10 @@ export function ArtistView(props: {
                 <div class="grid artists-grid">
                   <For each={p().related}>
                     {(a) => (
-                      <button class="card artist-card" onClick={() => openArtist({ id: a.id, name: a.name })}>
+                      <button
+                        class="card artist-card"
+                        onClick={(e) => openArtist({ id: a.id, name: a.name }, e.currentTarget.querySelector(".artist-photo") ?? undefined)}
+                      >
                         <div class="artist-photo sm">
                           <Show when={a.picture} fallback={<IconUser />}>
                             {(src) => <img src={src()} alt="" loading="lazy" />}
@@ -131,8 +134,13 @@ function AlbumGrid(props: {
         </h2>
         <div class="grid">
           <For each={props.albums}>
-            {(a) => (
-              <button classList={{ card: true, loading: loading() === a.id }} onClick={() => openAlbum({ id: a.id, title: a.title })} title={`Voir l'album « ${a.title} »`}>
+            {(a, i) => (
+              <button
+                classList={{ card: true, loading: loading() === a.id }}
+                style={{ "--i": Math.min(i(), 16) }}
+                onClick={(e) => openAlbum({ id: a.id, title: a.title }, e.currentTarget.querySelector(".cover") ?? undefined)}
+                title={`Voir l'album « ${a.title} »`}
+              >
                 <div class="card-art">
                   <div class="cover lg">
                     <Show when={a.cover}>{(src) => <img src={src()} alt="" loading="lazy" decoding="async" />}</Show>

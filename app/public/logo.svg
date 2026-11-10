@@ -1,7 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs>
-  <rect width="512" height="512" rx="112" fill="url(#g)"/>
-  <g fill="none" stroke="#fff" stroke-width="36" stroke-linecap="round">
-    <path d="M136 256h0"/><path d="M196 196v120"/><path d="M256 136v240"/><path d="M316 186v140"/><path d="M376 226v60"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="150 120 760 780">
+  <!-- yato : une goutte de verre liquide qui se divise en deux (ya·to), reflets irisés, halo flou. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#1a1c2e"/>
+      <stop offset="1" stop-color="#06060b"/>
+    </linearGradient>
+    <linearGradient id="iri" gradientUnits="userSpaceOnUse" x1="760" y1="230" x2="330" y2="820">
+      <stop offset="0" stop-color="#8af1ff"/>
+      <stop offset="0.42" stop-color="#a995ff"/>
+      <stop offset="1" stop-color="#ff8ccb"/>
+    </linearGradient>
+    <radialGradient id="depth" cx="0.36" cy="0.3" r="0.8">
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#2a1458" stop-opacity="0.6"/>
+    </radialGradient>
+    <radialGradient id="spec" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="halo" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="70"/>
+    </filter>
+    <filter id="goo" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="30" result="b"/>
+      <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 36 -16"/>
+    </filter>
+    <mask id="drop">
+      <g filter="url(#goo)" fill="#fff">
+        <circle cx="440" cy="590" r="228"/>
+        <circle cx="690" cy="330" r="118"/>
+      </g>
+    </mask>
+  </defs>
+  <!-- Halo flou sous la goutte -->
+  <g filter="url(#halo)" opacity="0.45">
+    <circle cx="440" cy="620" r="210" fill="#8f7bff"/>
+    <circle cx="700" cy="340" r="110" fill="#6fe7ff"/>
+  </g>
+  <!-- La goutte -->
+  <g mask="url(#drop)">
+    <rect width="1024" height="1024" fill="url(#iri)"/>
+    <rect width="1024" height="1024" fill="url(#depth)"/>
+    <!-- Reflets spéculaires -->
+    <ellipse cx="350" cy="455" rx="120" ry="70" transform="rotate(-35 350 455)" fill="url(#spec)"/>
+    <ellipse cx="652" cy="272" rx="52" ry="30" transform="rotate(-35 652 272)" fill="url(#spec)"/>
+    <!-- Lumière qui traverse le verre, en bas à droite -->
+    <path d="M560 760 C 640 720, 680 640, 676 560" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="16" stroke-linecap="round"/>
   </g>
 </svg>

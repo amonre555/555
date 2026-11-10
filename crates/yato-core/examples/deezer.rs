@@ -1,10 +1,10 @@
 //! Test sans interface : recherche Deezer, puis lecture du son trouvé sur YouTube Music
 //! (au 1er clic, puis pour un morceau anticipé).
 use std::{sync::Arc, time::{Duration, Instant}};
-use ondes_core::{MusicSource, StreamData, sources::{DeezerSource, YouTubeMusicSource}, ytdlp::YtDlp};
+use yato_core::{MusicSource, StreamData, sources::{DeezerSource, YouTubeMusicSource}, ytdlp::YtDlp};
 use rodio::{Decoder, Source};
 
-async fn play(src: &DeezerSource, t: &ondes_core::Track, label: &str) {
+async fn play(src: &DeezerSource, t: &yato_core::Track, label: &str) {
     let t0 = Instant::now();
     let StreamData::Buffered { download, hint } = src.resolve(t).await.expect("resolve") else { panic!() };
     let reader = download.reader().await.expect("flux");
@@ -26,9 +26,9 @@ async fn play(src: &DeezerSource, t: &ondes_core::Track, label: &str) {
 #[tokio::main]
 async fn main() {
     let q = std::env::args().nth(1).unwrap_or_else(|| "stromae alors on danse".into());
-    let client = ondes_core::http_client();
-    let ytdlp = YtDlp::new(std::env::temp_dir().join("ondes-ytdlp"), client.clone());
-    let yt = Arc::new(YouTubeMusicSource::new(std::env::temp_dir().join("ondes-yt"), ytdlp).unwrap());
+    let client = yato_core::http_client();
+    let ytdlp = YtDlp::new(std::env::temp_dir().join("yato-ytdlp"), client.clone());
+    let yt = Arc::new(YouTubeMusicSource::new(std::env::temp_dir().join("yato-yt"), ytdlp).unwrap());
     let dz = DeezerSource::new(client, yt);
     let t = Instant::now();
     let tracks = dz.search(&q, 5).await.expect("recherche");

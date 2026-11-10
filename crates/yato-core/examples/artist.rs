@@ -1,12 +1,12 @@
 //! Test : artistes d'un morceau, fiche d'un artiste (par nom) et morceaux d'un album.
 use std::sync::Arc;
-use ondes_core::{MusicSource, sources::{DeezerSource, YouTubeMusicSource}, ytdlp::YtDlp};
+use yato_core::{MusicSource, sources::{DeezerSource, YouTubeMusicSource}, ytdlp::YtDlp};
 
 #[tokio::main]
 async fn main() {
     let q = std::env::args().nth(1).unwrap_or_else(|| "sweat snoop dogg david guetta".into());
-    let client = ondes_core::http_client();
-    let yt = Arc::new(YouTubeMusicSource::new(std::env::temp_dir().join("ondes-yt"), YtDlp::new(std::env::temp_dir().join("ondes-ytdlp"), client.clone())).unwrap());
+    let client = yato_core::http_client();
+    let yt = Arc::new(YouTubeMusicSource::new(std::env::temp_dir().join("yato-yt"), YtDlp::new(std::env::temp_dir().join("yato-ytdlp"), client.clone())).unwrap());
     let dz = DeezerSource::new(client, yt);
     let t = &dz.search(&q, 1).await.unwrap()[0];
     println!("« {} » — recherche : {:?}", t.title, t.artists);

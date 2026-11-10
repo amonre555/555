@@ -35,7 +35,7 @@ async function loadTrending(): Promise<Track[]> {
   ];
   return names.map(([title, artist], i) => ({
     id: `deezer:demo${i}`, source: "deezer", title, artist, duration: 150 + i * 13,
-    trackNumber: null, discNumber: null, artwork: `https://picsum.photos/seed/ondes${i}/480`, hasCover: false,
+    trackNumber: null, discNumber: null, artwork: `https://picsum.photos/seed/yato${i}/480`, hasCover: false,
     location: { kind: "remote", remoteId: `demo${i}` },
     artists: artist.split(", ").map((name) => ({ name, id: `demo-${name}` })),
     album: i % 3 === 0 ? null : "Cassettes et néons",

@@ -329,7 +329,7 @@ fn decode_file(path: &Path) -> Result<Decoder<BufReader<File>>> {
 fn open_output() -> Result<rodio::Player> {
     let (tx, rx) = std::sync::mpsc::channel();
     std::thread::Builder::new()
-        .name("ondes-audio".into())
+        .name("yato-audio".into())
         .spawn(move || match open_sink() {
             Ok(mut sink) => {
                 sink.log_on_drop(false);

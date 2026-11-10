@@ -1,8 +1,10 @@
 // Lecteur : fond vivant, barre de lecture flottante, vue « En lecture » avec paroles.
-import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, on, onMount, Show } from "solid-js";
 import { api, bigCoverUrl, coverUrl, formatTime, type ArtistRef, type Lyrics, type Snapshot, type Track } from "./api";
 import { IconChevronDown, IconLyrics, IconNext, IconPause, IconPlay, IconPrev, IconVolume } from "./icons";
 import { AlbumLink, ArtistLinks, Cover } from "./ui";
+import { themeFromCover } from "./theme";
+import { cookie, PLAYER_COOKIE, roundedSquare } from "./shapes";
 
 type Run = (a: () => Promise<Snapshot>) => void;
 
@@ -36,6 +38,9 @@ function useFullArtists(track: () => Track | null | undefined) {
  */
 export function Backdrop(props: { snap: Snapshot }) {
   const url = createMemo(() => bigCoverUrl(props.snap.track));
+  // Couleurs de l'interface : analysées sur la petite pochette (plus rapide, jamais refusée).
+  const small = createMemo(() => coverUrl(props.snap.track));
+  createEffect(on(small, (u) => themeFromCover(u)));
   const [layers, setLayers] = createSignal<{ url: string; key: number }[]>([]);
   let key = 0;
   createEffect(
@@ -62,7 +67,7 @@ export function PlayerBar(props: {
   const playing = () => props.snap.status === "playing";
   const artists = useFullArtists(() => props.snap.track);
   return (
-    <footer class="player glass">
+    <footer class="player">
       <div class="now">
         <Show when={props.snap.track} fallback={<div class="muted small">Rien en lecture</div>}>
           {(t) => (
@@ -106,7 +111,7 @@ function Transport(props: { snap: Snapshot; run: Run; playing: boolean; big?: bo
         <IconPrev />
       </button>
       <button
-        classList={{ "play-btn": true, loading: props.snap.status === "loading" }}
+        classList={{ "play-btn": true, loading: props.snap.status === "loading", playing: props.playing }}
         title="Lecture / pause (Espace)"
         onClick={() => props.run(api.toggle)}
         disabled={!props.snap.track && props.snap.queueLen === 0}
@@ -130,6 +135,16 @@ function Progress(props: { snap: Snapshot; position: number; run: Run }) {
   return (
     <div class="progress">
       <span class="time">{formatTime(shown())}</span>
+      {/*
+        Barre ondulée (Material 3 Expressive) : la partie écoutée est une vague qui défile
+        pendant la lecture et s'aplatit en pause. Le curseur natif reste par-dessus pour la
+        souris et le clavier.
+      */}
+      <div classList={{ seek: true, flowing: props.snap.status === "playing" && dragging() === null }}>
+        <div class="seek-played" style={{ width: `${pct()}%` }} aria-hidden="true">
+          <span class="seek-wave" />
+          <span class="seek-flat" />
+        </div>
       <input
         type="range"
         class="slider"
@@ -147,6 +162,7 @@ function Progress(props: { snap: Snapshot; position: number; run: Run }) {
           setTimeout(() => setDragging(null), 300);
         }}
       />
+      </div>
       <span class="time">{formatTime(props.snap.duration)}</span>
     </div>
   );
@@ -172,7 +188,88 @@ function Volume(props: { snap: Snapshot; run: Run }) {
 }
 
 /** Vue plein écran : grande pochette, commandes, et paroles synchronisées. */
-export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; onClose: () => void }) {
+/** Position de la pochette du lecteur, hors rotation (la forme cookie tourne en continu). */
+function playerCoverRect(): DOMRect | null {
+  const cover = document.querySelector<HTMLElement>(".now-btn .cover");
+  const parent = cover?.offsetParent;
+  if (!cover || !(parent instanceof HTMLElement)) return null;
+  const p = parent.getBoundingClientRect();
+  return new DOMRect(p.left + cover.offsetLeft, p.top + cover.offsetTop, cover.offsetWidth, cover.offsetHeight);
+}
+
+/** Angle actuel de la forme cookie du lecteur (elle tourne en continu pendant la lecture). */
+function playerCoverAngle(): number {
+  const cover = document.querySelector<HTMLElement>(".now-btn .cover");
+  if (!cover) return 0;
+  const rotate = getComputedStyle(cover).rotate; // « 123.4deg » ou « none »
+  return rotate && rotate !== "none" ? parseFloat(rotate) : 0;
+}
+
+/** Vitesse de rotation de la forme cookie (doit suivre l'animation `spin` de styles.css). */
+const COOKIE_DEG_PER_MS = 360 / 24000;
+
+/** Rayon des coins de la grande pochette (doit suivre `.np-art` dans styles.css). */
+const ART_RADIUS_PX = 48;
+
+/**
+ * Fait voler la grande pochette depuis (ou vers) celle du lecteur (technique « FLIP ») :
+ * - la position et la taille passent de l'une à l'autre (`transform`) ;
+ * - la forme se transforme entre le cookie et un carré aux coins exactement identiques à ceux de
+ *   la pochette (`clip-path`, mêmes points des deux côtés), avec l'angle qu'aura le cookie.
+ * Si une animation est déjà en cours (Échap pendant l'ouverture, réouverture pendant la
+ * fermeture), on repart de l'état affiché à cet instant : pas de saut.
+ */
+function flyCover(art: HTMLElement, direction: "in" | "out", duration: number) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  // État affiché maintenant (si la pochette est en plein vol), avant d'arrêter l'animation.
+  const running = art.getAnimations();
+  const style = getComputedStyle(art);
+  const current = running.length ? { transform: style.transform, clipPath: style.clipPath } : null;
+  running.forEach((a) => a.cancel());
+
+  const from = playerCoverRect();
+  const to = art.getBoundingClientRect(); // sans animation : la vraie place de la pochette
+  if (!from || !to.width) return;
+  const spinning = document.querySelector(".app.playing-on") !== null;
+  // Angle du cookie au moment où la grande pochette le rejoint.
+  const angle = playerCoverAngle() + (direction === "out" && spinning ? duration * COOKIE_DEG_PER_MS : 0);
+  const small = {
+    transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width})`,
+    clipPath: cookie(PLAYER_COOKIE.petals, PLAYER_COOKIE.depth, angle),
+  };
+  const big = { transform: "translate(0px, 0px) scale(1)", clipPath: roundedSquare((ART_RADIUS_PX / to.width) * 100) };
+  art.style.transformOrigin = "0 0";
+  art.style.borderRadius = "0";
+  const start = current && current.clipPath !== "none" ? current : direction === "in" ? small : big;
+  const anim = art.animate([start, direction === "in" ? big : small], {
+    duration,
+    easing: direction === "in" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "cubic-bezier(0.55, 0, 0.3, 1)",
+    fill: "both",
+  });
+  // Arrivée dans la vue : on rend sa forme normale (coins arrondis et ombre, que le découpage
+  // masquait) ; la forme d'arrivée est identique, le relais ne se voit pas. La fermeture garde la
+  // dernière image jusqu'au retrait de la vue.
+  if (direction === "in") {
+    anim.finished
+      .then(() => {
+        anim.cancel();
+        art.style.borderRadius = "";
+        art.style.transformOrigin = "";
+      })
+      .catch(() => {});
+  }
+}
+
+export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; leaving: boolean; onClose: () => void }) {
+  let art: HTMLDivElement | undefined;
+  // Dès l'insertion (avant le premier affichage), pour ne jamais voir la pochette à sa place finale.
+  onMount(() => art && flyCover(art, "in", 650));
+  // Fermeture, ou réouverture pendant une fermeture : la pochette repart d'où elle est.
+  // Mémo obligatoire : `on` relance l'effet à chaque changement d'état de l'app (par exemple
+  // « en ouverture » → « ouverte ») même si `leaving` ne change pas. Sans lui, la fin de
+  // l'ouverture relançait un envol depuis le lecteur (la pochette sautait une dernière fois).
+  const leaving = createMemo(() => props.leaving);
+  createEffect(on(leaving, (l) => art && flyCover(art, l ? "out" : "in", l ? 440 : 650), { defer: true }));
   const [lyrics, setLyrics] = createSignal<Lyrics | null | undefined>(undefined); // undefined = chargement
   const track = () => props.snap.track;
   // Mémo obligatoire : l'état arrive 4 fois par seconde avec un nouvel objet `track`, et `on`
@@ -204,7 +301,11 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
   );
 
   return (
-    <div class="nowplaying" role="dialog" aria-label="En lecture">
+    <div classList={{ nowplaying: true, leaving: props.leaving }} role="dialog" aria-label="En lecture">
+      {/* Fond propre à la vue (pochette floutée sur une base opaque) : il apparaît avec elle. */}
+      <div class="np-bg" aria-hidden="true">
+        <Show when={bigCoverUrl(track())}>{(u) => <div class="np-bg-art" style={{ "background-image": `url("${u()}")` }} />}</Show>
+      </div>
       <button class="icon-btn np-close" title="Fermer (Échap)" onClick={props.onClose}>
         <IconChevronDown />
       </button>
@@ -212,7 +313,7 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
         {(t) => (
           <div class="np-grid">
             <div class="np-left">
-              <div class="np-art">
+              <div class="np-art" ref={art}>
                 <Show when={artUrl()}>{(u) => <img src={u()} alt="" onError={() => setFailed((f) => [...f, u()])} />}</Show>
               </div>
               <div class="np-meta">
@@ -262,6 +363,19 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; position: number
     }
     return found;
   });
+
+  /**
+   * Karaoké : part déjà chantée de la ligne en cours (0 à 1), du début de la ligne au début de
+   * la suivante. Lue seulement par la ligne en cours : les autres ne sont pas recalculées.
+   */
+  const sung = () => {
+    const l = lines();
+    const i = active();
+    if (i < 0) return 0;
+    const start = l[i].time;
+    const end = l[i + 1]?.time ?? start + 5;
+    return Math.min(1, Math.max(0, (props.position + 0.25 - start) / Math.max(0.5, end - start)));
+  };
 
   // Défilement à la main (molette, trackpad, glisser) : on arrête de suivre la ligne en cours
   // pendant quelques secondes, au lieu de ramener la vue de force.
@@ -322,7 +436,13 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; position: number
                   props.run(() => api.seek(line.time));
                 }}
               >
-                {line.text || "♪"}
+                {/* Texte gris que le blanc recouvre de gauche à droite (ligne par ligne si elle se coupe). */}
+                <span
+                  class="lyric-text"
+                  style={{ "--p": `${(i() === active() ? sung() : i() < active() ? 1 : 0) * 100}%` }}
+                >
+                  {line.text || "♪"}
+                </span>
               </button>
             )}
           </For>

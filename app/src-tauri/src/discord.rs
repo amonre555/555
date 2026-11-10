@@ -17,11 +17,11 @@ use discord_rich_presence::{
     DiscordIpc, DiscordIpcClient,
     activity::{Activity, ActivityType, Assets, StatusDisplayType, Timestamps},
 };
-use ondes_core::{Snapshot, Status};
+use yato_core::{Snapshot, Status};
 
-/// Identifiant de l'application Discord « Ondes » (portail développeurs de Discord).
-/// Peut être remplacé à la compilation : `ONDES_DISCORD_CLIENT_ID=… npm run tauri build`.
-const CLIENT_ID: &str = match option_env!("ONDES_DISCORD_CLIENT_ID") {
+/// Identifiant de l'application Discord « yato » (portail développeurs de Discord).
+/// Peut être remplacé à la compilation : `YATO_DISCORD_CLIENT_ID=… npm run tauri build`.
+const CLIENT_ID: &str = match option_env!("YATO_DISCORD_CLIENT_ID") {
     Some(id) => id,
     None => "1484848496363307078",
 };
@@ -44,7 +44,7 @@ pub fn spawn() -> Option<mpsc::Sender<Snapshot>> {
     }
     let (tx, rx) = mpsc::channel::<Snapshot>();
     std::thread::Builder::new()
-        .name("ondes-discord".into())
+        .name("yato-discord".into())
         .spawn(move || Presence::new().run(rx))
         .ok()?;
     Some(tx)
@@ -218,7 +218,7 @@ mod tests {
     use super::*;
 
     fn snap(status: Status, position: f64) -> Snapshot {
-        let track = ondes_core::Track {
+        let track = yato_core::Track {
             id: "deezer:1".into(),
             source: "deezer".into(),
             title: "Dai Dai".into(),
@@ -230,7 +230,7 @@ mod tests {
             disc_number: None,
             artwork: None,
             has_cover: false,
-            location: ondes_core::Location::Remote { remote_id: "1".into() },
+            location: yato_core::Location::Remote { remote_id: "1".into() },
             artists: Vec::new(),
         };
         Snapshot { track: Some(track), status, position, duration: Some(223.0), volume: 1.0, index: Some(0), queue_len: 1, error: None }

@@ -1,4 +1,4 @@
-// Pont typé vers le cœur Rust. Les types reflètent ceux de `ondes-core`.
+// Pont typé vers le cœur Rust. Les types reflètent ceux de `yato-core`.
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 

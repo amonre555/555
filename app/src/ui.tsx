@@ -144,6 +144,7 @@ export function TrackList(props: {
             <div
               role="listitem"
               classList={{ row: true, current: isCurrent() }}
+              style={{ "--i": Math.min(i(), 16) }}
               onDblClick={() => props.onPlay(i())}
               onKeyDown={(e) => e.key === "Enter" && props.onPlay(i())}
               onMouseEnter={() => hoverPrefetch(t)}
@@ -185,10 +186,11 @@ export function TrackList(props: {
 }
 
 /** Carte de morceau (grilles « Découvrir »), avec bouton lecture au survol. */
-export function TrackCard(props: { track: Track; playing: boolean; onPlay: () => void }) {
+export function TrackCard(props: { track: Track; playing: boolean; onPlay: () => void; index?: number }) {
   return (
     <button
       classList={{ card: true, playing: props.playing }}
+      style={{ "--i": Math.min(props.index ?? 0, 16) }}
       onClick={props.onPlay}
       onMouseEnter={() => hoverPrefetch(props.track)}
       onMouseLeave={cancelHover}

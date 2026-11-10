@@ -1,11 +1,11 @@
 //! Test : paroles synchronisées des premiers résultats YouTube Music d'une recherche.
-use ondes_core::{MusicSource, lyrics::LyricsClient, sources::YouTubeMusicSource, ytdlp::YtDlp};
+use yato_core::{MusicSource, lyrics::LyricsClient, sources::YouTubeMusicSource, ytdlp::YtDlp};
 
 #[tokio::main]
 async fn main() {
     let q = std::env::args().nth(1).unwrap_or_else(|| "mattyeux videoclub".into());
-    let client = ondes_core::http_client();
-    let yt = YouTubeMusicSource::new(std::env::temp_dir().join("ondes-yt"), YtDlp::new(std::env::temp_dir().join("ondes-ytdlp"), client.clone())).unwrap();
+    let client = yato_core::http_client();
+    let yt = YouTubeMusicSource::new(std::env::temp_dir().join("yato-yt"), YtDlp::new(std::env::temp_dir().join("yato-ytdlp"), client.clone())).unwrap();
     let lyrics = LyricsClient::new(client);
     for t in yt.search(&q, 6).await.unwrap() {
         let t0 = std::time::Instant::now();

@@ -46,7 +46,7 @@ export function AlbumView(props: {
             <>
               <header class="artist-head album-head">
                 <div class="hero-bg" style={{ "background-image": p().cover ? `url("${p().cover}")` : "none" }} />
-                <div class="album-cover">
+                <div class="album-cover hero-art">
                   <Show when={p().cover} fallback={<IconNote />}>
                     {(src) => <img src={src()} alt="" />}
                   </Show>

@@ -11,7 +11,7 @@ use std::{
     time::Duration,
 };
 
-use ondes_core::{Controller, Location, Snapshot, Status, Track, sources::read_cover};
+use yato_core::{Controller, Location, Snapshot, Status, Track, sources::read_cover};
 use souvlaki::{
     MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig,
     SeekDirection,
@@ -25,11 +25,11 @@ pub fn spawn(hwnd: Option<*mut c_void>, cover_dir: PathBuf, controller: Arc<Cont
     let hwnd = hwnd.map(|h| h as usize); // un pointeur brut ne peut pas changer de thread
 
     std::thread::Builder::new()
-        .name("ondes-media-controls".into())
+        .name("yato-media-controls".into())
         .spawn(move || {
             let config = PlatformConfig {
-                display_name: "Ondes",
-                dbus_name: "ondes",
+                display_name: "yato",
+                dbus_name: "yato",
                 hwnd: hwnd.map(|h| h as *mut c_void),
             };
             let Ok(mut controls) = MediaControls::new(config) else { return };
@@ -76,11 +76,11 @@ fn offset(pos: f64, dir: SeekDirection, d: Duration) -> f64 {
     }
 }
 
-async fn seek(c: &Arc<Controller>, to: f64) -> ondes_core::Result<()> {
+async fn seek(c: &Arc<Controller>, to: f64) -> yato_core::Result<()> {
     let c = c.clone();
     tauri::async_runtime::spawn_blocking(move || c.seek(to))
         .await
-        .map_err(|e| ondes_core::Error::Other(e.to_string()))?
+        .map_err(|e| yato_core::Error::Other(e.to_string()))?
 }
 
 /// Ce qui est actuellement affiché par le système, pour ne lui envoyer que les changements.

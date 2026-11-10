@@ -3333,44 +3333,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
-name = "ondes"
-version = "0.1.0"
-dependencies = [
- "discord-rich-presence",
- "ondes-core",
- "percent-encoding",
- "serde",
- "serde_json",
- "souvlaki",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tokio",
-]
-
-[[package]]
-name = "ondes-core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64 0.23.1",
- "lofty",
- "parking_lot 0.13.0",
- "pgp",
- "rayon",
- "reqwest 0.13.5",
- "rodio",
- "rustypipe",
- "serde",
- "serde_json",
- "sha2 0.11.1",
- "thiserror 2.0.21",
- "tokio",
- "walkdir",
- "zip",
-]
-
-[[package]]
 name = "opaque-debug"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6858,6 +6820,44 @@ dependencies = [
  "rand_core 0.6.4",
  "serde",
  "zeroize",
+]
+
+[[package]]
+name = "yato"
+version = "0.1.0"
+dependencies = [
+ "discord-rich-presence",
+ "percent-encoding",
+ "serde",
+ "serde_json",
+ "souvlaki",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tokio",
+ "yato-core",
+]
+
+[[package]]
+name = "yato-core"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.23.1",
+ "lofty",
+ "parking_lot 0.13.0",
+ "pgp",
+ "rayon",
+ "reqwest 0.13.5",
+ "rodio",
+ "rustypipe",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "thiserror 2.0.21",
+ "tokio",
+ "walkdir",
+ "zip",
 ]
 
 [[package]]

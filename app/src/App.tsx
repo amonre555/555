@@ -1,8 +1,9 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { createEffect, createMemo, createSignal, For, Match, on, onCleanup, onMount, Show, Switch } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Match, on, onCleanup, onMount, Show, Switch, type JSX } from "solid-js";
 import { api, bigCoverUrl, formatTime, type AlbumPage, type ArtistPage, type Snapshot, type SourceInfo, type Track, type YtDlpStatus } from "./api";
 import { AlbumView } from "./album";
 import { ArtistView } from "./artist";
+import { nameForTransition, transition } from "./motion";
 import { pageRequest, type Page } from "./nav";
 import { IconClose, IconCompass, IconFolderPlus, IconLibrary, IconNote, IconPlay, IconRefresh, IconSearch } from "./icons";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
@@ -26,7 +27,14 @@ export default function App() {
   const [snap, setSnap] = createSignal<Snapshot>(EMPTY);
   const [toast, setToast] = createSignal<string | null>(null);
   const [ytdlp, setYtdlp] = createSignal<YtDlpStatus>({ state: "unknown" });
-  const [expanded, setExpanded] = createSignal(false);
+  /**
+   * Vue « En lecture » : fermée, en ouverture, ouverte, en fermeture. Les états intermédiaires
+   * laissent l'app visible dessous pendant l'animation ; une fois ouverte, l'app est masquée
+   * (rien à redessiner sous la vue).
+   */
+  const [np, setNp] = createSignal<"closed" | "opening" | "open" | "closing">("closed");
+  const expanded = () => np() === "opening" || np() === "open";
+  let npTimer: number | undefined;
   let searchInput!: HTMLInputElement;
 
   // ---------- Fiches (artistes, albums) ----------
@@ -35,30 +43,53 @@ export default function App() {
   const [artistPage, setArtistPage] = createSignal<ArtistPage | null | undefined>(undefined);
   const [albumPage, setAlbumPage] = createSignal<AlbumPage | null | undefined>(undefined);
   const [history, setHistory] = createSignal<{ view: View; page: Page | null }[]>([]);
+  /** Une fiche est en cours de chargement (fine barre lumineuse en haut). */
+  const [navigating, setNavigating] = createSignal(false);
+  let content!: HTMLElement;
   let pageLoad = 0;
-  const showPage = async (p: Page) => {
-    setPage(p);
-    document.querySelector(".content")?.scrollTo({ top: 0 });
+
+  /** Change de vue avec une transition ; la page repart du haut. */
+  const switchTo = (update: () => void, kind: "page" | "back" = "page") =>
+    transition(() => {
+      update();
+      content.scrollTop = 0;
+    }, kind);
+
+  /**
+   * Ouvre une fiche. On attend ses données (au plus 450 ms) avant de changer de vue : la
+   * transition montre alors directement la fiche, et l'image cliquée (`from`) se transforme en
+   * sa grande image. Si c'est plus long, la fiche s'affiche en chargement puis se remplit.
+   */
+  const showPage = async (p: Page, kind: "page" | "back" = "page", from?: Element) => {
     const id = ++pageLoad;
-    try {
-      if (p.kind === "artist") {
-        setArtistPage(undefined);
-        setView("artist");
-        const data = await api.artist(p.artist);
-        if (id === pageLoad) setArtistPage(data);
-      } else {
-        setAlbumPage(undefined);
-        setView("album");
-        const data = await api.album(p.album);
-        if (id === pageLoad) setAlbumPage(data);
+    setNavigating(true);
+    const request: Promise<ArtistPage | AlbumPage> = p.kind === "artist" ? api.artist(p.artist) : api.album(p.album);
+    const quick = await Promise.race([
+      request.then((data) => ({ data }), (error) => ({ error })),
+      new Promise<null>((done) => setTimeout(() => done(null), 450)),
+    ]);
+    if (id !== pageLoad) return;
+    const setData = (d: ArtistPage | AlbumPage | null | undefined) => {
+      if (p.kind === "artist") setArtistPage(d as ArtistPage | null | undefined);
+      else setAlbumPage(d as AlbumPage | null | undefined);
+    };
+    nameForTransition(from, "hero-art");
+    switchTo(() => {
+      setPage(p);
+      setData(quick && "data" in quick ? quick.data : quick ? null : undefined);
+      setView(p.kind);
+    }, kind);
+    if (quick && "error" in quick) fail(quick.error);
+    if (!quick) {
+      try {
+        const data = await request;
+        if (id === pageLoad) setData(data);
+      } catch (e) {
+        if (id === pageLoad) setData(null);
+        fail(e);
       }
-    } catch (e) {
-      if (id === pageLoad) {
-        if (p.kind === "artist") setArtistPage(null);
-        else setAlbumPage(null);
-      }
-      fail(e);
     }
+    if (id === pageLoad) setNavigating(false);
   };
   const samePage = (a: Page | null, b: Page) =>
     !!a && a.kind === b.kind &&
@@ -68,26 +99,40 @@ export default function App() {
   createEffect(
     on(pageRequest, (req) => {
       if (!req) return;
-      setExpanded(false);
+      if (expanded()) setNowPlaying(false);
       const onPage = view() === "artist" || view() === "album";
       if (!(onPage && samePage(page(), req.page))) {
         setHistory((h) => [...h, { view: view(), page: onPage ? page() : null }]);
       }
-      showPage(req.page);
+      showPage(req.page, "page", req.from);
     }, { defer: true }),
   );
   const goBack = () => {
     const h = history();
     const last = h[h.length - 1];
-    if (!last) return setView("discover");
+    if (!last) return switchTo(() => setView("discover"), "back");
     setHistory(h.slice(0, -1));
-    if (last.page) showPage(last.page);
-    else setView(last.view);
+    if (last.page) showPage(last.page, "back");
+    else switchTo(() => setView(last.view), "back");
   };
-  /** Changement de page depuis le menu : l'historique repart de zéro. */
+  /** Changement de page depuis la barre du haut : l'historique repart de zéro. */
   const goTo = (v: View) => {
+    pageLoad++;
+    setNavigating(false);
     setHistory([]);
-    setView(v);
+    if (view() !== v) switchTo(() => setView(v));
+  };
+  /** Ouvre ou ferme la vue « En lecture » ; les animations sont dans NowPlaying et styles.css. */
+  const setNowPlaying = (open: boolean) => {
+    if (open === expanded()) return;
+    clearTimeout(npTimer);
+    if (open) {
+      setNp("opening");
+      npTimer = window.setTimeout(() => setNp("open"), 700);
+    } else {
+      setNp("closing");
+      npTimer = window.setTimeout(() => setNp("closed"), 460);
+    }
   };
 
   // ---------- Erreurs ----------
@@ -158,11 +203,15 @@ export default function App() {
     clearTimeout(searchTimer);
     if (!q.trim()) {
       setResults(null);
-      if (view() === "search") setView("discover");
+      if (view() === "search") switchTo(() => setView("discover"), "back");
       return;
     }
-    setView("search");
     setResults(null);
+    if (view() !== "search") {
+      pageLoad++;
+      setNavigating(false);
+      switchTo(() => setView("search"));
+    }
     searchTimer = window.setTimeout(async () => {
       const id = ++searchId;
       try {
@@ -207,11 +256,11 @@ export default function App() {
     const typing = (e.target as HTMLElement)?.tagName === "INPUT";
     if ((e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "k")) {
       e.preventDefault();
-      setExpanded(false);
+      setNowPlaying(false);
       searchInput.focus();
       searchInput.select();
     } else if (e.key === "Escape") {
-      if (expanded()) setExpanded(false);
+      if (expanded()) setNowPlaying(false);
       else if (typing) searchInput.blur();
     } else if (!typing && e.code === "Space") {
       e.preventDefault();
@@ -239,54 +288,36 @@ export default function App() {
     const dir = await open({ directory: true, multiple: false, title: "Choisir un dossier de musique" });
     if (typeof dir !== "string") return;
     await withScan(() => api.addFolder(dir));
-    setView("library");
+    goTo("library");
   };
 
   const libraryDuration = createMemo(() => library().reduce((acc, t) => acc + (t.duration ?? 0), 0));
   const isCurrent = (t: Track) => snap().track?.id === t.id;
 
   return (
-    <div classList={{ app: true, "has-track": !!snap().track }}>
+    <div classList={{ app: true, "has-track": !!snap().track, "playing-on": snap().status === "playing", expanded: np() === "open", "np-moving": np() === "opening" || np() === "closing" }}>
       <Backdrop snap={snap()} />
 
-      <aside class="sidebar glass">
-        <div class="brand">
+      <aside class="sidebar">
+        <button class="brand" onClick={() => goTo("discover")} title="Accueil">
           <img src="/logo.svg" alt="" width="30" height="30" />
-          <span>Ondes</span>
-        </div>
-        <nav>
-          <button classList={{ nav: true, active: view() === "discover" }} onClick={() => goTo("discover")}>
-            <IconCompass /> <span>Découvrir</span>
-          </button>
-          <button classList={{ nav: true, active: view() === "library" }} onClick={() => goTo("library")}>
-            <IconLibrary /> <span>Bibliothèque</span>
-            <Show when={library().length > 0}>
-              <span class="count">{library().length}</span>
-            </Show>
-          </button>
-        </nav>
-        <div class="sidebar-section">
-          <div class="sidebar-title">Dossiers</div>
-          <For each={folders()} fallback={<p class="muted small pad">Aucun dossier pour l'instant.</p>}>
-            {(dir) => (
-              <div class="folder" title={dir}>
-                <span>{dir.split(/[\\/]/).filter(Boolean).pop() ?? dir}</span>
-                <button class="icon-btn tiny" title="Retirer ce dossier" onClick={() => withScan(() => api.removeFolder(dir))}>
-                  <IconClose />
-                </button>
-              </div>
-            )}
-          </For>
-          <button class="ghost" onClick={addFolder} disabled={scanning()}>
-            <IconFolderPlus /> <span>{scanning() ? "Analyse en cours…" : "Ajouter un dossier"}</span>
-          </button>
-        </div>
+          <span>yato</span>
+        </button>
+        <SideNav
+          active={view()}
+          items={[
+            { id: "discover", label: "Découvrir", icon: <IconCompass /> },
+            { id: "library", label: "Bibliothèque", icon: <IconLibrary />, count: library().length },
+          ]}
+          onSelect={goTo}
+        />
         <YtDlpBadge status={ytdlp()} />
       </aside>
+      <div classList={{ "nav-progress": true, on: navigating() }} aria-hidden="true" />
 
       <main class="main">
         <header class="topbar">
-          <label class="search glass">
+          <label class="search">
             <IconSearch />
             <input
               ref={searchInput}
@@ -296,11 +327,11 @@ export default function App() {
               onInput={(e) => onSearch(e.currentTarget.value)}
               spellcheck={false}
             />
-            <kbd>Ctrl K</kbd>
+            <kbd>⌘K</kbd>
           </label>
         </header>
-
-        <section class="content">
+        <section class="content" ref={content}>
+          <div class="page">
           <Switch>
             <Match when={view() === "search"}>
               <Show when={results()} fallback={<Loader />}>
@@ -355,8 +386,7 @@ export default function App() {
             <Match when={view() === "library"}>
               <div class="page-head">
                 <div>
-                  <div class="eyebrow">Ta musique</div>
-                  <h1>Bibliothèque</h1>
+                  <h1>Ta musique</h1>
                   <p class="muted">
                     {library().length} morceaux · {formatTime(libraryDuration())}
                   </p>
@@ -372,13 +402,28 @@ export default function App() {
                   </button>
                 </div>
               </div>
+              <div class="folders">
+                <For each={folders()}>
+                  {(dir) => (
+                    <span class="chip" title={dir}>
+                      <span>{dir.split(/[\\/]/).filter(Boolean).pop() ?? dir}</span>
+                      <button class="chip-x" title="Retirer ce dossier" onClick={() => withScan(() => api.removeFolder(dir))}>
+                        <IconClose />
+                      </button>
+                    </span>
+                  )}
+                </For>
+                <button class="chip add" onClick={addFolder} disabled={scanning()}>
+                  <IconFolderPlus /> {scanning() ? "Analyse en cours…" : "Ajouter un dossier"}
+                </button>
+              </div>
               <Show
                 when={library().length > 0}
                 fallback={
-                  <div class="empty-state glass">
+                  <div class="empty-state">
                     <IconNote />
                     <h2>Ta musique, sans attendre</h2>
-                    <p class="muted">Ajoute un dossier : Ondes lit les tags sur tous les cœurs de ton processeur.</p>
+                    <p class="muted">Ajoute un dossier : yato lit les tags sur tous les cœurs de ton processeur.</p>
                     <button class="primary" onClick={addFolder} disabled={scanning()}>
                       <IconFolderPlus /> {scanning() ? "Analyse en cours…" : "Ajouter un dossier"}
                     </button>
@@ -421,7 +466,7 @@ export default function App() {
                       <h2 class="section-title">En ce moment</h2>
                       <div class="grid">
                         <For each={list().slice(1, 13)}>
-                          {(t, i) => <TrackCard track={t} playing={isCurrent(t)} onPlay={() => play(list(), i() + 1)} />}
+                          {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(list(), i() + 1)} />}
                         </For>
                       </div>
                     </section>
@@ -434,13 +479,14 @@ export default function App() {
               </Show>
             </Match>
           </Switch>
+          </div>
         </section>
       </main>
 
-      <PlayerBar snap={snap()} position={position()} run={run} onExpand={() => setExpanded((v) => !v)} expanded={expanded()} />
+      <PlayerBar snap={snap()} position={position()} run={run} onExpand={() => setNowPlaying(!expanded())} expanded={expanded()} />
 
-      <Show when={expanded() && snap().track}>
-        <NowPlaying snap={snap()} position={position()} run={run} onClose={() => setExpanded(false)} />
+      <Show when={np() !== "closed" && snap().track}>
+        <NowPlaying snap={snap()} position={position()} run={run} leaving={np() === "closing"} onClose={() => setNowPlaying(false)} />
       </Show>
 
       <Show when={toast()}>
@@ -482,5 +528,50 @@ function Hero(props: { track: Track; playing: boolean; onPlay: () => void; label
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * Navigation de la barre latérale : une pastille arrondie glisse (avec un léger rebond) jusqu'à
+ * l'entrée active. Hors de ces vues (recherche, fiches), elle s'efface.
+ */
+function SideNav<T extends string>(props: {
+  active: string;
+  items: { id: T; label: string; icon: JSX.Element; count?: number }[];
+  onSelect: (id: T) => void;
+}) {
+  const buttons = new Map<string, HTMLButtonElement>();
+  const [mark, setMark] = createSignal<{ y: number; h: number } | null>(null);
+  const measure = () => {
+    const b = buttons.get(props.active);
+    setMark(b ? { y: b.offsetTop, h: b.offsetHeight } : null);
+  };
+  createEffect(on(() => props.active, () => requestAnimationFrame(measure)));
+  onMount(() => window.addEventListener("resize", measure));
+  onCleanup(() => window.removeEventListener("resize", measure));
+
+  return (
+    <nav class="sidenav">
+      <span
+        classList={{ "nav-pill": true, on: !!mark() }}
+        style={mark() ? { "--y": `${mark()!.y}px`, "--h": `${mark()!.h}px` } : {}}
+        aria-hidden="true"
+      />
+      <For each={props.items}>
+        {(item) => (
+          <button
+            ref={(el) => buttons.set(item.id, el)}
+            classList={{ nav: true, active: props.active === item.id }}
+            onClick={() => props.onSelect(item.id)}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+            <Show when={item.count}>
+              <span class="nav-count">{item.count}</span>
+            </Show>
+          </button>
+        )}
+      </For>
+    </nav>
   );
 }

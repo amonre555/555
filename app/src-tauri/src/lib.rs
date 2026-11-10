@@ -1,4 +1,4 @@
-//! Couche Tauri : expose le cœur (`ondes-core`) à l'interface. Aucune logique métier ici.
+//! Couche Tauri : expose le cœur (`yato-core`) à l'interface. Aucune logique métier ici.
 
 mod discord;
 mod media;
@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use ondes_core::{
+use yato_core::{
     ArtistRef, Controller, Error, Snapshot, SourceInfo, SourceRegistry, Track,
     lyrics::{Lyrics, LyricsClient},
     sources::{
@@ -157,6 +157,18 @@ fn set_volume(state: State<'_, AppState>, volume: f32) -> Snapshot {
     state.controller.snapshot()
 }
 
+/// L'app s'appelait « Ondes » (identifiant `app.ondes.player`) : au premier lancement de yato,
+/// on reprend ses données (dossiers de la bibliothèque, yt-dlp) plutôt que de repartir de zéro.
+fn migrate_old_data(data_dir: &Path) {
+    if data_dir.exists() {
+        return;
+    }
+    let Some(old) = data_dir.parent().map(|p| p.join("app.ondes.player")) else { return };
+    if old.is_dir() {
+        let _ = std::fs::rename(&old, data_dir);
+    }
+}
+
 // ---------- Artistes et albums (Deezer) ----------
 
 /// Fiche d'un artiste, par son identifiant Deezer ou, à défaut, par son nom.
@@ -223,11 +235,12 @@ pub fn run() {
             tauri::async_runtime::spawn_blocking(move || responder.respond(cover_response(&path)));
         })
         .setup(|app| {
+            migrate_old_data(&app.path().app_data_dir()?);
             let cache_path = app.path().app_data_dir()?.join("library.json");
             let library = Arc::new(LocalLibrary::load(&cache_path));
-            let client = ondes_core::http_client();
+            let client = yato_core::http_client();
 
-            // yt-dlp géré par Ondes : installé, vérifié (signature) et mis à jour automatiquement.
+            // yt-dlp géré par yato : installé, vérifié (signature) et mis à jour automatiquement.
             let ytdlp = YtDlp::new(app.path().app_data_dir()?.join("bin").join("yt-dlp"), client.clone());
             let youtube = Arc::new(YouTubeMusicSource::new(app.path().app_cache_dir()?.join("youtube"), ytdlp.clone())?);
             // Deezer donne les infos (titres, albums, pochettes, top), YouTube Music le son.
@@ -324,5 +337,5 @@ pub fn run() {
             queue,
         ])
         .run(tauri::generate_context!())
-        .expect("erreur au lancement d'Ondes");
+        .expect("erreur au lancement de yato");
 }
