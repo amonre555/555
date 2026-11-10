@@ -1,13 +1,14 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { createEffect, createMemo, createSignal, For, Match, on, onCleanup, onMount, Show, Switch } from "solid-js";
-import { api, bigCoverUrl, formatTime, type ArtistPage, type ArtistRef, type Snapshot, type SourceInfo, type Track, type YtDlpStatus } from "./api";
+import { api, bigCoverUrl, formatTime, type AlbumPage, type ArtistPage, type Snapshot, type SourceInfo, type Track, type YtDlpStatus } from "./api";
+import { AlbumView } from "./album";
 import { ArtistView } from "./artist";
-import { artistRequest } from "./nav";
+import { pageRequest, type Page } from "./nav";
 import { IconClose, IconCompass, IconFolderPlus, IconLibrary, IconNote, IconPlay, IconRefresh, IconSearch } from "./icons";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
-import { ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, SourceTag, TrackCard, TrackList, YtDlpBadge } from "./ui";
+import { AlbumLink, ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, SourceTag, TrackCard, TrackList, YtDlpBadge } from "./ui";
 
-type View = "discover" | "library" | "search" | "artist";
+type View = "discover" | "library" | "search" | "artist" | "album";
 
 const EMPTY: Snapshot = {
   track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null,
@@ -28,33 +29,51 @@ export default function App() {
   const [expanded, setExpanded] = createSignal(false);
   let searchInput!: HTMLInputElement;
 
-  // ---------- Fiches d'artistes ----------
-  // Historique pour « Retour » : la page d'où l'on vient (et l'artiste affiché, le cas échéant).
-  const [artist, setArtist] = createSignal<ArtistRef | null>(null);
+  // ---------- Fiches (artistes, albums) ----------
+  // Historique pour « Retour » : la vue d'où l'on vient, et la fiche qu'elle montrait.
+  const [page, setPage] = createSignal<Page | null>(null);
   const [artistPage, setArtistPage] = createSignal<ArtistPage | null | undefined>(undefined);
-  const [history, setHistory] = createSignal<{ view: View; artist: ArtistRef | null }[]>([]);
-  let artistLoad = 0;
-  const showArtist = async (a: ArtistRef) => {
-    setArtist(a);
-    setArtistPage(undefined);
-    setView("artist");
+  const [albumPage, setAlbumPage] = createSignal<AlbumPage | null | undefined>(undefined);
+  const [history, setHistory] = createSignal<{ view: View; page: Page | null }[]>([]);
+  let pageLoad = 0;
+  const showPage = async (p: Page) => {
+    setPage(p);
     document.querySelector(".content")?.scrollTo({ top: 0 });
-    const id = ++artistLoad;
+    const id = ++pageLoad;
     try {
-      const page = await api.artist(a);
-      if (id === artistLoad) setArtistPage(page);
+      if (p.kind === "artist") {
+        setArtistPage(undefined);
+        setView("artist");
+        const data = await api.artist(p.artist);
+        if (id === pageLoad) setArtistPage(data);
+      } else {
+        setAlbumPage(undefined);
+        setView("album");
+        const data = await api.album(p.album);
+        if (id === pageLoad) setAlbumPage(data);
+      }
     } catch (e) {
-      if (id === artistLoad) setArtistPage(null);
+      if (id === pageLoad) {
+        if (p.kind === "artist") setArtistPage(null);
+        else setAlbumPage(null);
+      }
       fail(e);
     }
   };
+  const samePage = (a: Page | null, b: Page) =>
+    !!a && a.kind === b.kind &&
+    (a.kind === "artist"
+      ? a.artist.name === (b as typeof a).artist.name
+      : a.album.title === (b as typeof a).album.title && (a.album.id ?? null) === ((b as typeof a).album.id ?? null));
   createEffect(
-    on(artistRequest, (req) => {
+    on(pageRequest, (req) => {
       if (!req) return;
       setExpanded(false);
-      const same = view() === "artist" && artist()?.name === req.artist.name;
-      if (!same) setHistory((h) => [...h, { view: view(), artist: artist() }]);
-      showArtist(req.artist);
+      const onPage = view() === "artist" || view() === "album";
+      if (!(onPage && samePage(page(), req.page))) {
+        setHistory((h) => [...h, { view: view(), page: onPage ? page() : null }]);
+      }
+      showPage(req.page);
     }, { defer: true }),
   );
   const goBack = () => {
@@ -62,7 +81,7 @@ export default function App() {
     const last = h[h.length - 1];
     if (!last) return setView("discover");
     setHistory(h.slice(0, -1));
-    if (last.view === "artist" && last.artist) showArtist(last.artist);
+    if (last.page) showPage(last.page);
     else setView(last.view);
   };
   /** Changement de page depuis le menu : l'historique repart de zéro. */
@@ -373,12 +392,23 @@ export default function App() {
             <Match when={view() === "artist"}>
               <ArtistView
                 page={artistPage()}
-                name={artist()?.name ?? ""}
+                name={(() => { const p = page(); return p?.kind === "artist" ? p.artist.name : ""; })()}
                 snap={snap()}
                 canGoBack={history().length > 0}
                 onBack={goBack}
                 onPlay={play}
                 onError={fail}
+              />
+            </Match>
+
+            <Match when={view() === "album"}>
+              <AlbumView
+                page={albumPage()}
+                title={(() => { const p = page(); return p?.kind === "album" ? p.album.title : ""; })()}
+                snap={snap()}
+                canGoBack={history().length > 0}
+                onBack={goBack}
+                onPlay={play}
               />
             </Match>
 
@@ -440,7 +470,12 @@ function Hero(props: { track: Track; playing: boolean; onPlay: () => void; label
         <div class="hero-sub">
           <SourceTag source={props.track.source} />
           <ArtistLinks track={props.track} />
-          <Show when={props.track.album}>{(a) => <span class="muted"> · {a()}</span>}</Show>
+          <Show when={props.track.album}>
+            <span class="muted">
+              {" · "}
+              <AlbumLink track={props.track} />
+            </span>
+          </Show>
         </div>
         <button class="primary hero-play" onClick={props.onPlay}>
           <IconPlay size={18} /> {props.playing ? "En lecture" : "Écouter"}

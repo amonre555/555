@@ -11,6 +11,7 @@ Lecteur de musique léger et rapide, écrit en Rust avec Tauri.
 - **yt-dlp géré automatiquement** : téléchargé depuis les versions officielles, avec vérification de la signature OpenPGP de yt-dlp et de l'empreinte SHA-256, puis mis à jour toutes les 12 h sans coupure. On utilise la version « dossier », qui démarre en 0,5 s au lieu de 2 s.
 
 - **Fiches d'artistes** : photo, titres populaires, albums, singles et EP, artistes similaires. Chaque artiste d'un morceau (invités compris) est cliquable séparément.
+- **Fiches d'albums** : pochette, artistes, année, durée, liste des morceaux et maison de disques. Le nom d'un album est cliquable partout où il apparaît.
 - **Paroles synchronisées** via [LRCLIB](https://lrclib.net) : la ligne en cours s'allume, et un clic sur une ligne y amène la lecture.
 - **Touches multimédia et panneau multimédia du système** (Windows, MPRIS sous Linux, macOS), avec titre, artiste et pochette.
 - **Interface immersive** : le fond prend les couleurs de la pochette en cours, avec des panneaux en verre et une vue « En lecture » plein écran.

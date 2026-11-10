@@ -1,7 +1,7 @@
 // Mode aperçu, pour travailler l'interface dans un simple navigateur (`npm run dev`).
 // Simule le cœur Rust : morceaux, lecture et paroles d'exemple.
 // Jamais inclus dans l'app : chargé seulement en développement, hors de Tauri.
-import type { ArtistPage, Lyrics, Snapshot, Track } from "./api";
+import type { AlbumPage, ArtistPage, Lyrics, Snapshot, Track } from "./api";
 
 type Listener = (payload: unknown) => void;
 const listeners = new Map<string, Listener[]>();
@@ -34,10 +34,12 @@ async function loadTrending(): Promise<Track[]> {
     ["Ralenti", "Duo Polaroïd"], ["Fin de soirée", "Les Cassettes"], ["Néon bleu", "Clara Vent"],
   ];
   return names.map(([title, artist], i) => ({
-    id: `deezer:demo${i}`, source: "deezer", title, artist, album: null, duration: 150 + i * 13,
+    id: `deezer:demo${i}`, source: "deezer", title, artist, duration: 150 + i * 13,
     trackNumber: null, discNumber: null, artwork: `https://picsum.photos/seed/ondes${i}/480`, hasCover: false,
     location: { kind: "remote", remoteId: `demo${i}` },
     artists: artist.split(", ").map((name) => ({ name, id: `demo-${name}` })),
+    album: i % 3 === 0 ? null : "Cassettes et néons",
+    albumId: i % 3 === 0 ? null : "demo-album",
   }));
 }
 
@@ -102,7 +104,15 @@ const handlers: Record<string, (args: any) => unknown> = {
   prefetch: () => null,
   lyrics: () => LYRICS,
   artist: ({ name }) => demoArtist(name),
-  album_tracks: async () => (tracks.length ? tracks : await loadTrending()).slice(0, 8),
+  album: async ({ title }): Promise<AlbumPage> => {
+    const all = tracks.length ? tracks : await loadTrending();
+    const list = all.slice(0, 9).map((t) => ({ ...t, album: title, albumId: "demo-album", artwork: "https://picsum.photos/seed/album/600" }));
+    return {
+      id: "demo-album", title, cover: "https://picsum.photos/seed/album/600", year: "2024", kind: "album",
+      label: "Disques Exemple", artists: [{ name: "Les Cassettes", id: "demo-Les Cassettes" }, { name: "Clara Vent", id: "demo-Clara Vent" }],
+      duration: list.reduce((a, t) => a + (t.duration ?? 0), 0), tracks: list,
+    };
+  },
   track_artists: ({ track }) => track.artists ?? [{ name: track.artist }],
   ytdlp_status: () => ({ state: "ready" }),
 };

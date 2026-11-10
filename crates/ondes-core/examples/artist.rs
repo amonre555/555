@@ -12,15 +12,19 @@ async fn main() {
     println!("« {} » — recherche : {:?}", t.title, t.artists);
     let full = dz.track_artists(t).await.unwrap();
     println!("crédits complets : {full:?}");
+    // Album retrouvé par son titre, comme pour un morceau YouTube ou local.
+    let found = dz.album(None, "Discovery", Some("Daft Punk")).await.unwrap();
+    println!("album par titre : « {} » de {:?}, {} morceaux, album_id du 1er : {:?}", found.title, found.artists.iter().map(|a| &a.name).collect::<Vec<_>>(), found.tracks.len(), found.tracks[0].album_id);
+    println!("album_id du morceau cherché : {:?}", t.album_id);
     for a in &full {
         let t0 = std::time::Instant::now();
         let p = dz.artist(a.id.as_deref(), &a.name).await.unwrap();
-        println!("\n{} (id {}) : {:?} fans, {} titres populaires, {} albums, {} similaires, en {:?}", p.name, p.id, p.fans, p.top.len(), p.albums.len(), p.related.len(), t0.elapsed());
+        println!("\n{} (id {}) : {} titres populaires, {} albums, {} similaires, en {:?}", p.name, p.id, p.top.len(), p.albums.len(), p.related.len(), t0.elapsed());
         for x in p.top.iter().take(3) { println!("  ♪ {} — {:?}", x.title, x.artists.iter().map(|a| &a.name).collect::<Vec<_>>()); }
         for al in p.albums.iter().take(3) { println!("  ◼ {} ({:?}, {})", al.title, al.year, al.kind); }
         if let Some(al) = p.albums.first() {
-            let tr = dz.album_tracks(&al.id).await.unwrap();
-            println!("  album « {} » : {} morceaux, 1er : {} (pochette {})", al.title, tr.len(), tr.first().map(|x| x.title.as_str()).unwrap_or("-"), tr.first().and_then(|x| x.artwork.as_ref()).is_some());
+            let al = dz.album(Some(&al.id), &al.title, None).await.unwrap();
+            println!("  album « {} » ({:?}, {}, {:?}) : {} morceaux, {:?} s, artistes {:?}", al.title, al.year, al.kind, al.label, al.tracks.len(), al.duration, al.artists.iter().map(|a| &a.name).collect::<Vec<_>>());
         }
     }
 }

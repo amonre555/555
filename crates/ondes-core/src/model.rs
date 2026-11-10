@@ -13,6 +13,10 @@ pub struct Track {
     pub title: String,
     pub artist: String,
     pub album: Option<String>,
+    /// Identifiant de l'album dans la source d'infos, quand on le connaît ; sinon la fiche de
+    /// l'album est retrouvée par son titre et son artiste.
+    #[serde(default)]
+    pub album_id: Option<String>,
     /// Durée en secondes, si connue.
     pub duration: Option<f64>,
     pub track_number: Option<u32>,

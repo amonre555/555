@@ -1,8 +1,8 @@
 // Fiche d'un artiste : photo, titres populaires, albums, singles, artistes similaires.
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { api, type Album, type ArtistPage, type Snapshot, type Track } from "./api";
+import { ALBUM_KIND, api, type Album, type ArtistPage, type Snapshot, type Track } from "./api";
 import { IconBack, IconPlay, IconUser } from "./icons";
-import { openArtist } from "./nav";
+import { openAlbum, openArtist } from "./nav";
 import { Empty, Loader, TrackList } from "./ui";
 
 /** `page` : `undefined` pendant le chargement, `null` en cas d'échec. */
@@ -103,9 +103,7 @@ export function ArtistView(props: {
   );
 }
 
-const KIND: Record<string, string> = { album: "Album", single: "Single", ep: "EP", compile: "Compilation" };
-
-/** Grille d'albums : un clic lance l'album depuis le début. */
+/** Grille d'albums : un clic ouvre la fiche de l'album, le bouton lecture le lance directement. */
 function AlbumGrid(props: {
   title: string;
   albums: Album[];
@@ -116,7 +114,7 @@ function AlbumGrid(props: {
   const playAlbum = async (a: Album) => {
     setLoading(a.id);
     try {
-      const tracks = await api.albumTracks(a.id);
+      const { tracks } = await api.album({ id: a.id, title: a.title });
       if (tracks.length) props.onPlay(tracks, 0);
     } catch (e) {
       props.onError(e);
@@ -134,16 +132,26 @@ function AlbumGrid(props: {
         <div class="grid">
           <For each={props.albums}>
             {(a) => (
-              <button classList={{ card: true, loading: loading() === a.id }} onClick={() => playAlbum(a)} title={`Lire « ${a.title} »`}>
+              <button classList={{ card: true, loading: loading() === a.id }} onClick={() => openAlbum({ id: a.id, title: a.title })} title={`Voir l'album « ${a.title} »`}>
                 <div class="card-art">
                   <div class="cover lg">
                     <Show when={a.cover}>{(src) => <img src={src()} alt="" loading="lazy" decoding="async" />}</Show>
                   </div>
-                  <span class="card-play"><IconPlay size={20} /></span>
+                  <span
+                    class="card-play"
+                    role="button"
+                    title={`Lire « ${a.title} »`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playAlbum(a);
+                    }}
+                  >
+                    <IconPlay size={20} />
+                  </span>
                 </div>
                 <div class="card-title">{a.title}</div>
                 <div class="card-sub">
-                  {[a.year, KIND[a.kind] ?? a.kind].filter(Boolean).join(" · ")}
+                  {[a.year, ALBUM_KIND[a.kind] ?? a.kind].filter(Boolean).join(" · ")}
                 </div>
               </button>
             )}

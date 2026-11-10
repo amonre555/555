@@ -10,6 +10,8 @@ export interface Track {
   title: string;
   artist: string;
   album: string | null;
+  /** Identifiant de l'album, s'il est connu (sinon la fiche est retrouvée par titre). */
+  albumId?: string | null;
   duration: number | null;
   trackNumber: number | null;
   discNumber: number | null;
@@ -41,6 +43,25 @@ export interface Album {
   cover: string | null;
   year: string | null;
   kind: "album" | "single" | "ep" | "compile" | string;
+}
+
+/** Un album à ouvrir : par identifiant, sinon par titre (et artiste). */
+export interface AlbumRef {
+  id?: string | null;
+  title: string;
+  artist?: string | null;
+}
+
+export interface AlbumPage {
+  id: string;
+  title: string;
+  cover: string | null;
+  year: string | null;
+  kind: string;
+  label: string | null;
+  artists: ArtistRef[];
+  duration: number | null;
+  tracks: Track[];
 }
 
 export interface ArtistCard {
@@ -103,7 +124,7 @@ export const api = {
   prefetch: (track: Track) => invoke<void>("prefetch", { track }),
   lyrics: (track: Track) => invoke<Lyrics | null>("lyrics", { track }),
   artist: (ref: ArtistRef) => invoke<ArtistPage>("artist", { id: ref.id ?? null, name: ref.name }),
-  albumTracks: (id: string) => invoke<Track[]>("album_tracks", { id }),
+  album: (ref: AlbumRef) => invoke<AlbumPage>("album", { id: ref.id ?? null, title: ref.title, artist: ref.artist ?? null }),
   trackArtists: (track: Track) => invoke<ArtistRef[]>("track_artists", { track }),
   setVolume: (volume: number) => invoke<Snapshot>("set_volume", { volume }),
   state: () => invoke<Snapshot>("player_state"),
@@ -124,6 +145,15 @@ export function artistsOf(t: Track): ArtistRef[] {
     .filter(Boolean)
     .map((name) => ({ name }));
 }
+
+/** L'album d'un morceau, à ouvrir (rien si le morceau n'a pas d'album). */
+export function albumRefOf(t: Track): AlbumRef | null {
+  if (!t.album) return null;
+  return { id: t.albumId ?? null, title: t.album, artist: artistsOf(t)[0]?.name ?? null };
+}
+
+/** Nom affiché d'un type d'album. */
+export const ALBUM_KIND: Record<string, string> = { album: "Album", single: "Single", ep: "EP", compile: "Compilation" };
 
 /** URL de la pochette d'un morceau, distante ou servie par le protocole `cover://`. */
 export function coverUrl(t: Track | null | undefined): string | null {

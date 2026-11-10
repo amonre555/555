@@ -13,7 +13,7 @@ use ondes_core::{
     lyrics::{Lyrics, LyricsClient},
     sources::{
         DeezerSource, LocalLibrary, YouTubeMusicSource,
-        deezer::ArtistPage,
+        deezer::{AlbumPage, ArtistPage},
         read_cover,
     },
     ytdlp::{YtDlp, YtDlpStatus},
@@ -164,10 +164,10 @@ async fn artist(state: State<'_, AppState>, id: Option<String>, name: String) ->
     state.deezer.artist(id.as_deref(), &name).await
 }
 
-/// Morceaux d'un album Deezer.
+/// Fiche d'un album, par son identifiant ou, à défaut, par son titre et son artiste.
 #[tauri::command]
-async fn album_tracks(state: State<'_, AppState>, id: String) -> Res<Vec<Track>> {
-    state.deezer.album_tracks(&id).await
+async fn album(state: State<'_, AppState>, id: Option<String>, title: String, artist: Option<String>) -> Res<AlbumPage> {
+    state.deezer.album(id.as_deref(), &title, artist.as_deref()).await
 }
 
 /// Tous les artistes d'un morceau, invités compris.
@@ -311,7 +311,7 @@ pub fn run() {
             prefetch,
             lyrics,
             artist,
-            album_tracks,
+            album,
             track_artists,
             ytdlp_status,
             player_state,

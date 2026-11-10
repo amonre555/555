@@ -2,7 +2,7 @@
 import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
 import { api, bigCoverUrl, coverUrl, formatTime, type ArtistRef, type Lyrics, type Snapshot, type Track } from "./api";
 import { IconChevronDown, IconLyrics, IconNext, IconPause, IconPlay, IconPrev, IconVolume } from "./icons";
-import { ArtistLinks, Cover } from "./ui";
+import { AlbumLink, ArtistLinks, Cover } from "./ui";
 
 type Run = (a: () => Promise<Snapshot>) => void;
 
@@ -219,7 +219,12 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
                 <div class="np-title" title={t().title}>{t().title}</div>
                 <div class="np-sub" title={[t().artist, t().album].filter(Boolean).join(" · ")}>
                   <ArtistLinks track={t()} artists={artists()} />
-                  <Show when={t().album !== t().title && t().album}>{(a) => <span class="np-album"> · {a()}</span>}</Show>
+                  <Show when={t().album !== t().title && t().album}>
+                    <span class="np-album">
+                      {" · "}
+                      <AlbumLink track={t()} />
+                    </span>
+                  </Show>
                 </div>
               </div>
               <Progress snap={props.snap} position={props.position} run={props.run} />

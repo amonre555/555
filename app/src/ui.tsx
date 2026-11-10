@@ -1,7 +1,7 @@
 // Briques d'interface réutilisables : pochettes, listes, états vides.
 import { createSignal, For, Match, Show, Switch } from "solid-js";
-import { api, artistsOf, coverUrl, formatTime, type ArtistRef, type Snapshot, type Track, type YtDlpStatus } from "./api";
-import { openArtist } from "./nav";
+import { albumRefOf, api, artistsOf, coverUrl, formatTime, type ArtistRef, type Snapshot, type Track, type YtDlpStatus } from "./api";
+import { openAlbum, openArtist } from "./nav";
 import { IconNote, IconPlay } from "./icons";
 
 export function Loader() {
@@ -52,8 +52,8 @@ export function cancelHover() {
  * Les artistes d'un morceau, chacun cliquable vers sa fiche. `artists` : liste déjà complète
  * (crédits Deezer du morceau en cours) ; sinon, celle du morceau.
  */
-export function ArtistLinks(props: { track: Track; artists?: ArtistRef[] }) {
-  const list = () => props.artists ?? artistsOf(props.track);
+export function ArtistLinks(props: { track?: Track; artists?: ArtistRef[] }) {
+  const list = () => props.artists ?? (props.track ? artistsOf(props.track) : []);
   return (
     <span class="artists">
       <For each={list()}>
@@ -84,6 +84,36 @@ export function ArtistLinks(props: { track: Track; artists?: ArtistRef[] }) {
         )}
       </For>
     </span>
+  );
+}
+
+/** Nom de l'album d'un morceau, cliquable vers sa fiche. */
+export function AlbumLink(props: { track: Track }) {
+  const ref = () => albumRefOf(props.track);
+  return (
+    <Show when={ref()}>
+      {(a) => (
+        <span
+          class="artist-link"
+          role="link"
+          tabIndex={0}
+          title={`Voir l'album « ${a().title} »`}
+          onClick={(e) => {
+            e.stopPropagation();
+            openAlbum(a());
+          }}
+          onDblClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.stopPropagation();
+              openAlbum(a());
+            }
+          }}
+        >
+          {a().title}
+        </span>
+      )}
+    </Show>
   );
 }
 
@@ -141,7 +171,9 @@ export function TrackList(props: {
                 </div>
               </div>
               <Show when={props.showAlbum}>
-                <div class="row-album">{t.album ?? ""}</div>
+                <div class="row-album">
+                  <AlbumLink track={t} />
+                </div>
               </Show>
               <div class="row-time">{formatTime(t.duration)}</div>
             </div>

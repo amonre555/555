@@ -227,6 +227,7 @@ impl From<TrackItem> for Track {
             title: t.name,
             artist,
             album: t.album.map(|a| a.name),
+            album_id: None,
             duration: t.duration.map(f64::from),
             track_number: t.track_nr.map(u32::from),
             disc_number: None,

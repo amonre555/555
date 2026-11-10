@@ -237,6 +237,7 @@ fn read_track(path: &Path) -> Option<Track> {
         title,
         artist,
         album,
+        album_id: None,
         duration: (duration > 0.0).then_some(duration),
         track_number: tag.and_then(|t| t.track()),
         disc_number: tag.and_then(|t| t.disk()),

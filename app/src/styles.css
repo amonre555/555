@@ -358,6 +358,20 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   overflow-wrap: anywhere;
 }
 .artist-card { text-align: center; }
+
+/* ---------- Fiche album ---------- */
+.album-cover {
+  flex: none; width: 230px; height: 230px; border-radius: 18px; overflow: hidden;
+  display: grid; place-items: center; color: var(--text-3);
+  background: rgba(255, 255, 255, 0.06); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.album-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-title {
+  font-size: clamp(32px, 4.6vw, 60px); font-weight: 850; letter-spacing: -0.04em; line-height: 1.02;
+  overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere;
+}
+.album-artists { font-size: 17px; font-weight: 650; }
+.album-label { margin-top: 18px; }
 .card.loading { opacity: 0.55; pointer-events: none; }
 .link-btn { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--text-2); }
 .link-btn:hover { color: var(--text); }
@@ -432,6 +446,7 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 @media (max-width: 900px) {
   .artist-head { flex-direction: column; align-items: flex-start; padding: 24px; }
   .artist-photo { width: 150px; height: 150px; }
+  .album-cover { width: 160px; height: 160px; }
   :root { --sidebar-w: 76px; }
   .brand span, .nav span, .sidebar .ghost span { display: none; }
   .nav, .sidebar .ghost { justify-content: center; }

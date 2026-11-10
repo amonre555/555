@@ -1,13 +1,18 @@
-// Navigation partagée : n'importe quel composant peut ouvrir la fiche d'un artiste,
-// l'application (App.tsx) réagit à la demande.
+// Navigation partagée : n'importe quel composant peut ouvrir la fiche d'un artiste ou d'un
+// album ; l'application (App.tsx) réagit à la demande.
 import { createSignal } from "solid-js";
-import type { ArtistRef } from "./api";
+import type { AlbumRef, ArtistRef } from "./api";
 
-const [artistRequest, setArtistRequest] = createSignal<{ artist: ArtistRef; at: number } | null>(null);
+export type Page = { kind: "artist"; artist: ArtistRef } | { kind: "album"; album: AlbumRef };
 
-export { artistRequest };
+const [pageRequest, setPageRequest] = createSignal<{ page: Page; at: number } | null>(null);
 
-/** Ouvre la fiche d'un artiste (même s'il est déjà affiché : `at` force la mise à jour). */
-export function openArtist(artist: ArtistRef) {
-  setArtistRequest({ artist, at: performance.now() });
+export { pageRequest };
+
+/** Ouvre une fiche (même si elle est déjà affichée : `at` force la mise à jour). */
+function open(page: Page) {
+  setPageRequest({ page, at: performance.now() });
 }
+
+export const openArtist = (artist: ArtistRef) => open({ kind: "artist", artist });
+export const openAlbum = (album: AlbumRef) => open({ kind: "album", album });

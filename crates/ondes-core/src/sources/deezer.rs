@@ -81,10 +81,25 @@ struct DzAlbum {
 
 #[derive(Deserialize)]
 struct DzAlbumFull {
+    id: u64,
     title: String,
     cover_xl: Option<String>,
     cover_big: Option<String>,
+    release_date: Option<String>,
+    record_type: Option<String>,
+    label: Option<String>,
+    duration: Option<f64>,
+    artist: Option<DzArtist>,
+    contributors: Option<Vec<DzArtist>>,
     tracks: Page<DzTrack>,
+}
+
+/// Album trouvé par la recherche (pour retrouver une fiche à partir d'un titre).
+#[derive(Deserialize)]
+struct DzAlbumHit {
+    id: u64,
+    title: String,
+    artist: Option<DzArtist>,
 }
 
 // ---------- Ce qu'on renvoie à l'interface ----------
@@ -113,6 +128,24 @@ pub struct Album {
     pub year: Option<String>,
     /// `album`, `single`, `ep` ou `compile`.
     pub kind: String,
+}
+
+/// Fiche d'un album.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumPage {
+    pub id: String,
+    pub title: String,
+    pub cover: Option<String>,
+    pub year: Option<String>,
+    /// `album`, `single`, `ep` ou `compile`.
+    pub kind: String,
+    /// Maison de disques.
+    pub label: Option<String>,
+    pub artists: Vec<ArtistRef>,
+    /// Durée totale, en secondes.
+    pub duration: Option<f64>,
+    pub tracks: Vec<Track>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -144,13 +177,16 @@ fn credits(t: &DzTrack) -> Vec<ArtistRef> {
     out
 }
 
-fn to_track(t: DzTrack, album: Option<(&str, Option<&str>)>) -> Track {
+/// Album connu d'avance (morceaux d'un album) : identifiant, titre, pochette.
+type AlbumInfo<'a> = (&'a str, &'a str, Option<&'a str>);
+
+fn to_track(t: DzTrack, album: Option<AlbumInfo>) -> Track {
     let id = t.id.to_string();
     let artists = credits(&t);
-    let (album_title, artwork) = match (album, t.album) {
-        (Some((title, cover)), _) => (Some(title.to_owned()), cover.map(str::to_owned)),
-        (None, Some(a)) => (Some(a.title), a.cover_xl.or(a.cover_big)),
-        (None, None) => (None, None),
+    let (album_id, album_title, artwork) = match (album, t.album) {
+        (Some((id, title, cover)), _) => (Some(id.to_owned()), Some(title.to_owned()), cover.map(str::to_owned)),
+        (None, Some(a)) => (a.id.map(|i| i.to_string()), Some(a.title), a.cover_xl.or(a.cover_big)),
+        (None, None) => (None, None, None),
     };
     Track {
         id: format!("deezer:{id}"),
@@ -158,6 +194,7 @@ fn to_track(t: DzTrack, album: Option<(&str, Option<&str>)>) -> Track {
         artist: artists.iter().map(|a| a.name.as_str()).collect::<Vec<_>>().join(", "),
         title: t.title,
         album: album_title,
+        album_id,
         duration: t.duration.filter(|d| *d > 0.0),
         track_number: None,
         disc_number: None,
@@ -295,22 +332,72 @@ impl DeezerSource {
         })
     }
 
-    /// Les morceaux d'un album, dans l'ordre, avec sa pochette.
-    pub async fn album_tracks(&self, id: &str) -> Result<Vec<Track>> {
+    /// Fiche d'un album : par son identifiant, sinon retrouvé par son titre (et son artiste).
+    pub async fn album(&self, id: Option<&str>, title: &str, artist: Option<&str>) -> Result<AlbumPage> {
+        let id = match id {
+            Some(id) => id.to_owned(),
+            None => self.find_album(title, artist).await?,
+        };
         let album: DzAlbumFull = self.get(&format!("/album/{id}"), &[]).await?;
+        let album_id = album.id.to_string();
         let cover = album.cover_xl.or(album.cover_big);
-        Ok(album
+        let tracks: Vec<Track> = album
             .tracks
             .data
             .into_iter()
             .filter(|t| t.readable)
             .enumerate()
             .map(|(i, t)| {
-                let mut track = to_track(t, Some((&album.title, cover.as_deref())));
+                let mut track = to_track(t, Some((&album_id, &album.title, cover.as_deref())));
                 track.track_number = Some(i as u32 + 1);
                 track
             })
-            .collect())
+            .collect();
+        let listed = match (&album.contributors, &album.artist) {
+            (Some(c), _) if !c.is_empty() => c.iter().map(artist_ref).collect(),
+            (_, Some(a)) => vec![artist_ref(a)],
+            _ => Vec::new(),
+        };
+        let mut artists: Vec<ArtistRef> = Vec::new();
+        for a in listed {
+            if !artists.iter().any(|o: &ArtistRef| o.name.eq_ignore_ascii_case(&a.name)) {
+                artists.push(a);
+            }
+        }
+        Ok(AlbumPage {
+            id: album_id,
+            title: album.title,
+            cover,
+            year: album.release_date.as_deref().and_then(|d| d.get(..4)).map(str::to_owned),
+            kind: album.record_type.unwrap_or_else(|| "album".into()),
+            label: album.label.filter(|l| !l.trim().is_empty()),
+            artists,
+            duration: album.duration.filter(|d| *d > 0.0).or_else(|| {
+                let total: f64 = tracks.iter().filter_map(|t| t.duration).sum();
+                (total > 0.0).then_some(total)
+            }),
+            tracks,
+        })
+    }
+
+    /// Identifiant d'un album à partir de son titre : même titre (et même artiste) de préférence.
+    async fn find_album(&self, title: &str, artist: Option<&str>) -> Result<String> {
+        let q = match artist {
+            Some(a) => format!("{a} {title}"),
+            None => title.to_owned(),
+        };
+        let hits: Vec<DzAlbumHit> = self.list("/search/album", &[("q", q), ("limit", "10".into())]).await?;
+        let same_title = |h: &&DzAlbumHit| h.title.eq_ignore_ascii_case(title);
+        let same_artist = |h: &&DzAlbumHit| match (artist, &h.artist) {
+            (Some(a), Some(ha)) => ha.name.eq_ignore_ascii_case(a),
+            _ => true,
+        };
+        hits.iter()
+            .find(|h| same_title(h) && same_artist(h))
+            .or_else(|| hits.iter().find(same_title))
+            .or(hits.first())
+            .map(|h| h.id.to_string())
+            .ok_or_else(|| Error::Other(format!("Aucun album « {title} » trouvé")))
     }
 }
 
