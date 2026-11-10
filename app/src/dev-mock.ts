@@ -26,7 +26,7 @@ function playAt(i: number) {
   state = { ...state, track: queue[i], index: i, status: "playing", position: 0, duration: queue[i].duration, queueLen: queue.length };
   startedAt = performance.now();
   // Historique : noté tout de suite dans l'aperçu (le cœur attend 20 s d'écoute).
-  coll.history = [{ track: queue[i], at: Date.now() }, ...coll.history.filter((p) => p.track.id !== queue[i].id)].slice(0, 200);
+  coll.history = [{ track: queue[i], at: Date.now() }, ...coll.history].slice(0, 2000);
   setTimeout(() => emit("collection", structuredClone(coll)), 0);
 }
 
@@ -147,7 +147,22 @@ const handlers: Record<string, (args: any) => unknown> = {
   list_sources: () => [{ id: "local", name: "Ma bibliothèque" }, { id: "deezer", name: "Titres" }, { id: "youtube", name: "YouTube Music" }],
   library_tracks: () => [],
   library_folders: () => [],
-  featured: async () => (tracks = tracks.length ? tracks : await loadTrending()),
+  featured: async () => {
+    tracks = tracks.length ? tracks : await loadTrending();
+    // Example history over a few days (so the History page has something to show).
+    if (!coll.history.length) {
+      const hour = 3_600_000;
+      coll.history = [0, 1, 2, 0, 3, 4, 0, 5, 1, 6, 2, 7].map((n, k) => ({ track: tracks[n], at: Date.now() - (k * 7 + 1) * hour }));
+      setTimeout(() => emit("collection", structuredClone(coll)), 0);
+    }
+    // `?demo`: start playing right away (screenshots for the website).
+    if (location.search.includes("demo") && !state.track) {
+      queue = tracks;
+      playAt(0);
+      startedAt -= 62_000;
+    }
+    return tracks;
+  },
   search: async ({ query }) => {
     const all = tracks.length ? tracks : await loadTrending();
     const q = String(query).toLowerCase();

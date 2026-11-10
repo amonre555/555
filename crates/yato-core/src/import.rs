@@ -69,7 +69,7 @@ pub async fn import(
     youtube: &Arc<YouTubeMusicSource>,
     progress: impl Fn(usize, usize),
 ) -> Result<Imported> {
-    let unknown = || Error::Other("Lien non reconnu : colle le lien d'une playlist Spotify, Deezer ou YouTube Music.".into());
+    let unknown = || Error::Other("Unrecognized link: paste the link of a Spotify, Deezer or YouTube Music playlist.".into());
     let mut link = parse(url).ok_or_else(unknown)?;
     if let Link::DeezerShort(short) = &link {
         // Le lien court redirige vers la vraie adresse de la playlist.
@@ -148,7 +148,7 @@ async fn spotify(client: &reqwest::Client, kind: &str, id: &str) -> Result<(Stri
         .error_for_status()?
         .text()
         .await?;
-    let bad = || Error::Other("Spotify : playlist introuvable ou privée.".into());
+    let bad = || Error::Other("Spotify: playlist not found or private.".into());
     let start = html.find(r#"<script id="__NEXT_DATA__" type="application/json">"#).ok_or_else(bad)?;
     let json = &html[start..];
     let json = &json[json.find('>').ok_or_else(bad)? + 1..];

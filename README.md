@@ -1,47 +1,71 @@
-# yato
+<p align="center">
+  <img src="app/public/logo.svg" width="110" alt="" />
+</p>
 
-Lecteur de musique léger et rapide, écrit en Rust avec Tauri.
+<h1 align="center">yato</h1>
 
-- **Ta bibliothèque locale** : MP3, FLAC, OGG, M4A/AAC, WAV, AIFF… scan en parallèle sur tous les cœurs, cache sur disque, recherche instantanée.
-- **Une source pour les infos, une source pour le son** (comme Nuclear) :
-  - **Deezer** (API publique, sans clé) : recherche, top du moment, titres et albums propres, pochettes en 1000 × 1000.
-  - **YouTube Music** : au moment de jouer, yato cherche le même enregistrement (titre, artiste, durée, en écartant les versions live, remix, accélérées…) via [rustypipe](https://codeberg.org/ThetaDev/rustypipe), et le son arrive par [yt-dlp](https://github.com/yt-dlp/yt-dlp). La recherche YouTube reste disponible pour les versions absentes de Deezer.
-- **Streaming progressif** : le son démarre pendant le téléchargement, et l'avance rapide est immédiate.
-- **Anticipation** : le morceau suivant, le premier résultat d'une recherche et les morceaux survolés sont téléchargés à l'avance en mémoire (8 morceaux maximum). Au clic, le son démarre instantanément. Sinon, il faut environ 2 s.
-- **yt-dlp géré automatiquement** : téléchargé depuis les versions officielles, avec vérification de la signature OpenPGP de yt-dlp et de l'empreinte SHA-256, puis mis à jour toutes les 12 h sans coupure. On utilise la version « dossier », qui démarre en 0,5 s au lieu de 2 s.
+<p align="center">
+  A light, fast music player, written in Rust with Tauri.<br />
+  <a href="https://amonre555.github.io/ondes/">Website</a> ·
+  <a href="https://github.com/amonre555/ondes/releases/latest">Download</a>
+</p>
 
-- **Fiches d'artistes** : photo, titres populaires, albums, singles et EP, artistes similaires. Chaque artiste d'un morceau (invités compris) est cliquable séparément.
-- **Titres likés et playlists** : un cœur sur chaque morceau (listes, lecteur, vue « En lecture »), et des playlists qui mélangent bibliothèque locale, Deezer et YouTube. Clic droit ou « ⋯ » sur un morceau pour l'ajouter, glisser-déposer pour réordonner, clic sur le nom pour renommer. Tout est gardé dans `collection.json`, dans les données de l'app.
-- **Aléatoire, répétition (file ou morceau) et fondu enchaîné** réglable de 1 à 12 s (deux lecteurs mixés, courbes à puissance constante).
-- **Reprise de l'écoute** : au lancement, yato retrouve le dernier morceau, la file d'attente et la position.
-- **Écoutés récemment** sur la page Découvrir (un morceau compte après 20 s d'écoute).
-- **Import de playlists** depuis un lien Spotify (sans compte : les morceaux sont retrouvés sur Deezer), Deezer ou YouTube Music.
-- **Réglages** : fondu enchaîné, reprise de l'écoute, statut Discord, historique, mises à jour.
-- **Fiches d'albums** : pochette, artistes, année, durée, liste des morceaux et maison de disques. Le nom d'un album est cliquable partout où il apparaît.
-- **Statut Discord** : « Écoute *titre* », l'artiste, la pochette et la barre de progression. Très peu d'envois (seulement aux changements), et rien ne se passe si Discord est fermé.
-- **Paroles synchronisées au mot près** : NetEase Cloud Music (format YRC) pour le minutage de chaque mot, [LRCLIB](https://lrclib.net) en parallèle (lignes, ou mots en Enhanced LRC). Sans minutage au mot, il est estimé d'après la longueur des mots, sans s'étaler sur les pauses. Un clic sur une ligne y amène la lecture.
-- **Touches multimédia et panneau multimédia du système** (Windows, MPRIS sous Linux, macOS), avec titre, artiste et pochette.
-- **Interface Material 3 Expressive** : toute l'interface prend les couleurs de la pochette en cours (Material You, via [material-color-utilities](https://github.com/material-foundation/material-color-utilities)), police Google Sans Flex, formes « cookie », boutons qui changent de forme, barre de progression ondulée, transitions floues.
-- **Vue « En lecture »** : la pochette s'envole depuis le lecteur en changeant de forme, paroles façon karaoké : chaque mot se remplit de blanc au moment où il est chanté.
+<p align="center">
+  <img src="site/assets/screenshot.jpg" width="860" alt="yato's Discover page" />
+</p>
+
+## Features
+
+- **Your local library**: MP3, FLAC, OGG, M4A/AAC, WAV, AIFF… scanned in parallel on every core, cached on disk, instant search.
+- **One source for the info, one for the sound** (like Nuclear):
+  - **Deezer** (public API, no key): search, charts, clean titles and albums, 1000 × 1000 covers.
+  - **YouTube Music**: at play time, yato looks for the same recording (title, artist, length, skipping live, remix, sped-up versions…) through [rustypipe](https://codeberg.org/ThetaDev/rustypipe). YouTube search is still available for versions Deezer doesn't have.
+- **Instant start**: the audio stream's direct address (from rustypipe) starts the song in ~0.3 s, while [yt-dlp](https://github.com/yt-dlp/yt-dlp) starts in parallel and takes over seamlessly if YouTube cuts the direct stream. Both deliver the very same file into one buffer: the fastest one wins.
+- **Progressive streaming**: playback starts while downloading, and seeking is instant.
+- **Prefetching**: the next song, the first search result and hovered songs are downloaded ahead of time into memory (8 songs at most).
+- **yt-dlp managed for you**: downloaded from the official releases, with yt-dlp's OpenPGP signature and the SHA-256 checksum verified, then updated every 12 h without interruption. The "folder" build is used, which starts in 0.5 s instead of 2 s.
+- **Artist pages**: photo, popular songs, albums, singles and EPs, similar artists. Every artist of a song (features included) is clickable on its own.
+- **Album pages**: cover, artists, year, length, track list and label. An album's name is clickable everywhere.
+- **Liked songs and playlists**: a heart on every song, and playlists that mix the local library, Deezer and YouTube. Right-click or "⋯" on a song to add it, drag and drop to reorder, click the name to rename. Everything is kept in `collection.json`, in the app data.
+- **Listening history**: every play (after 20 s of listening), grouped by day with the time, plus your most played songs.
+- **Shuffle, repeat (queue or song) and crossfade** from 1 to 12 s (two mixed players, constant-power curves).
+- **Resume**: on launch, yato brings back the last song, the queue and the position.
+- **Playlist import** from a Spotify link (no account: songs are found on Deezer), Deezer or YouTube Music.
+- **English and French**, switchable in Settings → General (English by default).
+- **Discord status**: "Listening to *title*", the artist, the cover and the progress bar. Very few updates (only on changes), and nothing happens when Discord is closed.
+- **Word-synced lyrics**: NetEase Cloud Music (YRC format) for per-word timing, [LRCLIB](https://lrclib.net) in parallel (lines, or words in Enhanced LRC). Without word timing, it's estimated from word length, without spreading over pauses. Click a line to jump there.
+- **Media keys and the system media panel** (Windows, MPRIS on Linux, macOS), with title, artist and cover.
+- **"Mist" interface**: the whole app floats in a haze tinted by the current cover (palette via [material-color-utilities](https://github.com/material-foundation/material-color-utilities)). No visible panels, light frosted glass, fine type (Google Sans Flex), a thread of light for progress, blur transitions.
+- **Now playing view**: the cover flies out of the player and its edges melt into the mist; karaoke lyrics where each word fills with white the moment it's sung.
+
+## Install
+
+Installers are in the [Releases](https://github.com/amonre555/ondes/releases): `.dmg` for macOS (Apple Silicon and Intel), `-setup.exe` for Windows. Once installed, yato checks for a new version on launch (then every 6 h) and offers to install it in one click. Updates are signed, and the app refuses any whose signature doesn't match.
+
+The app isn't signed by Apple or Microsoft:
+- **macOS**: on first launch, right-click yato → "Open" (or `xattr -cr /Applications/yato.app`);
+- **Windows**: "More info" → "Run anyway".
 
 ## Structure
 
 ```
-crates/yato-core/   Cœur Rust, indépendant de l'interface
-  src/source.rs        Trait MusicSource : ajouter une source = l'implémenter
-  src/sources/         Sources fournies (local, deezer, youtube)
-  src/stream.rs        Lecteur HTTP progressif
-  src/player.rs        Moteur audio (rodio + symphonia) et file d'attente
-  src/collection.rs    Titres likés et playlists (collection.json)
+crates/yato-core/   Rust core, independent of the UI
+  src/source.rs        MusicSource trait: adding a source = implementing it
+  src/sources/         Built-in sources (local, deezer, youtube)
+  src/stream.rs        Progressive HTTP / process reader (several sources can fill one buffer)
+  src/player.rs        Audio engine (rodio + symphonia) and queue
+  src/collection.rs    Liked songs, playlists and history (collection.json)
 app/                 Interface (SolidJS + Vite)
-app/src-tauri/       Pont Tauri : commandes, événements, protocole cover://
+  src/i18n.ts          Translations (English, French)
+app/src-tauri/       Tauri bridge: commands, events, cover:// protocol
+site/                Website (GitHub Pages)
 ```
 
-Le cœur ne connaît pas Tauri : il pourra servir à une version mobile (Tauri v2) ou à une interface native (GPUI) sans être réécrit.
+The core doesn't know about Tauri: it could power a mobile version (Tauri v2) or a native UI (GPUI) without a rewrite.
 
-## Lancer
+## Run from source
 
-Prérequis : Rust stable, Node.js 22+, outils de build MSVC (Windows). Rien d'autre : yt-dlp s'installe tout seul au premier lancement (dans `<données de l'app>/bin/yt-dlp`). Si l'installation échoue (hors ligne…), yato utilise un yt-dlp déjà présent sur le système (PATH ou winget).
+Requirements: stable Rust, Node.js 22+, MSVC build tools (Windows). Nothing else: yt-dlp installs itself on first launch (in `<app data>/bin/yt-dlp`). If that fails (offline…), yato uses a yt-dlp already on the system (PATH or winget).
 
 ```bash
 cd app
@@ -49,54 +73,56 @@ npm install
 npm run tauri dev
 ```
 
-Version optimisée : `npm run tauri build`.
+Optimized build: `npm run tauri build`.
 
-Sous Windows, si le dossier du projet est très profond, l'éditeur de liens peut dépasser la limite de 260 caractères. Il suffit alors de compiler ailleurs, par exemple `set CARGO_TARGET_DIR=C:\yato-target`.
+On Windows, if the project folder is very deep, the linker can hit the 260-character limit. Build elsewhere, for example `set CARGO_TARGET_DIR=C:\yato-target`.
 
-Pour travailler l'interface dans un navigateur, sans Tauri : `npm run dev` puis http://localhost:1420. Le cœur est alors simulé (morceaux et paroles d'exemple), voir `app/src/dev-mock.ts`. Ce mode n'est jamais inclus dans l'app.
+To work on the interface in a browser, without Tauri: `npm run dev` then http://localhost:1420. The core is then simulated (sample songs and lyrics), see `app/src/dev-mock.ts`; add `?demo` to the address to start playing right away. This mode is never shipped in the app.
 
-Tests rapides, sans interface :
+Quick tests, without the interface:
 
 ```bash
 cargo run -p yato-core --example yt -- "vhs mattyeux"
-cargo run -p yato-core --example deezer -- "stromae alors on danse"   # recherche Deezer + lecture du son YouTube
-cargo run -p yato-core --example artist -- "sweat snoop dogg"   # crédits complets, fiches d'artistes, albums
-cargo run -p yato-core --example match   # relie le top Deezer et quelques recherches à YouTube Music
-cargo run -p yato-core --example lyrics -- "tout oublier angele"   # paroles, et minutage des mots (synchronisé ou estimé)
-cargo run -p yato-core --example import -- "https://open.spotify.com/playlist/…"   # import d'une playlist
-cargo run -p yato-core --example playback   # fondu enchaîné, répétition, reprise (à volume zéro)
-cargo test -p yato-core -- --include-ignored   # dont la vérification de signature réelle
+cargo run -p yato-core --example deezer -- "stromae alors on danse"   # Deezer search + YouTube audio
+cargo run -p yato-core --example artist -- "sweat snoop dogg"   # full credits, artist pages, albums
+cargo run -p yato-core --example match   # matches the Deezer charts and a few searches to YouTube Music
+cargo run -p yato-core --example lyrics -- "tout oublier angele"   # lyrics and word timing (synced or estimated)
+cargo run -p yato-core --example import -- "https://open.spotify.com/playlist/…"   # playlist import
+cargo run -p yato-core --example playback   # crossfade, repeat, resume (at zero volume)
+cargo test -p yato-core -- --include-ignored   # including the real signature check
 ```
 
-## Installer, publier une version
+## Publish a release
 
-Les installateurs sont dans les [Releases](https://github.com/amonre555/ondes/releases) : `.dmg` pour macOS (Apple Silicon et Intel), `-setup.exe` pour Windows. Une fois installé, yato vérifie au démarrage (puis toutes les 6 h) s'il existe une nouvelle version et propose de l'installer en un clic. Les mises à jour sont signées, et l'app refuse celles dont la signature ne correspond pas.
-
-L'app n'est pas signée par Apple ni par Microsoft :
-- **macOS** : au premier lancement, clic droit sur yato → « Ouvrir » (ou `xattr -cr /Applications/yato.app`) ;
-- **Windows** : « Informations complémentaires » → « Exécuter quand même ».
-
-Publier une version (le numéro vit dans `Cargo.toml`, `[workspace.package]`) :
+The version lives in `Cargo.toml`, `[workspace.package]`:
 
 ```bash
 ./scripts/release.sh 0.2.0
 git push && git push origin v0.2.0
 ```
 
-Le workflow GitHub « Publier une version » compile alors macOS et Windows, et crée la Release avec `latest.json` pour les mises à jour. Il a besoin de deux secrets (Settings → Secrets and variables → Actions) : `TAURI_SIGNING_PRIVATE_KEY` (contenu de `~/.tauri/yato.key`) et `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (contenu de `~/.tauri/yato.key.password`). Sans cette clé, plus aucune mise à jour ne peut être publiée : garde-la précieusement.
+The "Publish a release" GitHub workflow then builds macOS and Windows, and creates the Release with `latest.json` for updates. It needs two secrets (Settings → Secrets and variables → Actions): `TAURI_SIGNING_PRIVATE_KEY` (contents of `~/.tauri/yato.key`) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (contents of `~/.tauri/yato.key.password`). Without this key no update can ever be published again: keep it safe.
 
-Icône macOS : `npm run icon:mac` (dans `app/`) régénère `icon.icns` depuis `icon-macos.svg`, le dessin de `icon.svg` posé sur la grille Apple.
+App icons: `app/src-tauri/icons/icon.svg` is the source. `npx tauri icon` (from a 1024 px PNG of it) rebuilds every size, then `npm run icon:mac` (in `app/`) rebuilds `icon.icns` from `icon-macos.svg`, the same drawing on Apple's grid.
 
-## Ajouter une source
+## Website
 
-Implémenter `yato_core::MusicSource` (`search`, `featured`, `resolve`) puis l'enregistrer dans `app/src-tauri/src/lib.rs` :
+The website lives in `site/` (a single static page) and is published to GitHub Pages by the "Publish the website" workflow on every push to `main` that touches it. One-time setup: Settings → Pages → Source: "GitHub Actions". Download links, version and stats come from the GitHub API, so nothing needs updating on release.
+
+## Add a source
+
+Implement `yato_core::MusicSource` (`search`, `featured`, `resolve`) then register it in `app/src-tauri/src/lib.rs`:
 
 ```rust
-sources.register(Arc::new(MaSource::new(client.clone())));
+sources.register(Arc::new(MySource::new(client.clone())));
 ```
 
-## Licence
+## Add a language
 
-GPL-3.0-or-later (imposée par rustypipe, sous GPL-3).
+Add a dictionary to `app/src/i18n.ts` (TypeScript checks that every text is translated) and an entry to `LANGUAGES`.
 
-Lire YouTube en dehors de son lecteur officiel est contraire à ses conditions d'utilisation. La source YouTube est fournie telle quelle, et chacun reste responsable de son usage.
+## License
+
+GPL-3.0-or-later (required by rustypipe, which is GPL-3).
+
+Playing YouTube outside its official player is against its terms of service. The YouTube source is provided as is, and everyone is responsible for their own use.

@@ -5,7 +5,9 @@ import { AlbumView } from "./album";
 import { ArtistView } from "./artist";
 import { nameForTransition, transition } from "./motion";
 import { pageRequest, type Page } from "./nav";
-import { IconClose, IconCompass, IconFolderPlus, IconHeart, IconLibrary, IconLink, IconNote, IconPlay, IconPlus, IconRefresh, IconSearch, IconSettings } from "./icons";
+import { IconClock, IconClose, IconCompass, IconFolderPlus, IconHeart, IconLibrary, IconLink, IconNote, IconPlay, IconPlus, IconRefresh, IconSearch, IconSettings } from "./icons";
+import { t } from "./i18n";
+import { HistoryView } from "./history";
 import { collection, createPlaylist, dismissToast, loadCollection, notify, recentTracks, toast } from "./collection";
 import { ImportDialog, SettingsView } from "./settings";
 import { LikedView, PlaylistView } from "./playlist";
@@ -13,7 +15,7 @@ import { UpdateCard } from "./update";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
 import { AlbumLink, ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, PlaylistArt, SourceTag, TrackCard, TrackList, TrackMenuHost, YtDlpBadge } from "./ui";
 
-type View = "discover" | "library" | "liked" | "playlist" | "settings" | "search" | "artist" | "album";
+type View = "discover" | "library" | "liked" | "history" | "playlist" | "settings" | "search" | "artist" | "album";
 
 const EMPTY: Snapshot = {
   track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off",
@@ -304,7 +306,7 @@ export default function App() {
     }
   };
   const addFolder = async () => {
-    const dir = await open({ directory: true, multiple: false, title: "Choisir un dossier de musique" });
+    const dir = await open({ directory: true, multiple: false, title: t.chooseFolder });
     if (typeof dir !== "string") return;
     await withScan(() => api.addFolder(dir));
     goTo("library");
@@ -318,16 +320,17 @@ export default function App() {
       <Backdrop snap={snap()} />
 
       <aside class="sidebar">
-        <button class="brand" onClick={() => goTo("discover")} title="Accueil">
+        <button class="brand" onClick={() => goTo("discover")} title={t.home}>
           <img src="/logo.svg" alt="" width="30" height="30" />
           <span>yato</span>
         </button>
         <SideNav
           active={view() === "playlist" ? `pl:${playlistId()}` : view()}
           items={[
-            { id: "discover", label: "Découvrir", icon: <IconCompass /> },
-            { id: "library", label: "Bibliothèque", icon: <IconLibrary />, count: library().length },
-            { id: "liked", label: "Titres likés", icon: <IconHeart />, count: collection().liked.length },
+            { id: "discover", label: t.discover, icon: <IconCompass /> },
+            { id: "library", label: t.library, icon: <IconLibrary />, count: library().length },
+            { id: "liked", label: t.liked, icon: <IconHeart />, count: collection().liked.length },
+            { id: "history", label: t.history, icon: <IconClock /> },
             ...collection().playlists.map((p, i) => ({
               id: `pl:${p.id}`,
               label: p.name,
@@ -343,13 +346,13 @@ export default function App() {
             <PlaylistsHeading onNew={newPlaylist} onImport={() => setImporting(true)} />
             <button class="nav new-pl" onClick={newPlaylist}>
               <IconPlus size={20} />
-              <span>Nouvelle playlist</span>
+              <span>{t.newPlaylist}</span>
             </button>
           </div>
         </Show>
-        <button classList={{ nav: true, "nav-settings": true, active: view() === "settings" }} title="Réglages" onClick={() => goTo("settings")}>
+        <button classList={{ nav: true, "nav-settings": true, active: view() === "settings" }} title={t.settings} onClick={() => goTo("settings")}>
           <IconSettings />
-          <span>Réglages</span>
+          <span>{t.settings}</span>
         </button>
         <UpdateCard />
         <YtDlpBadge status={ytdlp()} />
@@ -363,7 +366,7 @@ export default function App() {
             <input
               ref={searchInput}
               type="search"
-              placeholder="Titres, artistes, albums…"
+              placeholder={t.searchPlaceholder}
               value={query()}
               onInput={(e) => onSearch(e.currentTarget.value)}
               spellcheck={false}
@@ -376,16 +379,16 @@ export default function App() {
           <Switch>
             <Match when={view() === "search"}>
               <Show when={results()} fallback={<Loader />}>
-                <Show when={grouped().length > 0} fallback={<Empty text={`Aucun résultat pour « ${query()} ».`} />}>
+                <Show when={grouped().length > 0} fallback={<Empty text={t.noResults(query())} />}>
                   <Show when={best()}>
                     {(g) => (
                       <div class="search-top">
                         <div>
-                          <h2 class="section-title">Meilleur résultat</h2>
+                          <h2 class="section-title">{t.topResult}</h2>
                           <Hero track={g().tracks[0]} playing={isCurrent(g().tracks[0])} onPlay={() => play(g().tracks, 0)} compact />
                         </div>
                         <div class="search-top-list">
-                          <h2 class="section-title">Titres</h2>
+                          <h2 class="section-title">{t.songs}</h2>
                           <TrackList
                             tracks={g().tracks.slice(0, 5)}
                             current={snap().track?.id}
@@ -405,7 +408,7 @@ export default function App() {
                         <Show when={rest().length > 0}>
                           <section class="section">
                             <h2 class="section-title">
-                              {skip() ? (g.source.id === "deezer" ? "Plus de titres" : `Plus de résultats ${g.source.name}`) : g.source.name}
+                              {skip() ? (g.source.id === "deezer" ? t.moreSongs : t.moreFrom(sourceName(g.source))) : sourceName(g.source)}
                               <span class="muted count-inline">{rest().length}</span>
                             </h2>
                             <TrackList
@@ -427,19 +430,19 @@ export default function App() {
             <Match when={view() === "library"}>
               <div class="page-head">
                 <div>
-                  <h1>Ta musique</h1>
+                  <h1>{t.yourMusic}</h1>
                   <p class="muted">
-                    {library().length} morceaux · {formatTime(libraryDuration())}
+                    {t.tracksCount(library().length)} · {formatTime(libraryDuration())}
                   </p>
                 </div>
                 <div class="actions">
                   <Show when={library().length > 0}>
                     <button class="primary" onClick={() => play(library(), 0)}>
-                      <IconPlay size={16} /> Tout lire
+                      <IconPlay size={16} /> {t.playAll}
                     </button>
                   </Show>
                   <button class="ghost" onClick={() => withScan(api.rescan)} disabled={scanning() || folders().length === 0}>
-                    <IconRefresh /> Rescanner
+                    <IconRefresh /> {t.rescan}
                   </button>
                 </div>
               </div>
@@ -448,14 +451,14 @@ export default function App() {
                   {(dir) => (
                     <span class="chip" title={dir}>
                       <span>{dir.split(/[\\/]/).filter(Boolean).pop() ?? dir}</span>
-                      <button class="chip-x" title="Retirer ce dossier" onClick={() => withScan(() => api.removeFolder(dir))}>
+                      <button class="chip-x" title={t.removeFolder} onClick={() => withScan(() => api.removeFolder(dir))}>
                         <IconClose />
                       </button>
                     </span>
                   )}
                 </For>
                 <button class="chip add" onClick={addFolder} disabled={scanning()}>
-                  <IconFolderPlus /> {scanning() ? "Analyse en cours…" : "Ajouter un dossier"}
+                  <IconFolderPlus /> {scanning() ? t.scanning : t.addFolder}
                 </button>
               </div>
               <Show
@@ -463,10 +466,10 @@ export default function App() {
                 fallback={
                   <div class="empty-state">
                     <IconNote />
-                    <h2>Ta musique, sans attendre</h2>
-                    <p class="muted">Ajoute un dossier : yato lit les tags sur tous les cœurs de ton processeur.</p>
+                    <h2>{t.libraryEmptyTitle}</h2>
+                    <p class="muted">{t.libraryEmptyText}</p>
                     <button class="primary" onClick={addFolder} disabled={scanning()}>
-                      <IconFolderPlus /> {scanning() ? "Analyse en cours…" : "Ajouter un dossier"}
+                      <IconFolderPlus /> {scanning() ? t.scanning : t.addFolder}
                     </button>
                   </div>
                 }
@@ -502,22 +505,29 @@ export default function App() {
               <LikedView snap={snap()} onPlay={play} />
             </Match>
 
+            <Match when={view() === "history"}>
+              <HistoryView snap={snap()} onPlay={play} />
+            </Match>
+
             <Match when={view() === "playlist" && playlistId()}>
               {(id) => <PlaylistView id={id()} editing={naming()} snap={snap()} onPlay={play} onDeleted={() => goTo("library")} />}
             </Match>
 
             <Match when={view() === "settings"}>
-              <SettingsView onImport={() => setImporting(true)} onLibrary={() => goTo("library")} />
+              <SettingsView onImport={() => setImporting(true)} onLibrary={() => goTo("library")} onHistory={() => goTo("history")} />
             </Match>
 
             <Match when={view() === "discover"}>
               <Show when={featured()} fallback={<Loader />}>
                 {(list) => (
-                  <Show when={list().length > 0} fallback={<Empty text="Impossible de charger le top du moment." />}>
-                    <Hero track={list()[0]} playing={isCurrent(list()[0])} onPlay={() => play(list(), 0)} label="N°1 du moment" />
+                  <Show when={list().length > 0} fallback={<Empty text={t.featuredError} />}>
+                    <Hero track={list()[0]} playing={isCurrent(list()[0])} onPlay={() => play(list(), 0)} label={t.numberOne} />
                     <Show when={recentTracks().length > 0}>
                       <section class="section">
-                        <h2 class="section-title">Écoutés récemment</h2>
+                        <h2 class="section-title">
+                          {t.recentlyPlayed}
+                          <button class="link-btn section-link" onClick={() => goTo("history")}>{t.seeAll}</button>
+                        </h2>
                         <div class="grid recent">
                           <For each={recentTracks().slice(0, 6)}>
                             {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(recentTracks(), i())} />}
@@ -526,7 +536,7 @@ export default function App() {
                       </section>
                     </Show>
                     <section class="section">
-                      <h2 class="section-title">En ce moment</h2>
+                      <h2 class="section-title">{t.rightNow}</h2>
                       <div class="grid">
                         <For each={list().slice(1, 13)}>
                           {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(list(), i() + 1)} />}
@@ -534,7 +544,7 @@ export default function App() {
                       </div>
                     </section>
                     <section class="section">
-                      <h2 class="section-title">Tout le top</h2>
+                      <h2 class="section-title">{t.fullChart}</h2>
                       <TrackList tracks={list()} current={snap().track?.id} status={snap().status} onPlay={(i) => play(list(), i)} />
                     </section>
                   </Show>
@@ -575,6 +585,9 @@ export default function App() {
   );
 }
 
+/** Displayed name of a source, in the interface language. */
+const sourceName = (s: SourceInfo) => ({ deezer: t.songs, local: t.myLibrary } as Record<string, string>)[s.id] ?? s.name;
+
 /** Grande carte mise en avant, avec sa pochette en fond flouté. */
 function Hero(props: { track: Track; playing: boolean; onPlay: () => void; label?: string; compact?: boolean }) {
   return (
@@ -601,7 +614,7 @@ function Hero(props: { track: Track; playing: boolean; onPlay: () => void; label
           </Show>
         </div>
         <button class="primary hero-play" onClick={props.onPlay}>
-          <IconPlay size={18} /> {props.playing ? "En lecture" : "Écouter"}
+          <IconPlay size={18} /> {props.playing ? t.nowPlaying : t.listen}
         </button>
       </div>
     </div>
@@ -662,12 +675,12 @@ function SideNav<T extends string>(props: {
 function PlaylistsHeading(props: { onNew: () => void; onImport: () => void }) {
   return (
     <div class="nav-heading">
-      <span>Playlists</span>
+      <span>{t.playlists}</span>
       <div class="nav-heading-actions">
-        <button class="icon-btn" title="Importer une playlist (Spotify, Deezer, YouTube Music)" onClick={props.onImport}>
+        <button class="icon-btn" title={t.importPlaylistHint} onClick={props.onImport}>
           <IconLink />
         </button>
-        <button class="icon-btn" title="Nouvelle playlist" onClick={props.onNew}>
+        <button class="icon-btn" title={t.newPlaylist} onClick={props.onNew}>
           <IconPlus />
         </button>
       </div>

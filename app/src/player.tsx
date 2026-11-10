@@ -4,7 +4,8 @@ import { api, bigCoverUrl, coverUrl, formatTime, type ArtistRef, type LyricWord,
 import { IconChevronDown, IconLyrics, IconMinus, IconNext, IconPause, IconPlay, IconPlus, IconPrev, IconRepeat, IconShuffle, IconVolume } from "./icons";
 import { AlbumLink, ArtistLinks, Cover, LikeButton } from "./ui";
 import { themeFromCover } from "./theme";
-import { cookie, PLAYER_COOKIE, roundedSquare } from "./shapes";
+import { t as tr } from "./i18n";
+import { roundedSquare } from "./shapes";
 
 type Run = (a: () => Promise<Snapshot>) => void;
 
@@ -69,9 +70,9 @@ export function PlayerBar(props: {
   return (
     <footer class="player">
       <div class="now">
-        <Show when={props.snap.track} fallback={<div class="muted small">Rien en lecture</div>}>
+        <Show when={props.snap.track} fallback={<div class="muted small">{tr.nothingPlaying}</div>}>
           {(t) => (
-            <button class="now-btn" onClick={props.onExpand} title="Ouvrir la vue En lecture">
+            <button class="now-btn" onClick={props.onExpand} title={tr.openNowPlaying}>
               <Cover track={t()} size="md" />
               <div class="now-text">
                 <div class="now-title">{t().title}</div>
@@ -93,7 +94,7 @@ export function PlayerBar(props: {
       <div class="side-controls">
         <button
           classList={{ "icon-btn": true, active: props.expanded }}
-          title="Paroles et vue En lecture"
+          title={tr.lyricsAndNowPlaying}
           onClick={props.onExpand}
           disabled={!props.snap.track}
         >
@@ -108,9 +109,9 @@ export function PlayerBar(props: {
 /** Répétition suivante quand on clique : rien → toute la file → ce morceau → rien. */
 const NEXT_REPEAT = { off: "all", all: "one", one: "off" } as const;
 const REPEAT_TITLE = {
-  off: "Répéter la file",
-  all: "Répéter ce morceau",
-  one: "Ne plus répéter",
+  off: () => tr.repeatAll,
+  all: () => tr.repeatOne,
+  one: () => tr.repeatOff,
 } as const;
 
 function Transport(props: { snap: Snapshot; run: Run; playing: boolean; big?: boolean }) {
@@ -118,18 +119,18 @@ function Transport(props: { snap: Snapshot; run: Run; playing: boolean; big?: bo
     <div classList={{ buttons: true, big: !!props.big }}>
       <button
         classList={{ "icon-btn": true, mode: true, active: props.snap.shuffle }}
-        title={props.snap.shuffle ? "Désactiver la lecture aléatoire" : "Lecture aléatoire"}
+        title={props.snap.shuffle ? tr.shuffleOff : tr.shuffle}
         aria-pressed={props.snap.shuffle}
         onClick={() => props.run(() => api.setShuffle(!props.snap.shuffle))}
       >
         <IconShuffle />
       </button>
-      <button class="icon-btn" title="Précédent (Alt+←)" onClick={() => props.run(api.previous)} disabled={!props.snap.track}>
+      <button class="icon-btn" title={tr.previous} onClick={() => props.run(api.previous)} disabled={!props.snap.track}>
         <IconPrev />
       </button>
       <button
         classList={{ "play-btn": true, loading: props.snap.status === "loading", playing: props.playing }}
-        title="Lecture / pause (Espace)"
+        title={tr.playPause}
         onClick={() => props.run(api.toggle)}
         disabled={!props.snap.track && props.snap.queueLen === 0}
       >
@@ -137,13 +138,13 @@ function Transport(props: { snap: Snapshot; run: Run; playing: boolean; big?: bo
           <IconPause size={props.big ? 30 : 22} />
         </Show>
       </button>
-      <button class="icon-btn" title="Suivant (Alt+→)" onClick={() => props.run(api.next)} disabled={!props.snap.track}>
+      <button class="icon-btn" title={tr.next} onClick={() => props.run(api.next)} disabled={!props.snap.track}>
         <IconNext />
       </button>
       <button
         classList={{ "icon-btn": true, mode: true, active: props.snap.repeat !== "off" }}
-        title={REPEAT_TITLE[props.snap.repeat]}
-        aria-label={REPEAT_TITLE[props.snap.repeat]}
+        title={REPEAT_TITLE[props.snap.repeat]()}
+        aria-label={REPEAT_TITLE[props.snap.repeat]()}
         onClick={() => props.run(() => api.setRepeat(NEXT_REPEAT[props.snap.repeat]))}
       >
         <IconRepeat one={props.snap.repeat === "one"} />
@@ -165,11 +166,9 @@ function Progress(props: { snap: Snapshot; position: number; run: Run }) {
         pendant la lecture et s'aplatit en pause. Le curseur natif reste par-dessus pour la
         souris et le clavier.
       */}
-      <div classList={{ seek: true, flowing: props.snap.status === "playing" && dragging() === null }}>
-        <div class="seek-played" style={{ width: `${pct()}%` }} aria-hidden="true">
-          <span class="seek-wave" />
-          <span class="seek-flat" />
-        </div>
+      <div class="seek">
+        {/* Fil de lumière : la partie écoutée, qui brille doucement. */}
+        <div class="seek-played" style={{ width: `${pct()}%` }} aria-hidden="true" />
       <input
         type="range"
         class="slider"
@@ -179,7 +178,7 @@ function Progress(props: { snap: Snapshot; position: number; run: Run }) {
         value={shown()}
         style={{ "--pct": `${pct()}%` }}
         disabled={!props.snap.track || !duration()}
-        aria-label="Position dans le morceau"
+        aria-label={tr.seekLabel}
         onInput={(e) => setDragging(parseFloat(e.currentTarget.value))}
         onChange={(e) => {
           const v = parseFloat(e.currentTarget.value);
@@ -205,42 +204,27 @@ function Volume(props: { snap: Snapshot; run: Run }) {
         step="0.01"
         value={props.snap.volume}
         style={{ "--pct": `${props.snap.volume * 100}%` }}
-        aria-label="Volume"
+        aria-label={tr.volume}
         onInput={(e) => props.run(() => api.setVolume(parseFloat(e.currentTarget.value)))}
       />
     </div>
   );
 }
 
-/** Vue plein écran : grande pochette, commandes, et paroles synchronisées. */
-/** Position de la pochette du lecteur, hors rotation (la forme cookie tourne en continu). */
+/** Position de la pochette du lecteur. */
 function playerCoverRect(): DOMRect | null {
-  const cover = document.querySelector<HTMLElement>(".now-btn .cover");
-  const parent = cover?.offsetParent;
-  if (!cover || !(parent instanceof HTMLElement)) return null;
-  const p = parent.getBoundingClientRect();
-  return new DOMRect(p.left + cover.offsetLeft, p.top + cover.offsetTop, cover.offsetWidth, cover.offsetHeight);
+  return document.querySelector<HTMLElement>(".now-btn .cover")?.getBoundingClientRect() ?? null;
 }
 
-/** Angle actuel de la forme cookie du lecteur (elle tourne en continu pendant la lecture). */
-function playerCoverAngle(): number {
-  const cover = document.querySelector<HTMLElement>(".now-btn .cover");
-  if (!cover) return 0;
-  const rotate = getComputedStyle(cover).rotate; // « 123.4deg » ou « none »
-  return rotate && rotate !== "none" ? parseFloat(rotate) : 0;
-}
-
-/** Vitesse de rotation de la forme cookie (doit suivre l'animation `spin` de styles.css). */
-const COOKIE_DEG_PER_MS = 360 / 24000;
-
-/** Rayon des coins de la grande pochette (doit suivre `.np-art` dans styles.css). */
-const ART_RADIUS_PX = 48;
+/** Rayons des coins des deux pochettes (doivent suivre `.np-art` et `.cover.md` dans styles.css). */
+const ART_RADIUS_PX = 36;
+const PLAYER_RADIUS_PX = 16;
 
 /**
  * Fait voler la grande pochette depuis (ou vers) celle du lecteur (technique « FLIP ») :
  * - la position et la taille passent de l'une à l'autre (`transform`) ;
- * - la forme se transforme entre le cookie et un carré aux coins exactement identiques à ceux de
- *   la pochette (`clip-path`, mêmes points des deux côtés), avec l'angle qu'aura le cookie.
+ * - les coins s'arrondissent exactement comme ceux de l'autre pochette (`clip-path`, mêmes
+ *   points des deux côtés) : à l'arrivée, le relais avec le vrai `border-radius` ne se voit pas.
  * Si une animation est déjà en cours (Échap pendant l'ouverture, réouverture pendant la
  * fermeture), on repart de l'état affiché à cet instant : pas de saut.
  */
@@ -255,12 +239,9 @@ function flyCover(art: HTMLElement, direction: "in" | "out", duration: number) {
   const from = playerCoverRect();
   const to = art.getBoundingClientRect(); // sans animation : la vraie place de la pochette
   if (!from || !to.width) return;
-  const spinning = document.querySelector(".app.playing-on") !== null;
-  // Angle du cookie au moment où la grande pochette le rejoint.
-  const angle = playerCoverAngle() + (direction === "out" && spinning ? duration * COOKIE_DEG_PER_MS : 0);
   const small = {
     transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width})`,
-    clipPath: cookie(PLAYER_COOKIE.petals, PLAYER_COOKIE.depth, angle),
+    clipPath: roundedSquare((PLAYER_RADIUS_PX / from.width) * 100),
   };
   const big = { transform: "translate(0px, 0px) scale(1)", clipPath: roundedSquare((ART_RADIUS_PX / to.width) * 100) };
   art.style.transformOrigin = "0 0";
@@ -326,12 +307,12 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
   );
 
   return (
-    <div classList={{ nowplaying: true, leaving: props.leaving }} role="dialog" aria-label="En lecture">
+    <div classList={{ nowplaying: true, leaving: props.leaving }} role="dialog" aria-label={tr.nowPlaying}>
       {/* Fond propre à la vue (pochette floutée sur une base opaque) : il apparaît avec elle. */}
       <div class="np-bg" aria-hidden="true">
         <Show when={bigCoverUrl(track())}>{(u) => <div class="np-bg-art" style={{ "background-image": `url("${u()}")` }} />}</Show>
       </div>
-      <button class="icon-btn np-close" title="Fermer (Échap)" onClick={props.onClose}>
+      <button class="icon-btn np-close" title={tr.close} onClick={props.onClose}>
         <IconChevronDown />
       </button>
       <Show when={track()}>
@@ -496,7 +477,7 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; trackId: string 
   return (
     <Show
       when={props.lyrics !== undefined}
-      fallback={<div class="lyrics-empty">Recherche des paroles…</div>}
+      fallback={<div class="lyrics-empty">{tr.searchingLyrics}</div>}
     >
       <Show
         when={lines().length > 0}
@@ -504,7 +485,7 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; trackId: string 
           <Show
             when={props.lyrics?.plain}
             fallback={
-              <div class="lyrics-empty">{props.lyrics?.instrumental ? "♪ Instrumental" : "Pas de paroles pour ce morceau"}</div>
+              <div class="lyrics-empty">{props.lyrics?.instrumental ? tr.instrumental : tr.noLyrics}</div>
             }
           >
             {(p) => <div class="lyrics plain" ref={box}>{p()}</div>}
@@ -554,13 +535,13 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; trackId: string 
           <div class="lyrics-pad" />
         </div>
         <div classList={{ "lyrics-sync": true, set: shift() !== 0 }}>
-          <button class="icon-btn" title="Les paroles arrivent trop tôt : les retarder de 0,1 s" onClick={() => nudge(-0.1)}>
+          <button class="icon-btn" title={tr.lyricsEarly} onClick={() => nudge(-0.1)}>
             <IconMinus />
           </button>
-          <button class="lyrics-sync-value" title={shift() ? "Remettre la synchronisation d'origine" : "Synchronisation des paroles"} onClick={() => nudge(0)}>
-            {shift() ? `${shift() > 0 ? "+" : "−"}${Math.abs(shift()).toFixed(1).replace(".", ",")} s` : "Synchro"}
+          <button class="lyrics-sync-value" title={shift() ? tr.lyricsReset : tr.lyricsSync} onClick={() => nudge(0)}>
+            {shift() ? `${shift() > 0 ? "+" : "−"}${Math.abs(shift()).toFixed(1).replace(".", tr.decimal)} s` : tr.sync}
           </button>
-          <button class="icon-btn" title="Les paroles arrivent trop tard : les avancer de 0,1 s" onClick={() => nudge(0.1)}>
+          <button class="icon-btn" title={tr.lyricsLate} onClick={() => nudge(0.1)}>
             <IconPlus />
           </button>
         </div>

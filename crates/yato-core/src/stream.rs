@@ -6,6 +6,10 @@
 //!
 //! Un `Download` peut être lancé à l'avance (anticipation) puis lu plus tard, plusieurs fois.
 //! Il est arrêté quand plus personne ne le garde (ni cache, ni lecteur).
+//!
+//! Plusieurs sources peuvent remplir le même tampon en même temps, si elles livrent exactement
+//! le même fichier (ex. yt-dlp, et l'adresse directe du flux YouTube) : chacune écrit à sa
+//! propre position, et la plus avancée fait grandir le tampon. Si l'une échoue, l'autre continue.
 
 use std::{
     io::{self, Read, Seek, SeekFrom},
@@ -13,7 +17,7 @@ use std::{
     process::Stdio,
     sync::{
         Arc,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
 };
 
@@ -26,6 +30,9 @@ use crate::{Error, Result};
 const PREBUFFER: usize = 128 * 1024;
 /// Taille d'une plage en mode par plages.
 pub const CHUNK: u64 = 8 * 1024 * 1024;
+/// Taille d'une plage pour la source HTTP ajoutée par [`Download::add_http`] : petite, pour
+/// que le premier morceau arrive vite et qu'un refus en cours de route coûte peu.
+const HTTP_CHUNK: u64 = 1024 * 1024;
 
 #[derive(Default)]
 struct State {
@@ -40,12 +47,48 @@ struct Shared {
     state: Mutex<State>,
     cond: Condvar,
     cancelled: AtomicBool,
+    /// Sources encore en train d'écrire (voir [`Shared::writer_done`]).
+    writers: AtomicUsize,
 }
 
 impl Shared {
     fn push(&self, bytes: &[u8]) {
         self.state.lock().buf.extend_from_slice(bytes);
         self.cond.notify_all();
+    }
+
+    /// Écrit `bytes`, qui commencent à la position `offset` du fichier. Seule la partie qui
+    /// dépasse le tampon actuel est ajoutée (une autre source a peut-être déjà livré le reste).
+    fn push_at(&self, offset: u64, bytes: &[u8]) {
+        let mut st = self.state.lock();
+        let have = st.buf.len() as u64;
+        let end = offset + bytes.len() as u64;
+        if offset <= have && end > have {
+            st.buf.extend_from_slice(&bytes[(have - offset) as usize..]);
+            drop(st);
+            self.cond.notify_all();
+        }
+    }
+
+    /// Tout le fichier est là (ou le téléchargement est terminé) : les autres sources s'arrêtent.
+    fn complete(&self) -> bool {
+        let st = self.state.lock();
+        st.done || st.total.is_some_and(|t| t > 0 && st.buf.len() as u64 >= t)
+    }
+
+    /// Une source a fini. Le téléchargement se termine quand le fichier est complet, ou quand la
+    /// dernière source s'arrête (son erreur, s'il y en a une, est alors celle du téléchargement).
+    fn writer_done(&self, result: std::result::Result<(), String>) {
+        let left = self.writers.fetch_sub(1, Ordering::AcqRel) - 1;
+        let complete = {
+            let st = self.state.lock();
+            st.total.is_some_and(|t| t > 0 && st.buf.len() as u64 >= t)
+        };
+        if complete {
+            self.finish(Ok(()));
+        } else if left == 0 {
+            self.finish(result);
+        }
     }
 
     fn finish(&self, result: std::result::Result<(), String>) {
@@ -76,7 +119,7 @@ impl Drop for CancelOnDrop {
 impl std::fmt::Debug for Download {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let st = self.shared.state.lock();
-        write!(f, "Download({} octets, terminé: {})", st.buf.len(), st.done)
+        write!(f, "Download({} bytes, done: {})", st.buf.len(), st.done)
     }
 }
 
@@ -97,6 +140,7 @@ impl Download {
             }),
             cond: Condvar::new(),
             cancelled: AtomicBool::new(false),
+            writers: AtomicUsize::new(0),
         });
         let guard = Arc::new(CancelOnDrop(shared.clone()));
         (Self { shared: shared.clone(), guard }, shared)
@@ -112,7 +156,7 @@ impl Download {
     ) -> Result<Self> {
         let ua = user_agent.as_deref();
         let (first, total) = match ranged_len {
-            Some(len) => (range_request(client, url, ua, 0, len).await?, Some(len)),
+            Some(len) => (range_request(client, url, ua, 0, len, CHUNK).await?, Some(len)),
             None => {
                 let resp = with_ua(client.get(url), ua).send().await?.error_for_status()?;
                 let len = resp.content_length();
@@ -137,7 +181,7 @@ impl Download {
                     if have >= len {
                         return Ok(());
                     }
-                    resp = range_request(&client, &url, user_agent.as_deref(), have, len)
+                    resp = range_request(&client, &url, user_agent.as_deref(), have, len, CHUNK)
                         .await
                         .map_err(|e| e.to_string())?;
                 }
@@ -155,27 +199,69 @@ impl Download {
     /// envoyé la moindre donnée**, on passe au suivant (ex. mode rapide, puis mode complet).
     pub fn process(program: &Path, attempts: Vec<Vec<String>>) -> Result<Self> {
         if attempts.is_empty() {
-            return Err(Error::Other("aucun argument pour le programme".into()));
+            return Err(Error::Other("no arguments for the program".into()));
         }
         let (dl, shared) = Self::new(None);
+        shared.writers.fetch_add(1, Ordering::AcqRel);
         let program = program.to_owned();
         tokio::spawn(async move {
-            let mut result = Err("aucun essai".to_owned());
+            let mut result = Err("no attempt".to_owned());
+            let mut written = 0u64;
             for args in attempts {
-                result = run_process(&shared, &program, &args).await;
-                let got_data = !shared.state.lock().buf.is_empty();
-                if result.is_ok() || got_data || shared.cancelled() {
+                result = run_process(&shared, &program, &args, &mut written).await;
+                if result.is_ok() || written > 0 || shared.cancelled() || shared.complete() {
                     break;
                 }
             }
             // Fin de flux : la taille exacte est maintenant connue.
-            if result.is_ok() {
+            if result.is_ok() && !shared.complete() {
                 let mut st = shared.state.lock();
-                st.total = Some(st.buf.len() as u64);
+                if written >= st.buf.len() as u64 {
+                    st.total = Some(written);
+                }
             }
-            shared.finish(result);
+            shared.writer_done(result);
         });
         Ok(dl)
+    }
+
+    /// Ajoute une deuxième source : l'adresse HTTP directe du **même** fichier (`len` octets).
+    /// Elle remplit le tampon en parallèle de la source actuelle, à partir de ce qui est déjà
+    /// reçu ; la plus rapide l'emporte. Un échec de cette source (refus du serveur en cours de
+    /// route…) ne compte pas tant que l'autre continue.
+    pub fn add_http(&self, client: &reqwest::Client, url: &str, len: u64) {
+        let shared = self.shared.clone();
+        if shared.complete() || len == 0 {
+            return;
+        }
+        self.set_len_hint(len);
+        shared.writers.fetch_add(1, Ordering::AcqRel);
+        let (client, url) = (client.clone(), url.to_owned());
+        tokio::spawn(async move {
+            let result = async {
+                let mut pos = shared.state.lock().buf.len() as u64;
+                while pos < len {
+                    if shared.cancelled() || shared.complete() {
+                        return Ok(());
+                    }
+                    let mut resp = range_request(&client, &url, None, pos, len, HTTP_CHUNK)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    while let Some(bytes) = resp.chunk().await.map_err(|e| e.to_string())? {
+                        if shared.cancelled() || shared.complete() {
+                            return Ok(());
+                        }
+                        shared.push_at(pos, &bytes);
+                        pos += bytes.len() as u64;
+                    }
+                    // Repartir de la position la plus avancée (l'autre source a pu nous dépasser).
+                    pos = pos.max(shared.state.lock().buf.len() as u64);
+                }
+                Ok(())
+            }
+            .await;
+            shared.writer_done(result);
+        });
     }
 
     /// Indique la taille attendue (permet l'avance rapide avant la fin du téléchargement).
@@ -209,7 +295,7 @@ impl Download {
         .ok();
         let st = self.shared.state.lock();
         if st.buf.is_empty() {
-            return Err(Error::Other(st.error.clone().unwrap_or_else(|| "flux vide".into())));
+            return Err(Error::Other(st.error.clone().unwrap_or_else(|| "empty stream".into())));
         }
         Ok(StreamReader { shared: self.shared.clone(), _guard: self.guard.clone(), pos: 0 })
     }
@@ -228,8 +314,9 @@ async fn range_request(
     ua: Option<&str>,
     start: u64,
     len: u64,
+    chunk: u64,
 ) -> Result<reqwest::Response> {
-    let end = (start + CHUNK).min(len) - 1;
+    let end = (start + chunk).min(len) - 1;
     Ok(with_ua(client.get(url), ua)
         .header(reqwest::header::RANGE, format!("bytes={start}-{end}"))
         .send()
@@ -238,7 +325,8 @@ async fn range_request(
 }
 
 /// Lance le programme et copie sa sortie dans le tampon.
-async fn run_process(shared: &Shared, program: &Path, args: &[String]) -> std::result::Result<(), String> {
+/// `written` : octets déjà écrits par ce programme (sa position dans le fichier).
+async fn run_process(shared: &Shared, program: &Path, args: &[String], written: &mut u64) -> std::result::Result<(), String> {
     let mut cmd = tokio::process::Command::new(program);
     cmd.args(args)
         .stdin(Stdio::null())
@@ -249,20 +337,21 @@ async fn run_process(shared: &Shared, program: &Path, args: &[String]) -> std::r
     cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW : pas de console qui clignote
     let mut child = cmd
         .spawn()
-        .map_err(|e| format!("impossible de lancer {} : {e}", program.display()))?;
+        .map_err(|e| format!("could not start {}: {e}", program.display()))?;
     let mut stdout = child.stdout.take().expect("stdout");
     let mut stderr = child.stderr.take().expect("stderr");
     let err_task = tokio::spawn(async move { read_all(&mut stderr).await });
     let mut buf = vec![0u8; 64 * 1024];
     loop {
-        if shared.cancelled() {
+        if shared.cancelled() || shared.complete() {
             return Ok(()); // `child` est tué en sortant (kill_on_drop)
         }
         let n = stdout.read(&mut buf).await.map_err(|e| e.to_string())?;
         if n == 0 {
             break;
         }
-        shared.push(&buf[..n]);
+        shared.push_at(*written, &buf[..n]);
+        *written += n as u64;
     }
     let status = child.wait().await.map_err(|e| e.to_string())?;
     if status.success() {
@@ -270,7 +359,7 @@ async fn run_process(shared: &Shared, program: &Path, args: &[String]) -> std::r
     }
     let err = err_task.await.unwrap_or_default();
     let text = String::from_utf8_lossy(&err);
-    let last = text.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("erreur inconnue");
+    let last = text.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("unknown error");
     Err(last.trim().to_owned())
 }
 
@@ -337,7 +426,7 @@ impl Seek for StreamReader {
             SeekFrom::End(d) => end as i64 + d,
         };
         if new < 0 {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "position négative"));
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "negative position"));
         }
         self.pos = new as u64;
         Ok(self.pos)

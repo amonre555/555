@@ -4,6 +4,8 @@
 //!   de vrais morceaux (titre, artistes, album, pochette) plutôt que des vidéos.
 //! - **Son** : `yt-dlp` (géré par [`YtDlp`]) télécharge lui-même le m4a et nous l'envoie sur sa
 //!   sortie standard. On le lit au fil de l'eau.
+//! - **Démarrage rapide** : l'adresse directe du flux (rustypipe) remplit le début du tampon
+//!   pendant que yt-dlp démarre ; yt-dlp prend le relais si YouTube coupe ce flux direct.
 //! - **Anticipation** : démarrer yt-dlp prend ~1 à 3 s. [`MusicSource::prefetch`] lance donc le
 //!   téléchargement à l'avance (morceau suivant, premier résultat, survol) dans un cache mémoire
 //!   limité : au clic, le son est déjà là.
@@ -86,13 +88,17 @@ impl YouTubeMusicSource {
         }
         let download = Download::process(&program, attempts)?;
 
-        // En parallèle : la taille du flux, pour l'avance rapide avant la fin du téléchargement.
-        let (rp, dl, vid) = (self.rp.clone(), download.clone(), id.to_owned());
+        // En parallèle, l'adresse directe du même fichier (itag 140), lue par rustypipe en
+        // ~0,2 s : le son démarre sans attendre yt-dlp (1 à 3 s, souvent plus sous Windows où
+        // chaque lancement de Python est lent). YouTube coupe parfois ce flux direct après le
+        // premier Mo ; yt-dlp, lancé en même temps, prend alors le relais sans coupure. Ça donne
+        // aussi la taille du flux, pour l'avance rapide avant la fin du téléchargement.
+        let (rp, dl, vid, client) = (self.rp.clone(), download.clone(), id.to_owned(), self.ytdlp.client().clone());
         tokio::spawn(async move {
             if let Ok(player) = rp.query().player(&vid).await
                 && let Some(a) = player.audio_streams.iter().find(|a| a.itag == 140)
             {
-                dl.set_len_hint(a.size);
+                dl.add_http(&client, &a.url, a.size);
             }
         });
 
@@ -134,7 +140,7 @@ impl YouTubeMusicSource {
             .filter(|(s, _)| *s >= MATCH_MIN_SCORE)
             .max_by(|a, b| a.0.total_cmp(&b.0))
             .map(|(_, c)| c.id.clone())
-            .ok_or_else(|| Error::Other(format!("« {title} » de {artist} introuvable sur YouTube Music")))
+            .ok_or_else(|| Error::Other(format!("\"{title}\" by {artist} not found on YouTube Music")))
     }
 }
 
@@ -224,7 +230,7 @@ fn best_cover(thumbs: &[Thumbnail]) -> Option<String> {
 impl From<TrackItem> for Track {
     fn from(t: TrackItem) -> Self {
         let artist = if t.artists.is_empty() {
-            "Artiste inconnu".to_owned()
+            "Unknown artist".to_owned()
         } else {
             t.artists.iter().map(|a| a.name.as_str()).collect::<Vec<_>>().join(", ")
         };
@@ -250,7 +256,7 @@ impl From<TrackItem> for Track {
 fn remote_id(track: &Track) -> Result<&str> {
     match &track.location {
         Location::Remote { remote_id } => Ok(remote_id),
-        Location::File { .. } => Err(Error::Other("ce morceau ne vient pas de YouTube".into())),
+        Location::File { .. } => Err(Error::Other("this track is not from YouTube".into())),
     }
 }
 
@@ -295,7 +301,7 @@ impl MusicSource for YouTubeMusicSource {
             tracks.extend(pl.tracks.items.into_iter().filter(|t| seen.insert(t.id.clone())).map(Track::from));
         }
         if tracks.is_empty() {
-            return Err(Error::Other("YouTube Music : classements vides".into()));
+            return Err(Error::Other("YouTube Music: empty charts".into()));
         }
         tracks.truncate(limit);
         Ok(tracks)

@@ -225,9 +225,6 @@ export function albumRefOf(t: Track): AlbumRef | null {
   return { id: t.albumId ?? null, title: t.album, artist: artistsOf(t)[0]?.name ?? null };
 }
 
-/** Nom affiché d'un type d'album. */
-export const ALBUM_KIND: Record<string, string> = { album: "Album", single: "Single", ep: "EP", compile: "Compilation" };
-
 /** URL de la pochette d'un morceau, distante ou servie par le protocole `cover://`. */
 export function coverUrl(t: Track | null | undefined): string | null {
   if (!t) return null;

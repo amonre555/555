@@ -3,6 +3,7 @@
 // renvoie la collection à jour, qui remplace celle-ci d'un bloc.
 import { createMemo, createSignal } from "solid-js";
 import { api, type Collection, type Playlist, type Track } from "./api";
+import { t } from "./i18n";
 
 const [collection, setRawCollection] = createSignal<Collection>({ liked: [], playlists: [], history: [] });
 export { collection };
@@ -70,11 +71,14 @@ export async function loadCollection() {
 }
 
 export async function clearHistory() {
-  if (await apply(api.clearHistory())) notify("Historique effacé");
+  if (await apply(api.clearHistory())) notify(t.historyCleared);
 }
 
 /** Morceaux écoutés récemment, sans doublons, du plus récent au plus ancien. */
-export const recentTracks = createMemo(() => collection().history.map((p) => p.track));
+export const recentTracks = createMemo(() => {
+  const seen = new Set<string>();
+  return collection().history.map((p) => p.track).filter((t) => !seen.has(t.id) && !!seen.add(t.id));
+});
 
 /**
  * Importe une playlist depuis un lien. `onProgress` suit la recherche des morceaux (Spotify).
@@ -85,10 +89,8 @@ export async function importPlaylist(url: string, onProgress: (done: number, tot
   try {
     const r = await api.importPlaylist(url);
     setCollection(r.collection);
-    const name = r.collection.playlists.find((p) => p.id === r.id)?.name ?? "la playlist";
-    const titles = (n: number) => `${n} titre${n > 1 ? "s" : ""}`;
-    const missing = r.missing ? `, ${r.missing} introuvable${r.missing > 1 ? "s" : ""}` : "";
-    notify(`« ${name} » importée : ${titles(r.added)}${missing}`);
+    const name = r.collection.playlists.find((p) => p.id === r.id)?.name ?? t.thePlaylist;
+    notify(t.imported(name, r.added, r.missing));
     return r.id;
   } catch (e) {
     fail(e);
@@ -98,16 +100,16 @@ export async function importPlaylist(url: string, onProgress: (done: number, tot
   }
 }
 
-export async function toggleLike(t: Track) {
-  const was = isLiked(t);
-  if (await apply(api.toggleLike(t))) notify(was ? "Retiré des titres likés" : "Ajouté aux titres likés");
+export async function toggleLike(track: Track) {
+  const was = isLiked(track);
+  if (await apply(api.toggleLike(track))) notify(was ? t.removedFromLiked : t.addedToLiked);
 }
 
 /** Crée une playlist (avec ces morceaux, s'il y en a) ; renvoie son identifiant. */
 export async function createPlaylist(name = "", tracks: Track[] = []): Promise<string | null> {
-  const c = await apply(api.createPlaylist(name, tracks));
+  const c = await apply(api.createPlaylist(name.trim() || t.defaultPlaylist(collection().playlists.length + 1), tracks));
   const p = c?.playlists[c.playlists.length - 1];
-  if (p && tracks.length) notify(`Ajouté à « ${p.name} »`);
+  if (p && tracks.length) notify(t.addedTo(p.name));
   return p?.id ?? null;
 }
 
@@ -122,7 +124,7 @@ export async function addToPlaylist(id: string, tracks: Track[]) {
   const p = c?.playlists.find((x) => x.id === id);
   if (!p) return;
   const added = p.tracks.length - before;
-  notify(added === 0 ? `Déjà dans « ${p.name} »` : added === 1 ? `Ajouté à « ${p.name} »` : `${added} titres ajoutés à « ${p.name} »`);
+  notify(added === 0 ? t.alreadyIn(p.name) : added === 1 ? t.addedTo(p.name) : t.addedManyTo(added, p.name));
 }
 
 // ---------- Menu d'un morceau (clic droit, bouton « ⋯ ») ----------

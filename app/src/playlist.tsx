@@ -4,11 +4,12 @@ import { formatTime, type Snapshot, type Track } from "./api";
 import { collection, deletePlaylist, moveInPlaylist, openTrackMenu, playlistById, renamePlaylist } from "./collection";
 import { IconEdit, IconHeart, IconMore, IconPlay, IconPlaylist, IconTrash } from "./icons";
 import { PlaylistArt, TrackList } from "./ui";
+import { t } from "./i18n";
 
 type Common = { snap: Snapshot; onPlay: (tracks: Track[], index: number) => void };
 
 const total = (tracks: Track[]) => tracks.reduce((a, t) => a + (t.duration ?? 0), 0);
-const countLabel = (n: number) => `${n} titre${n > 1 ? "s" : ""}`;
+const countLabel = (n: number) => t.songsCount(n);
 
 export function LikedView(props: Common) {
   const tracks = () => collection().liked;
@@ -17,8 +18,8 @@ export function LikedView(props: Common) {
       <header class="artist-head album-head">
         <PlaylistArt liked class="xl" />
         <div class="artist-body">
-          <div class="eyebrow">Playlist</div>
-          <h1 class="album-title">Titres likés</h1>
+          <div class="eyebrow">{t.playlist}</div>
+          <h1 class="album-title">{t.liked}</h1>
           <p class="muted">
             {countLabel(tracks().length)}
             <Show when={tracks().length > 0}> · {formatTime(total(tracks()))}</Show>
@@ -26,7 +27,7 @@ export function LikedView(props: Common) {
           <Show when={tracks().length > 0}>
             <div class="actions hero-play">
               <button class="primary" onClick={() => props.onPlay(tracks(), 0)}>
-                <IconPlay size={18} /> Lecture
+                <IconPlay size={18} /> {t.play}
               </button>
             </div>
           </Show>
@@ -38,8 +39,8 @@ export function LikedView(props: Common) {
           fallback={
             <div class="empty-state">
               <IconHeart size={26} />
-              <h2>Aucun titre liké pour l'instant</h2>
-              <p class="muted">Touche le cœur à côté d'un morceau pour le retrouver ici.</p>
+              <h2>{t.noLiked}</h2>
+              <p class="muted">{t.noLikedText}</p>
             </div>
           }
         >
@@ -78,17 +79,17 @@ export function PlaylistView(props: Common & { id: string; editing: boolean; onD
   };
 
   return (
-    <Show when={playlist()} fallback={<p class="muted empty">Cette playlist n'existe plus.</p>}>
+    <Show when={playlist()} fallback={<p class="muted empty">{t.playlistGone}</p>}>
       {(p) => (
         <div class="album-page">
           <header class="artist-head album-head">
             <PlaylistArt id={p().id} class="xl" />
             <div class="artist-body">
-              <div class="eyebrow">Playlist</div>
+              <div class="eyebrow">{t.playlist}</div>
               <Show
                 when={editing()}
                 fallback={
-                  <h1 class="album-title pl-title" title="Renommer" onClick={() => setEditing(true)}>
+                  <h1 class="album-title pl-title" title={t.rename} onClick={() => setEditing(true)}>
                     {p().name}
                   </h1>
                 }
@@ -99,7 +100,7 @@ export function PlaylistView(props: Common & { id: string; editing: boolean; onD
                   value={p().name}
                   maxLength={120}
                   spellcheck={false}
-                  aria-label="Nom de la playlist"
+                  aria-label={t.playlistName}
                   onBlur={(e) => save(e.currentTarget.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") e.currentTarget.blur();
@@ -118,20 +119,20 @@ export function PlaylistView(props: Common & { id: string; editing: boolean; onD
               <div class="actions hero-play">
                 <Show when={p().tracks.length > 0}>
                   <button class="primary" onClick={() => props.onPlay(p().tracks, 0)}>
-                    <IconPlay size={18} /> Lecture
+                    <IconPlay size={18} /> {t.play}
                   </button>
                 </Show>
-                <button class="icon-btn" title="Renommer" onClick={() => setEditing(true)}>
+                <button class="icon-btn" title={t.rename} onClick={() => setEditing(true)}>
                   <IconEdit />
                 </button>
                 <Show when={p().tracks.length > 0}>
-                  <button class="icon-btn" title="Ajouter toute la playlist à une autre" onClick={(e) => openTrackMenu(e, p().tracks, p().id)}>
+                  <button class="icon-btn" title={t.addWholePlaylist} onClick={(e) => openTrackMenu(e, p().tracks, p().id)}>
                     <IconMore />
                   </button>
                 </Show>
-                <button classList={{ ghost: confirmDelete(), "icon-btn": !confirmDelete(), danger: true }} title="Supprimer la playlist" onClick={remove}>
+                <button classList={{ ghost: confirmDelete(), "icon-btn": !confirmDelete(), danger: true }} title={t.deletePlaylist} onClick={remove}>
                   <IconTrash />
-                  <Show when={confirmDelete()}>Confirmer la suppression</Show>
+                  <Show when={confirmDelete()}>{t.confirmDelete}</Show>
                 </button>
               </div>
             </div>
@@ -142,8 +143,8 @@ export function PlaylistView(props: Common & { id: string; editing: boolean; onD
               fallback={
                 <div class="empty-state">
                   <IconPlaylist size={26} />
-                  <h2>Playlist vide</h2>
-                  <p class="muted">Clic droit ou « ⋯ » sur un morceau, puis « Ajouter à une playlist ».</p>
+                  <h2>{t.emptyPlaylist}</h2>
+                  <p class="muted">{t.emptyPlaylistText}</p>
                 </div>
               }
             >

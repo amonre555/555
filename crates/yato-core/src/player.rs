@@ -293,7 +293,7 @@ impl Controller {
         let track = {
             let mut st = self.state.lock();
             let Some(track) = st.queue.get(index).cloned() else {
-                return Err(Error::Other("morceau introuvable dans la file".into()));
+                return Err(Error::Other("track not found in the queue".into()));
             };
             st.index = Some(index);
             st.status = Status::Loading;

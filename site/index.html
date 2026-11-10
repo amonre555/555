@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>yato — a light, fast music player</title>
+  <meta name="description" content="yato is a free, open-source music player for macOS and Windows. Stream from Deezer and YouTube Music, play your own files, word-synced lyrics, no account, no ads." />
+  <meta property="og:title" content="yato — a light, fast music player" />
+  <meta property="og:description" content="Free and open source. Stream, play your own files, word-synced lyrics. No account, no ads." />
+  <meta property="og:image" content="assets/screenshot.jpg" />
+  <meta name="theme-color" content="#08080f" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,300..700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #08080f;
+      --text: #f2f0fa;
+      --text-2: #b4b0c8;
+      --text-3: #7d7992;
+      --glass: rgba(255, 255, 255, 0.05);
+      --glass-2: rgba(255, 255, 255, 0.09);
+      --line: rgba(255, 255, 255, 0.09);
+      --cyan: #8af1ff;
+      --violet: #a995ff;
+      --pink: #ff9fd2;
+      --iri: linear-gradient(120deg, var(--cyan), var(--violet) 50%, var(--pink));
+      --r: 22px;
+      --soft: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: "Google Sans Flex", system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    code, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
+
+    /* Mist: slow drifting coloured haze behind everything. */
+    .mist { position: fixed; inset: -20%; z-index: -1; pointer-events: none; filter: blur(110px); opacity: 0.55; }
+    .mist i { position: absolute; border-radius: 50%; animation: drift 28s ease-in-out infinite alternate; }
+    .mist i:nth-child(1) { width: 46vw; height: 40vw; left: 12%; top: 8%; background: #5b3dff; }
+    .mist i:nth-child(2) { width: 40vw; height: 34vw; right: 10%; top: 2%; background: #1fb8e6; animation-delay: -9s; }
+    .mist i:nth-child(3) { width: 38vw; height: 30vw; left: 38%; top: 46%; background: #e0559e; opacity: 0.6; animation-delay: -17s; }
+    @keyframes drift { to { transform: translate(6vw, 5vh) scale(1.15); } }
+    @media (prefers-reduced-motion: reduce) { .mist i { animation: none; } html { scroll-behavior: auto; } }
+
+    .wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
+
+    /* Navigation */
+    .nav {
+      position: sticky; top: 14px; z-index: 10; margin: 14px auto 0; width: min(920px, 100% - 32px);
+      display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 16px; border-radius: 999px;
+      background: rgba(14, 14, 24, 0.55); backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 500; margin-right: auto; }
+    .brand img { width: 28px; height: 28px; }
+    .nav-links a { padding: 8px 12px; border-radius: 999px; font-size: 14px; color: var(--text-2); transition: color 0.2s, background 0.2s; }
+    .nav-links a:hover { color: var(--text); background: var(--glass); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 20px;
+      border-radius: 999px; font-weight: 500; font-size: 15px; transition: transform 0.25s var(--soft), background 0.2s, box-shadow 0.3s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--text); color: #0b0a12; box-shadow: 0 8px 40px -10px rgba(169, 149, 255, 0.7); }
+    .btn-primary:hover { box-shadow: 0 8px 50px -6px rgba(138, 241, 255, 0.75); }
+    .btn-ghost { background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+    .btn-ghost:hover { background: var(--glass-2); }
+    .btn-sm { height: 36px; padding: 0 14px; font-size: 14px; }
+    .btn svg { width: 18px; height: 18px; flex: none; }
+
+    /* Hero */
+    .hero { text-align: center; padding: 88px 0 40px; }
+    .hero-logo { width: 104px; height: 104px; margin: 0 auto 18px; filter: drop-shadow(0 10px 40px rgba(169, 149, 255, 0.45)); animation: float 6s ease-in-out infinite; }
+    @keyframes float { 50% { transform: translateY(-8px); } }
+    h1 { font-size: clamp(64px, 12vw, 128px); font-weight: 300; line-height: 0.95; letter-spacing: -0.04em; }
+    .tagline { margin-top: 18px; font-size: clamp(19px, 2.6vw, 25px); color: var(--text-2); font-weight: 350; }
+    .tagline b { font-weight: 500; background: var(--iri); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 32px; }
+    .hero-meta { margin-top: 14px; font-size: 14px; color: var(--text-3); min-height: 1.5em; }
+
+    .shot { position: relative; margin: 54px auto 0; width: min(1040px, 100%); }
+    .shot::before {
+      content: ""; position: absolute; inset: 8% 6% -4%; z-index: -1; border-radius: 40px;
+      background: var(--iri); filter: blur(70px); opacity: 0.35;
+    }
+    .shot img { display: block; width: 100%; height: auto; border-radius: 18px; box-shadow: 0 0 0 1px var(--line), 0 40px 120px -30px rgba(0, 0, 0, 0.9); }
+
+    /* Stats */
+    .stats { display: flex; justify-content: center; gap: clamp(28px, 8vw, 90px); margin: 64px 0 20px; }
+    .stat { text-align: center; }
+    .stat b { display: block; font-size: clamp(36px, 6vw, 54px); font-weight: 300; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+    .stat span { font-size: 14px; color: var(--text-3); }
+
+    /* Sections */
+    section { padding: 90px 0 0; }
+    .eyebrow { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; }
+    h2 { font-size: clamp(34px, 5vw, 52px); font-weight: 350; line-height: 1.08; letter-spacing: -0.025em; max-width: 720px; }
+    .lead { margin-top: 14px; max-width: 620px; color: var(--text-2); font-size: 18px; }
+
+    .features { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-top: 40px; }
+    .card {
+      grid-column: span 2; padding: 26px; border-radius: var(--r); background: var(--glass);
+      box-shadow: inset 0 0 0 1px var(--line); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      transition: transform 0.4s var(--soft), background 0.3s;
+    }
+    .card:hover { transform: translateY(-3px); background: var(--glass-2); }
+    .card.wide { grid-column: span 3; }
+    .card h3 { font-size: 20px; font-weight: 500; margin: 14px 0 6px; letter-spacing: -0.01em; }
+    .card p { color: var(--text-2); font-size: 15px; }
+    .icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--glass-2); color: var(--cyan); }
+    .icon svg { width: 22px; height: 22px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+    .chip { padding: 4px 10px; border-radius: 999px; font-size: 12px; color: var(--text-2); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+
+    /* Karaoke lyrics demo */
+    .lyrics-demo { margin-top: 16px; font-size: 22px; font-weight: 500; line-height: 1.35; }
+    .lyrics-demo .w { background: linear-gradient(90deg, #fff 50%, rgba(255, 255, 255, 0.28) 50%) 100% 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: sing 4.8s linear infinite; }
+    .lyrics-demo .w:nth-child(2) { animation-delay: 0.5s; } .lyrics-demo .w:nth-child(3) { animation-delay: 1s; }
+    .lyrics-demo .w:nth-child(4) { animation-delay: 1.5s; } .lyrics-demo .w:nth-child(5) { animation-delay: 2s; }
+    @keyframes sing { 0% { background-position: 100% 0; } 10%, 85% { background-position: 0 0; } 100% { background-position: 0 0; opacity: 0.4; } }
+    .lyrics-demo .next { display: block; color: rgba(255, 255, 255, 0.28); filter: blur(1px); font-size: 18px; }
+
+    /* Download */
+    .downloads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; }
+    .dl { display: flex; flex-direction: column; gap: 8px; padding: 26px; border-radius: var(--r); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+    .dl.detected { box-shadow: inset 0 0 0 1px rgba(169, 149, 255, 0.55), 0 20px 60px -30px rgba(169, 149, 255, 0.6); }
+    .dl h3 { font-size: 22px; font-weight: 500; display: flex; align-items: center; gap: 10px; }
+    .dl h3 svg { width: 22px; height: 22px; }
+    .dl .sub { font-size: 14px; color: var(--text-3); }
+    .dl p { color: var(--text-2); font-size: 15px; flex: 1; }
+    .dl .btn { margin-top: 10px; align-self: flex-start; }
+    .note { margin-top: 14px; padding: 18px 20px; border-radius: var(--r); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-2); font-size: 15px; }
+    .note b { color: var(--text); font-weight: 500; }
+    .cmd { position: relative; margin-top: 10px; padding: 12px 70px 12px 14px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); color: var(--text); overflow-x: auto; white-space: pre; }
+    .copy { position: absolute; top: 7px; right: 7px; padding: 4px 10px; border-radius: 8px; font-size: 12px; background: var(--glass-2); color: var(--text-2); }
+    .copy:hover { color: var(--text); }
+
+    /* FAQ */
+    .faq { margin-top: 32px; display: grid; gap: 8px; max-width: 780px; }
+    details { border-radius: 16px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+    summary { list-style: none; cursor: pointer; padding: 18px 52px 18px 20px; font-weight: 500; position: relative; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; position: absolute; right: 20px; top: 50%; translate: 0 -50%; font-size: 22px; font-weight: 300; color: var(--text-3); transition: rotate 0.3s var(--soft); }
+    details[open] summary::after { rotate: 45deg; }
+    details p { padding: 0 20px 18px; color: var(--text-2); }
+
+    footer { margin-top: 110px; padding: 34px 0 44px; border-top: 1px solid var(--line); color: var(--text-3); font-size: 14px; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; }
+    footer .brand { font-size: 16px; margin-right: auto; color: var(--text-2); }
+    footer a:hover { color: var(--text); }
+
+    /* Reveal on scroll */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.9s var(--soft), transform 0.9s var(--soft); }
+    .reveal.in { opacity: 1; transform: none; }
+
+    @media (max-width: 900px) {
+      .card, .card.wide { grid-column: span 3; }
+      .downloads { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .hero { padding-top: 60px; }
+      .features { grid-template-columns: 1fr; }
+      .card, .card.wide { grid-column: auto; }
+      section { padding-top: 70px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mist" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <nav class="nav">
+    <a class="brand" href="#top"><img src="assets/logo.svg" alt="" />yato</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#download">Download</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a class="btn btn-ghost btn-sm" href="https://github.com/amonre555/ondes" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.4c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.04 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>
+      <span>Star</span><span id="nav-stars"></span>
+    </a>
+  </nav>
+
+  <main id="top" class="wrap">
+    <header class="hero">
+      <img class="hero-logo" src="assets/logo.svg" alt="" />
+      <h1>yato</h1>
+      <p class="tagline">A light, fast music player. <b>Everything you love, in the mist.</b></p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" id="main-download" href="#download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>
+          <span id="main-download-label">Download</span>
+        </a>
+        <a class="btn btn-ghost" href="#download">Other platforms</a>
+        <a class="btn btn-ghost" href="https://github.com/amonre555/ondes" target="_blank" rel="noopener">View source</a>
+      </div>
+      <p class="hero-meta" id="hero-meta">Free and open source. macOS and Windows.</p>
+
+      <div class="shot reveal">
+        <img src="assets/screenshot.jpg" width="2400" height="1500" alt="yato's Discover page, with the cover of the current song coloring the whole window" />
+      </div>
+
+      <div class="stats" id="stats" hidden>
+        <div class="stat"><b id="stat-downloads">–</b><span>downloads</span></div>
+        <div class="stat"><b id="stat-stars">–</b><span>GitHub stars</span></div>
+      </div>
+    </header>
+
+    <section id="features">
+      <div class="reveal">
+        <p class="eyebrow">Features</p>
+        <h2>All your music, one quiet window.</h2>
+        <p class="lead">yato finds songs on Deezer, plays them through YouTube Music, and plays your own files too. No account, no ads, no tracking.</p>
+      </div>
+
+      <div class="features">
+        <article class="card wide reveal">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
+          <h3>Starts in a blink</h3>
+          <p>Playback starts as the song downloads, and seeking is instant. The next song, the top search result and the songs you hover are fetched ahead of time.</p>
+        </article>
+        <article class="card wide reveal">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></div>
+          <h3>Lyrics, word by word</h3>
+          <p>Karaoke-style lyrics: each word fills with light the moment it's sung. Click a line to jump there.</p>
+          <div class="lyrics-demo" aria-hidden="true"><span class="w">Every </span><span class="w">word </span><span class="w">lights </span><span class="w">up </span><span class="w">on time</span><span class="next">as the song moves on</span></div>
+        </article>
+        <article class="card reveal">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+          <h3>Your files, untouched</h3>
+          <p>MP3, FLAC, OGG, M4A, WAV, AIFF. Scanned on every core, searched instantly. Originals are never changed.</p>
+          <div class="chips"><span class="chip">FLAC</span><span class="chip">MP3</span><span class="chip">OGG</span><span class="chip">M4A</span><span class="chip">WAV</span></div>
+        </article>
+        <article class="card reveal">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1m2 4a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></svg></div>
+          <h3>Bring your playlists</h3>
+          <p>Paste a public Spotify, Deezer or YouTube Music link. No Spotify account needed.</p>
+        </article>
+        <article class="card reveal">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.4-9.3-9A5.4 5.4 0 0 1 12 6a5.4 5.4 0 0 1 9.3 6c-2.3 4.6-9.3 9-9.3 9z"/></svg></div>
+          <h3>Likes, playlists, history</h3>
+          <p>Mix local, Deezer and YouTube songs in one playlist. See everything you've played, day by day.</p>
+        </article>
+        <article class="card reveal">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18"/></svg></div>
+          <h3>Colors from the cover</h3>
+          <p>The whole app floats in a mist tinted by the current cover. Frosted glass, fine type, soft blur transitions.</p>
+        </article>
+        <article class="card reveal">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12h.01M16 12h.01M7 17c1.5 1 3 1.5 5 1.5s3.5-.5 5-1.5l1.5-9C17 7 15.5 6.5 14 6.3L13.5 7h-3L10 6.3C8.5 6.5 7 7 5.5 8z"/></svg></div>
+          <h3>Discord status</h3>
+          <p>“Listening to” with the title, artist, cover and progress. Nothing is sent when Discord is closed.</p>
+        </article>
+        <article class="card reveal">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8m0-5v5h-5"/></svg></div>
+          <h3>Keeps itself fresh</h3>
+          <p>Signed automatic updates, and a verified yt-dlp kept up to date in the background.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="download">
+      <div class="reveal">
+        <p class="eyebrow">Download</p>
+        <h2>Free, for good.</h2>
+        <p class="lead" id="download-lead">Pick your system. yato updates itself once installed.</p>
+      </div>
+      <div class="downloads">
+        <article class="dl reveal" data-os="mac">
+          <h3><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.8 1.3 10.3.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.2zM13.9 4.9c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.2 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z"/></svg>macOS</h3>
+          <span class="sub">Apple silicon and Intel, one app</span>
+          <p>Unsigned for now: on first launch, right-click yato → Open, or run the command below.</p>
+          <a class="btn btn-primary" data-asset="mac" href="https://github.com/amonre555/ondes/releases/latest">Download .dmg</a>
+        </article>
+        <article class="dl reveal" data-os="win">
+          <h3><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.4 4.5v7.1H3zm8.3-1.1L21 3v8.6h-9.7zM3 12.4h7.4v7.1L3 18.5zm8.3 0H21V21l-9.7-1.4z"/></svg>Windows</h3>
+          <span class="sub">Windows 10 and 11, 64-bit</span>
+          <p>A single installer. Works with media keys and the system media panel. If SmartScreen shows up: More info → Run anyway.</p>
+          <a class="btn btn-primary" data-asset="win" href="https://github.com/amonre555/ondes/releases/latest">Download installer</a>
+        </article>
+        <article class="dl reveal" data-os="linux">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 9-3 3 3 3m8-6 3 3-3 3M13 6l-2 12"/></svg>Linux</h3>
+          <span class="sub">Build from source</span>
+          <p>No package yet. yato builds on Linux with Rust and Node.js; media keys work through MPRIS.</p>
+          <a class="btn btn-ghost" href="https://github.com/amonre555/ondes#run-from-source" target="_blank" rel="noopener">Build instructions</a>
+        </article>
+      </div>
+      <div class="note reveal">
+        <b>If macOS says “yato is damaged” or won't open it</b>, run this in Terminal, then open yato again:
+        <div class="cmd"><code>xattr -cr /Applications/yato.app</code><button class="copy" type="button">Copy</button></div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="reveal">
+        <p class="eyebrow">FAQ</p>
+        <h2>Questions</h2>
+      </div>
+      <div class="faq reveal">
+        <details><summary>Does yato cost anything?</summary><p>No. yato is free and open source (GPL-3.0), with no subscription and no paid tier.</p></details>
+        <details><summary>Do I need an account?</summary><p>No. Install it and press play. yato never asks you to sign in and doesn't collect usage data.</p></details>
+        <details><summary>Where does the music come from?</summary><p>Song info, covers and charts come from Deezer's public API. The sound itself comes from YouTube Music, matched to the same recording (title, artist, length, skipping live and sped-up versions). Your own files play straight from disk.</p></details>
+        <details><summary>Can it play my own files?</summary><p>Yes: MP3, FLAC, OGG, M4A/AAC, WAV and AIFF. yato reads tags and cover art and never touches the originals.</p></details>
+        <details><summary>How do I import a Spotify playlist?</summary><p>Paste the link of a public playlist (or album). yato finds each song on Deezer and creates the playlist, no Spotify account needed.</p></details>
+        <details><summary>Which languages does it speak?</summary><p>English and French for now. Change it in Settings → General.</p></details>
+        <details><summary>Is it safe? The app isn't signed.</summary><p>Signing with Apple and Microsoft costs money each year, so the installers aren't signed yet. The code is public and the builds are made by GitHub Actions from it. Updates are signed, and yato refuses any update whose signature doesn't match.</p></details>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span class="brand"><img src="assets/logo.svg" alt="" />yato</span>
+      <a href="https://github.com/amonre555/ondes" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/amonre555/ondes/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/amonre555/ondes/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a>
+      <span>For personal use. Playing YouTube outside its official player is against its terms.</span>
+    </div>
+  </footer>
+
+  <script>
+    const REPO = "amonre555/ondes";
+    const ua = navigator.userAgent;
+    const os = /Mac/.test(ua) && !/iPhone|iPad/.test(ua) ? "mac" : /Windows/.test(ua) ? "win" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null;
+    const label = { mac: "Download for macOS", win: "Download for Windows", linux: "Build for Linux" };
+
+    const main = document.getElementById("main-download");
+    if (os) {
+      document.getElementById("main-download-label").textContent = label[os];
+      document.querySelector(`.dl[data-os="${os}"]`)?.classList.add("detected");
+      if (os === "linux") main.href = `https://github.com/${REPO}#run-from-source`;
+    }
+
+    const fmt = (n) => (n >= 10000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
+
+    // Latest release: direct installer links, version, and download count (all releases).
+    fetch(`https://api.github.com/repos/${REPO}/releases?per_page=100`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((releases) => {
+        const latest = releases.find((r) => !r.draft && !r.prerelease);
+        if (!latest) return;
+        const find = (re) => latest.assets.find((a) => re.test(a.name))?.browser_download_url;
+        const links = { mac: find(/\.dmg$/), win: find(/-setup\.exe$/) };
+        for (const [k, url] of Object.entries(links)) {
+          if (!url) continue;
+          document.querySelectorAll(`[data-asset="${k}"]`).forEach((a) => (a.href = url));
+          if (os === k) main.href = url;
+        }
+        const date = new Date(latest.published_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+        document.getElementById("hero-meta").textContent = `Version ${latest.tag_name.replace(/^v/, "")} · ${date} · Free and open source.`;
+        const total = releases.flatMap((r) => r.assets).filter((a) => /\.(dmg|exe)$/.test(a.name)).reduce((n, a) => n + a.download_count, 0);
+        if (total > 0) {
+          document.getElementById("stat-downloads").textContent = fmt(total);
+          document.getElementById("stats").hidden = false;
+        }
+      })
+      .catch(() => {});
+
+    fetch(`https://api.github.com/repos/${REPO}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((repo) => {
+        document.getElementById("stat-stars").textContent = fmt(repo.stargazers_count);
+        document.getElementById("nav-stars").textContent = repo.stargazers_count ? ` · ${fmt(repo.stargazers_count)}` : "";
+      })
+      .catch(() => {});
+
+    document.querySelectorAll(".copy").forEach((b) =>
+      b.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(b.previousElementSibling.textContent);
+          b.textContent = "Copied";
+          setTimeout(() => (b.textContent = "Copy"), 1600);
+        } catch {}
+      }),
+    );
+
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((e) => e.isIntersecting && (e.target.classList.add("in"), io.unobserve(e.target))),
+      { threshold: 0.12 },
+    );
+    document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+  </script>
+</body>
+</html>

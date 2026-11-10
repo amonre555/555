@@ -1,12 +1,12 @@
-# Publie une version de yato : compile l'app pour macOS (Apple Silicon et Intel, un seul
-# fichier) et Windows, crée la Release GitHub du tag avec les installateurs, et `latest.json`
-# que yato consulte pour ses mises à jour automatiques.
+# Publishes a yato release: builds the app for macOS (Apple Silicon and Intel, one file) and
+# Windows, creates the GitHub Release for the tag with the installers, and `latest.json`,
+# which yato reads for its automatic updates.
 #
-# Pour publier : `./scripts/release.sh 0.2.0`, puis pousser le commit et le tag.
-# Secrets nécessaires (Settings → Secrets and variables → Actions) :
-#   TAURI_SIGNING_PRIVATE_KEY           contenu de ~/.tauri/yato.key
-#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  contenu de ~/.tauri/yato.key.password
-name: Publier une version
+# To publish: `./scripts/release.sh 0.2.0`, then push the commit and the tag.
+# Required secrets (Settings → Secrets and variables → Actions):
+#   TAURI_SIGNING_PRIVATE_KEY           contents of ~/.tauri/yato.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  contents of ~/.tauri/yato.key.password
+name: Publish a release
 
 on:
   push:
@@ -34,12 +34,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Vérifier que le tag correspond à la version
+      - name: Check that the tag matches the version
         shell: bash
         run: |
           version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Le tag $GITHUB_REF_NAME ne correspond pas à la version $version de Cargo.toml"
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $version in Cargo.toml"
             exit 1
           fi
 
@@ -57,7 +57,7 @@ jobs:
         with:
           key: ${{ matrix.name }}
 
-      - name: Dépendances de l'interface
+      - name: Frontend dependencies
         working-directory: app
         run: npm ci
 
@@ -71,10 +71,10 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: yato ${{ github.ref_name }}
           releaseBody: |
-            **macOS** : `yato_…_universal.dmg` (Apple Silicon et Intel). L'app n'est pas signée par Apple : au premier lancement, clic droit sur yato → « Ouvrir », ou `xattr -cr /Applications/yato.app`.
-            **Windows** : `yato_…_x64-setup.exe`. Si Windows affiche « Windows a protégé votre ordinateur » : « Informations complémentaires » → « Exécuter quand même ».
+            **macOS**: `yato_…_universal.dmg` (Apple Silicon and Intel). The app isn't signed by Apple: on first launch, right-click yato → “Open”, or run `xattr -cr /Applications/yato.app`.
+            **Windows**: `yato_…_x64-setup.exe`. If Windows says “Windows protected your PC”: “More info” → “Run anyway”.
 
-            Une fois installé, yato se met à jour tout seul.
+            Once installed, yato updates itself.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

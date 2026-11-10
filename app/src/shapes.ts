@@ -1,8 +1,8 @@
-// Formes de Material 3 Expressive : des cercles festonnés (« cookie ») et un carré arrondi.
+// Carré aux coins arrondis, en polygone : utilisé pour le vol de la pochette entre le lecteur et
+// la vue « En lecture ».
 //
-// Toutes les formes sont des polygones avec le même nombre de points, pris aux mêmes angles :
-// le navigateur sait alors animer `clip-path` de l'une à l'autre (chaque point glisse vers son
-// homologue), ce qui donne une vraie transformation de forme.
+// Les formes ont toutes le même nombre de points, pris aux mêmes angles : le navigateur sait
+// alors animer `clip-path` de l'une à l'autre (chaque point glisse vers son homologue).
 
 /** Nombre de points de chaque forme (identique partout pour pouvoir passer de l'une à l'autre). */
 const POINTS = 144;
@@ -16,19 +16,6 @@ function polygon(radius: (angle: number) => number): string {
     coords.push(`${(50 + r * Math.cos(a)).toFixed(2)}% ${(50 + r * Math.sin(a)).toFixed(2)}%`);
   }
   return `polygon(${coords.join(", ")})`;
-}
-
-/**
- * Cercle à `petals` festons ; `depth` : profondeur des creux (fraction du rayon). `rotation` en
- * degrés : la forme tourne, les points restent aux mêmes angles (pour l'animation).
- */
-export function cookie(petals: number, depth: number, rotation = 0): string {
-  const offset = (rotation * Math.PI) / 180;
-  return polygon((a) => {
-    // Onde adoucie : festons ronds, creux nets mais pas pointus.
-    const wave = (Math.cos(petals * (a - offset)) + 1) / 2;
-    return 50 * (1 - depth + depth * Math.pow(wave, 0.7));
-  });
 }
 
 /**
@@ -53,14 +40,4 @@ export function roundedSquare(corner: number): string {
     }
     return lo;
   });
-}
-
-/** Forme de la pochette du lecteur (et ses paramètres, réutilisés pour l'animation). */
-export const PLAYER_COOKIE = { petals: 9, depth: 0.1 };
-
-export function installShapes() {
-  const root = document.documentElement.style;
-  root.setProperty("--cookie-9", cookie(PLAYER_COOKIE.petals, PLAYER_COOKIE.depth));
-  root.setProperty("--cookie-12", cookie(12, 0.07));
-  root.setProperty("--cookie-6", cookie(6, 0.12));
 }

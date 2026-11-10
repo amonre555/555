@@ -3,6 +3,7 @@ import { createEffect, createSignal, For, Match, onCleanup, Show, Switch } from 
 import { albumRefOf, api, artistsOf, coverUrl, formatTime, type ArtistRef, type Snapshot, type Track, type YtDlpStatus } from "./api";
 import { openAlbum, openArtist } from "./nav";
 import { IconHeart, IconMore, IconNote, IconPlay, IconPlaylist, IconPlus } from "./icons";
+import { t as tr } from "./i18n";
 import {
   addToPlaylist, closeTrackMenu, collection, createPlaylist, isLiked, openTrackMenu, playlistById, playlistCovers,
   removeFromPlaylist, toggleLike, trackMenu, type TrackMenu,
@@ -10,7 +11,7 @@ import {
 
 export function Loader() {
   return (
-    <div class="loader" aria-label="Chargement">
+    <div class="loader" aria-label={tr.loading}>
       <span /><span /><span />
     </div>
   );
@@ -68,7 +69,7 @@ export function ArtistLinks(props: { track?: Track; artists?: ArtistRef[] }) {
               class="artist-link"
               role="link"
               tabIndex={0}
-              title={`Voir la fiche de ${a.name}`}
+              title={tr.seeArtist(a.name)}
               onClick={(e) => {
                 // Dans une ligne ou une carte : ne pas lancer la lecture en même temps.
                 e.stopPropagation();
@@ -101,7 +102,7 @@ export function AlbumLink(props: { track: Track }) {
           class="artist-link"
           role="link"
           tabIndex={0}
-          title={`Voir l'album « ${a().title} »`}
+          title={tr.seeAlbum(a().title)}
           onClick={(e) => {
             e.stopPropagation();
             openAlbum(a());
@@ -138,6 +139,8 @@ export function TrackList(props: {
   onPlay: (index: number) => void;
   showAlbum?: boolean;
   showSource?: boolean;
+  /** Texte de la colonne album, remplacée (ex. heure d'écoute dans l'historique). */
+  aside?: (index: number) => string;
   /** Liste affichée dans une playlist : menu « Retirer », et réordonnable si `onMove`. */
   playlist?: string;
   onMove?: (from: number, to: number) => void;
@@ -150,7 +153,7 @@ export function TrackList(props: {
     setDragOver(null);
   };
   return (
-    <div classList={{ tracklist: true, "with-album": !!props.showAlbum }} role="list">
+    <div classList={{ tracklist: true, "with-album": !!props.showAlbum || !!props.aside }} role="list">
       <For each={props.tracks}>
         {(t, i) => {
           const isCurrent = () => props.current === t.id;
@@ -195,7 +198,7 @@ export function TrackList(props: {
                     <span class="eq"><i /><i /><i /></span>
                   </Show>
                 </span>
-                <button class="row-play" title="Lire" onClick={() => props.onPlay(i())}>
+                <button class="row-play" title={tr.play} onClick={() => props.onPlay(i())}>
                   <IconPlay size={14} />
                 </button>
               </div>
@@ -209,14 +212,17 @@ export function TrackList(props: {
                   <ArtistLinks track={t} />
                 </div>
               </div>
-              <Show when={props.showAlbum}>
+              <Show when={props.aside}>
+                {(aside) => <div class="row-album row-aside">{aside()(i())}</div>}
+              </Show>
+              <Show when={props.showAlbum && !props.aside}>
                 <div class="row-album">
                   <AlbumLink track={t} />
                 </div>
               </Show>
               <LikeButton track={t} class="row-like" />
               <div class="row-time">{formatTime(t.duration)}</div>
-              <button class="row-more" title="Plus d'options" onClick={(e) => openTrackMenu(e, [t], props.playlist)} onDblClick={(e) => e.stopPropagation()}>
+              <button class="row-more" title={tr.moreOptions} onClick={(e) => openTrackMenu(e, [t], props.playlist)} onDblClick={(e) => e.stopPropagation()}>
                 <IconMore />
               </button>
             </div>
@@ -228,7 +234,7 @@ export function TrackList(props: {
 }
 
 /** Carte de morceau (grilles « Découvrir »), avec bouton lecture au survol. */
-export function TrackCard(props: { track: Track; playing: boolean; onPlay: () => void; index?: number }) {
+export function TrackCard(props: { track: Track; playing: boolean; onPlay: () => void; index?: number; note?: string }) {
   return (
     <button
       classList={{ card: true, playing: props.playing }}
@@ -245,6 +251,9 @@ export function TrackCard(props: { track: Track; playing: boolean; onPlay: () =>
       <div class="card-sub">
         <ArtistLinks track={props.track} />
       </div>
+      <Show when={props.note}>
+        <div class="card-note">{props.note}</div>
+      </Show>
     </button>
   );
 }
@@ -256,8 +265,8 @@ export function YtDlpBadge(props: { status: YtDlpStatus }) {
     <Switch>
       <Match when={s().state === "installing" && (s() as { progress: number })}>
         {(st) => (
-          <div class="engine" title="yt-dlp est téléchargé depuis ses versions officielles, et sa signature est vérifiée.">
-            <div class="engine-label">Installation du moteur YouTube… {Math.round(st().progress * 100)} %</div>
+          <div class="engine" title={tr.ytInstallingHint}>
+            <div class="engine-label">{tr.ytInstalling(Math.round(st().progress * 100))}</div>
             <div class="engine-bar"><div style={{ width: `${st().progress * 100}%` }} /></div>
           </div>
         )}
@@ -265,7 +274,7 @@ export function YtDlpBadge(props: { status: YtDlpStatus }) {
       <Match when={s().state === "error" && (s() as { message: string })}>
         {(st) => (
           <div class="engine error" title={st().message}>
-            YouTube indisponible : {st().message}
+            {tr.ytError(st().message)}
           </div>
         )}
       </Match>
@@ -279,7 +288,7 @@ export function LikeButton(props: { track: Track | null | undefined; class?: str
   return (
     <button
       classList={{ "like-btn": true, liked: liked(), [props.class ?? ""]: !!props.class }}
-      title={liked() ? "Retirer des titres likés" : "Ajouter aux titres likés"}
+      title={liked() ? tr.removeFromLiked : tr.addToLiked}
       aria-pressed={liked()}
       disabled={!props.track}
       onClick={(e) => {
@@ -370,17 +379,17 @@ export function TrackMenuHost(props: { onOpenPlaylist: (id: string) => void }) {
                       </div>
                     </div>
                     <button class="menu-item" role="menuitem" onClick={act((m) => toggleLike(m.tracks[0]))}>
-                      <IconHeart filled={isLiked(t())} /> {isLiked(t()) ? "Retirer des titres likés" : "Ajouter aux titres likés"}
+                      <IconHeart filled={isLiked(t())} /> {isLiked(t()) ? tr.removeFromLiked : tr.addToLiked}
                     </button>
                   </>
                 )}
               </Show>
               <Show when={m().playlist && single()}>
                 <button class="menu-item" role="menuitem" onClick={act((m) => removeFromPlaylist(m.playlist!, m.tracks[0].id))}>
-                  <IconPlaylist size={18} /> Retirer de cette playlist
+                  <IconPlaylist size={18} /> {tr.removeFromThisPlaylist}
                 </button>
               </Show>
-              <div class="menu-label">Ajouter à une playlist</div>
+              <div class="menu-label">{tr.addToPlaylist}</div>
               <button
                 class="menu-item"
                 role="menuitem"
@@ -389,7 +398,7 @@ export function TrackMenuHost(props: { onOpenPlaylist: (id: string) => void }) {
                   if (id) props.onOpenPlaylist(id);
                 })}
               >
-                <IconPlus /> Nouvelle playlist
+                <IconPlus /> {tr.newPlaylist}
               </button>
               <div class="menu-scroll">
                 <For each={targets()}>

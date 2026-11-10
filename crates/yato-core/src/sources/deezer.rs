@@ -273,15 +273,15 @@ impl DeezerSource {
         // Deezer répond 200 même en cas d'erreur (quota, introuvable…), avec un champ `error`.
         if let Some(e) = body.get("error") {
             let msg = e.get("message").and_then(|m| m.as_str()).unwrap_or("erreur");
-            return Err(Error::Other(format!("Infos indisponibles : {msg}")));
+            return Err(Error::Other(format!("Info unavailable: {msg}")));
         }
-        serde_json::from_value(body).map_err(|e| Error::Other(format!("Infos indisponibles : réponse inattendue ({e})")))
+        serde_json::from_value(body).map_err(|e| Error::Other(format!("Info unavailable: unexpected response ({e})")))
     }
 
     async fn list<T: DeserializeOwned>(&self, path: &str, query: &[(&str, String)]) -> Result<Vec<T>> {
         let page: Page<T> = self.get(path, query).await?;
         if let Some(e) = page.error {
-            return Err(Error::Other(format!("Infos indisponibles : {}", e.message.unwrap_or_else(|| "erreur".into()))));
+            return Err(Error::Other(format!("Info unavailable: {}", e.message.unwrap_or_else(|| "error".into()))));
         }
         Ok(page.data)
     }
@@ -384,7 +384,7 @@ impl DeezerSource {
                 let best = found.iter().find(|a| a.name.eq_ignore_ascii_case(name)).or(found.first());
                 best.and_then(|a| a.id)
                     .map(|i| i.to_string())
-                    .ok_or_else(|| Error::Other(format!("Aucun artiste « {name} » trouvé")))?
+                    .ok_or_else(|| Error::Other(format!("No artist \"{name}\" found")))?
             }
         };
         let (info_path, top_path, albums_path, related_path) =
@@ -492,7 +492,7 @@ impl DeezerSource {
             .or_else(|| hits.iter().find(same_title))
             .or(hits.first())
             .map(|h| h.id.to_string())
-            .ok_or_else(|| Error::Other(format!("Aucun album « {title} » trouvé")))
+            .ok_or_else(|| Error::Other(format!("No album \"{title}\" found")))
     }
 }
 
@@ -503,7 +503,7 @@ impl MusicSource for DeezerSource {
     }
 
     fn name(&self) -> &'static str {
-        "Titres"
+        "Songs"
     }
 
     async fn search(&self, query: &str, limit: usize) -> Result<Vec<Track>> {

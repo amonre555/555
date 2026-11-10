@@ -151,7 +151,7 @@ impl MusicSource for LocalLibrary {
     }
 
     fn name(&self) -> &'static str {
-        "Ma bibliothèque"
+        "My library"
     }
 
     async fn search(&self, query: &str, limit: usize) -> Result<Vec<Track>> {
@@ -161,7 +161,7 @@ impl MusicSource for LocalLibrary {
     async fn resolve(&self, track: &Track) -> Result<StreamData> {
         match &track.location {
             Location::File { path } => Ok(StreamData::File(path.clone())),
-            Location::Remote { .. } => Err(crate::Error::Other("ce morceau n'est pas local".into())),
+            Location::Remote { .. } => Err(crate::Error::Other("this track is not local".into())),
         }
     }
 }
@@ -225,7 +225,7 @@ fn read_track(path: &Path) -> Option<Track> {
     let artist = tag
         .and_then(|t| t.artist())
         .and_then(clean)
-        .unwrap_or_else(|| "Artiste inconnu".to_owned());
+        .unwrap_or_else(|| "Unknown artist".to_owned());
     let album = tag.and_then(|t| t.album()).and_then(clean);
     let duration = file.properties().duration().as_secs_f64();
     let has_cover = tag.is_some_and(|t| !t.pictures().is_empty()) || folder_cover(path).is_some();

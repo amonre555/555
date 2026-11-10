@@ -1,51 +1,59 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- yato : une goutte de verre liquide qui se divise en deux (ya·to), reflets irisés, halo flou. -->
+  <!-- yato: a glowing orb resting on water in the mist, ripples spreading from it. -->
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
-      <stop offset="0" stop-color="#1a1c2e"/>
-      <stop offset="1" stop-color="#06060b"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#151729"/>
+      <stop offset="1" stop-color="#05050a"/>
     </linearGradient>
-    <linearGradient id="iri" gradientUnits="userSpaceOnUse" x1="760" y1="230" x2="330" y2="820">
-      <stop offset="0" stop-color="#8af1ff"/>
-      <stop offset="0.42" stop-color="#a995ff"/>
-      <stop offset="1" stop-color="#ff8ccb"/>
+    <linearGradient id="iri" gradientUnits="userSpaceOnUse" x1="520" y1="160" x2="860" y2="520">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.35" stop-color="#9ff3ff"/>
+      <stop offset="0.7" stop-color="#b6a2ff"/>
+      <stop offset="1" stop-color="#ff9fd2"/>
     </linearGradient>
-    <radialGradient id="depth" cx="0.36" cy="0.3" r="0.8">
-      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
-      <stop offset="1" stop-color="#2a1458" stop-opacity="0.6"/>
+    <linearGradient id="ring" gradientUnits="userSpaceOnUse" x1="132" y1="700" x2="892" y2="700">
+      <stop offset="0" stop-color="#a995ff"/>
+      <stop offset="0.5" stop-color="#e9fbff"/>
+      <stop offset="1" stop-color="#ff9fd2"/>
+    </linearGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <radialGradient id="orb" cx="0.38" cy="0.32" r="0.78">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.35" stop-color="#bff6ff"/>
+      <stop offset="0.75" stop-color="#a48cff"/>
+      <stop offset="1" stop-color="#ff86c8"/>
+    </radialGradient>
+    <radialGradient id="rim" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.72" stop-color="#2a1458" stop-opacity="0"/>
+      <stop offset="1" stop-color="#2a1458" stop-opacity="0.45"/>
     </radialGradient>
     <radialGradient id="spec" cx="0.5" cy="0.5" r="0.5">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
-    <filter id="halo" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="70"/>
+    <filter id="mist" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="90"/>
     </filter>
-    <filter id="goo" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="30" result="b"/>
-      <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 36 -16"/>
-    </filter>
-    <mask id="drop">
-      <g filter="url(#goo)" fill="#fff">
-        <circle cx="440" cy="590" r="228"/>
-        <circle cx="690" cy="330" r="118"/>
-      </g>
-    </mask>
   </defs>
   <rect width="1024" height="1024" rx="232" fill="url(#bg)"/>
-  <!-- Halo flou sous la goutte -->
-  <g filter="url(#halo)" opacity="0.75">
-    <circle cx="440" cy="620" r="210" fill="#8f7bff"/>
-    <circle cx="700" cy="340" r="110" fill="#6fe7ff"/>
+  <!-- Mist: soft coloured haze behind the mark -->
+  <g filter="url(#mist)">
+    <ellipse cx="380" cy="560" rx="250" ry="210" fill="#6c4dff" opacity="0.85"/>
+    <ellipse cx="660" cy="430" rx="220" ry="180" fill="#34c8ff" opacity="0.7"/>
+    <ellipse cx="560" cy="760" rx="260" ry="120" fill="#ff6fb5" opacity="0.45"/>
   </g>
-  <!-- La goutte -->
-  <g mask="url(#drop)">
-    <rect width="1024" height="1024" fill="url(#iri)"/>
-    <rect width="1024" height="1024" fill="url(#depth)"/>
-    <!-- Reflets spéculaires -->
-    <ellipse cx="350" cy="455" rx="120" ry="70" transform="rotate(-35 350 455)" fill="url(#spec)"/>
-    <ellipse cx="652" cy="272" rx="52" ry="30" transform="rotate(-35 652 272)" fill="url(#spec)"/>
-    <!-- Lumière qui traverse le verre, en bas à droite -->
-    <path d="M560 760 C 640 720, 680 640, 676 560" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="16" stroke-linecap="round"/>
+  <!-- Ripples on the water, spreading from where the orb touches it -->
+  <g fill="none" stroke="url(#ring)" stroke-linecap="round">
+    <ellipse cx="512" cy="700" rx="380" ry="96" stroke-width="10" opacity="0.28"/>
+    <ellipse cx="512" cy="700" rx="280" ry="70" stroke-width="16" opacity="0.55"/>
+    <ellipse cx="512" cy="700" rx="180" ry="44" stroke-width="22" opacity="0.9"/>
   </g>
+  <!-- Glow of the orb on the water -->
+  <ellipse cx="512" cy="700" rx="150" ry="34" fill="#cfe9ff" opacity="0.35" filter="url(#soft)"/>
+  <!-- The orb -->
+  <circle cx="512" cy="520" r="150" fill="url(#orb)"/>
+  <circle cx="512" cy="520" r="150" fill="url(#rim)"/>
+  <ellipse cx="462" cy="460" rx="62" ry="36" transform="rotate(-35 462 460)" fill="url(#spec)"/>
 </svg>

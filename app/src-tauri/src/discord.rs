@@ -192,7 +192,7 @@ fn activity<'a>(shown: &Shown, snap: &'a Snapshot) -> Activity<'a> {
         }
         a = a.timestamps(ts);
     } else {
-        a = a.state(format!("En pause · {}", clip(&track.artist)));
+        a = a.state(format!("Paused · {}", clip(&track.artist)));
     }
     a
 }

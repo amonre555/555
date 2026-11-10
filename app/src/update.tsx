@@ -8,6 +8,7 @@ import { check, type Update } from "@tauri-apps/plugin-updater";
 import { createSignal, Match, onCleanup, onMount, Show, Switch } from "solid-js";
 import { notify } from "./collection";
 import { IconDownload } from "./icons";
+import { t } from "./i18n";
 
 const FIRST_CHECK_MS = 4000;
 const EVERY_MS = 6 * 3600 * 1000;
@@ -67,7 +68,7 @@ export function UpdateCard() {
       setState({ kind: "installing", update });
       await relaunch();
     } catch (e) {
-      notify(`Mise à jour impossible : ${e}`, "error");
+      notify(t.updateFailed(String(e)), "error");
       setState({ kind: "available", update });
     }
   };
@@ -86,20 +87,20 @@ export function UpdateCard() {
             <div class="update-title">yato {version()}</div>
             <Switch>
               <Match when={s().kind === "available"}>
-                <p class="update-text">Une nouvelle version est disponible.</p>
-                <button class="primary update-btn" title={`Installer yato ${version()} et relancer`} onClick={install}>
+                <p class="update-text">{t.newVersion}</p>
+                <button class="primary update-btn" title={t.installTitle(version())} onClick={install}>
                   <IconDownload />
-                  <span>Installer et relancer</span>
+                  <span>{t.installAndRestart}</span>
                 </button>
               </Match>
               <Match when={s().kind === "downloading"}>
-                <p class="update-text">Téléchargement… {pct() != null ? `${Math.round(pct()!)} %` : ""}</p>
+                <p class="update-text">{t.downloading} {pct() != null ? `${Math.round(pct()!)} %` : ""}</p>
                 <div class="engine-bar">
                   <div style={{ width: `${pct() ?? 30}%` }} />
                 </div>
               </Match>
               <Match when={s().kind === "installing"}>
-                <p class="update-text">Installation, yato va redémarrer…</p>
+                <p class="update-text">{t.installing}</p>
               </Match>
             </Switch>
           </div>

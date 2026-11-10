@@ -2,15 +2,15 @@ use serde::{Serialize, Serializer};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("erreur fichier : {0}")]
+    #[error("file error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("erreur réseau : {0}")]
+    #[error("network error: {0}")]
     Http(#[from] reqwest::Error),
-    #[error("impossible de lire ce morceau : {0}")]
+    #[error("cannot play this track: {0}")]
     Decode(String),
-    #[error("sortie audio indisponible : {0}")]
+    #[error("audio output unavailable: {0}")]
     Audio(String),
-    #[error("source inconnue : {0}")]
+    #[error("unknown source: {0}")]
     UnknownSource(String),
     #[error("{0}")]
     Other(String),

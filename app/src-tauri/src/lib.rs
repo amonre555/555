@@ -164,7 +164,7 @@ async fn import_playlist(app: tauri::AppHandle, state: State<'_, AppState>, url:
     };
     let found = yato_core::import::import(&url, &state.client, &state.deezer, &state.youtube, progress).await?;
     if found.tracks.is_empty() {
-        return Err(Error::Other("Aucun morceau de cette playlist n'a été trouvé.".into()));
+        return Err(Error::Other("None of the songs in this playlist could be found.".into()));
     }
     let added = found.tracks.len();
     let collection = state.collection.create_playlist(found.name, found.tracks)?;

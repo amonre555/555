@@ -1,9 +1,10 @@
 // Fiche d'un artiste : photo, titres populaires, albums, singles, artistes similaires.
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { ALBUM_KIND, api, type Album, type ArtistPage, type Snapshot, type Track } from "./api";
+import { api, type Album, type ArtistPage, type Snapshot, type Track } from "./api";
 import { IconBack, IconPlay, IconUser } from "./icons";
 import { openAlbum, openArtist } from "./nav";
 import { Empty, Loader, TrackList } from "./ui";
+import { t } from "./i18n";
 
 /** `page` : `undefined` pendant le chargement, `null` en cas d'échec. */
 export function ArtistView(props: {
@@ -23,7 +24,7 @@ export function ArtistView(props: {
     <div class="artist-page">
       <Show when={props.canGoBack}>
         <button class="ghost back" onClick={props.onBack}>
-          <IconBack /> Retour
+          <IconBack /> {t.back}
         </button>
       </Show>
 
@@ -31,7 +32,7 @@ export function ArtistView(props: {
         when={props.page}
         fallback={
           <Show when={props.page === null} fallback={<Loader />}>
-            <Empty text={`Impossible de charger la fiche de ${props.name}.`} />
+            <Empty text={t.artistError(props.name)} />
           </Show>
         }
       >
@@ -45,11 +46,11 @@ export function ArtistView(props: {
                 </Show>
               </div>
               <div class="artist-body">
-                <div class="eyebrow">Artiste</div>
+                <div class="eyebrow">{t.artist}</div>
                 <h1 class="artist-name">{p().name}</h1>
                 <Show when={p().top.length > 0}>
                   <button class="primary hero-play" onClick={() => props.onPlay(p().top, 0)}>
-                    <IconPlay size={18} /> Lecture
+                    <IconPlay size={18} /> {t.play}
                   </button>
                 </Show>
               </div>
@@ -57,7 +58,7 @@ export function ArtistView(props: {
 
             <Show when={p().top.length > 0}>
               <section class="section">
-                <h2 class="section-title">Titres populaires</h2>
+                <h2 class="section-title">{t.popular}</h2>
                 <TrackList
                   tracks={showAllTop() ? p().top : p().top.slice(0, 5)}
                   current={props.snap.track?.id}
@@ -67,18 +68,18 @@ export function ArtistView(props: {
                 />
                 <Show when={p().top.length > 5}>
                   <button class="link-btn" onClick={() => setShowAllTop((v) => !v)}>
-                    {showAllTop() ? "Afficher moins" : "Afficher plus"}
+                    {showAllTop() ? t.showLess : t.showMore}
                   </button>
                 </Show>
               </section>
             </Show>
 
-            <AlbumGrid title="Albums" albums={albums()} onPlay={props.onPlay} onError={props.onError} />
-            <AlbumGrid title="Singles et EP" albums={singles()} onPlay={props.onPlay} onError={props.onError} />
+            <AlbumGrid title={t.albums} albums={albums()} onPlay={props.onPlay} onError={props.onError} />
+            <AlbumGrid title={t.singlesEps} albums={singles()} onPlay={props.onPlay} onError={props.onError} />
 
             <Show when={p().related.length > 0}>
               <section class="section">
-                <h2 class="section-title">Artistes similaires</h2>
+                <h2 class="section-title">{t.similarArtists}</h2>
                 <div class="grid artists-grid">
                   <For each={p().related}>
                     {(a) => (
@@ -92,7 +93,7 @@ export function ArtistView(props: {
                           </Show>
                         </div>
                         <div class="card-title">{a.name}</div>
-                        <div class="card-sub">Artiste</div>
+                        <div class="card-sub">{t.artist}</div>
                       </button>
                     )}
                   </For>
@@ -139,7 +140,7 @@ function AlbumGrid(props: {
                 classList={{ card: true, loading: loading() === a.id }}
                 style={{ "--i": Math.min(i(), 16) }}
                 onClick={(e) => openAlbum({ id: a.id, title: a.title }, e.currentTarget.querySelector(".cover") ?? undefined)}
-                title={`Voir l'album « ${a.title} »`}
+                title={t.seeAlbum(a.title)}
               >
                 <div class="card-art">
                   <div class="cover lg">
@@ -148,7 +149,7 @@ function AlbumGrid(props: {
                   <span
                     class="card-play"
                     role="button"
-                    title={`Lire « ${a.title} »`}
+                    title={t.playAlbum(a.title)}
                     onClick={(e) => {
                       e.stopPropagation();
                       playAlbum(a);
@@ -159,7 +160,7 @@ function AlbumGrid(props: {
                 </div>
                 <div class="card-title">{a.title}</div>
                 <div class="card-sub">
-                  {[a.year, ALBUM_KIND[a.kind] ?? a.kind].filter(Boolean).join(" · ")}
+                  {[a.year, t.kind[a.kind] ?? a.kind].filter(Boolean).join(" · ")}
                 </div>
               </button>
             )}

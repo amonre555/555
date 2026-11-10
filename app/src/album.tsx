@@ -1,15 +1,16 @@
 // Fiche d'un album : pochette, artistes, année, morceaux.
 import { Show } from "solid-js";
-import { ALBUM_KIND, type AlbumPage, type Snapshot, type Track } from "./api";
+import { type AlbumPage, type Snapshot, type Track } from "./api";
 import { IconBack, IconMore, IconNote, IconPlay } from "./icons";
 import { openTrackMenu } from "./collection";
 import { ArtistLinks, Empty, Loader, TrackList } from "./ui";
+import { t } from "./i18n";
 
 /** Durée longue lisible : « 1 h 02 min », « 46 min ». */
 function longDuration(seconds: number): string {
   const min = Math.round(seconds / 60);
-  if (min < 60) return `${min} min`;
-  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")} min`;
+  if (min < 60) return t.minutes(min);
+  return t.hours(Math.floor(min / 60), String(min % 60).padStart(2, "0"));
 }
 
 /** `page` : `undefined` pendant le chargement, `null` en cas d'échec. */
@@ -25,7 +26,7 @@ export function AlbumView(props: {
     <div class="album-page">
       <Show when={props.canGoBack}>
         <button class="ghost back" onClick={props.onBack}>
-          <IconBack /> Retour
+          <IconBack /> {t.back}
         </button>
       </Show>
 
@@ -33,14 +34,14 @@ export function AlbumView(props: {
         when={props.page}
         fallback={
           <Show when={props.page === null} fallback={<Loader />}>
-            <Empty text={`Impossible de charger l'album « ${props.title} ».`} />
+            <Empty text={t.albumError(props.title)} />
           </Show>
         }
       >
         {(p) => {
           const count = () => p().tracks.length;
           const meta = () =>
-            [p().year, `${count()} titre${count() > 1 ? "s" : ""}`, p().duration ? longDuration(p().duration!) : null]
+            [p().year, t.songsCount(count()), p().duration ? longDuration(p().duration!) : null]
               .filter(Boolean)
               .join(" · ");
           return (
@@ -53,7 +54,7 @@ export function AlbumView(props: {
                   </Show>
                 </div>
                 <div class="artist-body">
-                  <div class="eyebrow">{ALBUM_KIND[p().kind] ?? "Album"}</div>
+                  <div class="eyebrow">{t.kind[p().kind] ?? t.kind.album}</div>
                   <h1 class="album-title" title={p().title}>{p().title}</h1>
                   <div class="album-artists">
                     <ArtistLinks artists={p().artists} />
@@ -62,9 +63,9 @@ export function AlbumView(props: {
                   <Show when={count() > 0}>
                     <div class="actions hero-play">
                       <button class="primary" onClick={() => props.onPlay(p().tracks, 0)}>
-                        <IconPlay size={18} /> Lecture
+                        <IconPlay size={18} /> {t.play}
                       </button>
-                      <button class="icon-btn" title="Ajouter l'album à une playlist" onClick={(e) => openTrackMenu(e, p().tracks)}>
+                      <button class="icon-btn" title={t.addAlbumToPlaylist} onClick={(e) => openTrackMenu(e, p().tracks)}>
                         <IconMore />
                       </button>
                     </div>

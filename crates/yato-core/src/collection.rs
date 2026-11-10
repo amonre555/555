@@ -36,8 +36,8 @@ pub struct Played {
     pub at: u64,
 }
 
-/// Nombre de morceaux gardés dans l'historique.
-const HISTORY_MAX: usize = 200;
+/// Nombre d'écoutes gardées dans l'historique (chaque écoute compte, même d'un même morceau).
+const HISTORY_MAX: usize = 2000;
 
 /// Tout ce que l'interface affiche : likes et historique (le plus récent en premier), playlists.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -146,10 +146,10 @@ impl Collection {
         })
     }
 
-    /// Note une écoute : le morceau passe en tête de l'historique (une seule fois).
+    /// Note une écoute, en tête de l'historique. Chaque écoute est gardée (page Historique) ;
+    /// l'interface retire les doublons là où il le faut (« Écoutés récemment »).
     pub fn record_play(&self, track: Track) -> Result<CollectionData> {
         self.update(|d| {
-            d.history.retain(|p| p.track.id != track.id);
             d.history.insert(0, Played { track, at: now_ms() });
             d.history.truncate(HISTORY_MAX);
             Ok(())
@@ -179,12 +179,12 @@ impl Collection {
 }
 
 fn index_of(d: &CollectionData, id: &str) -> Result<usize> {
-    d.playlists.iter().position(|p| p.id == id).ok_or_else(|| Error::Other("cette playlist n'existe plus".into()))
+    d.playlists.iter().position(|p| p.id == id).ok_or_else(|| Error::Other("this playlist no longer exists".into()))
 }
 
 fn clean_name(name: &str, n: usize) -> String {
     let name = name.trim();
-    if name.is_empty() { format!("Ma playlist n° {}", n + 1) } else { name.to_owned() }
+    if name.is_empty() { format!("My playlist #{}", n + 1) } else { name.to_owned() }
 }
 
 fn push_unique(list: &mut Vec<Track>, tracks: Vec<Track>) {
@@ -230,7 +230,7 @@ mod tests {
 
         let d = c.create_playlist("  ".into(), vec![track("x"), track("x"), track("y")]).unwrap();
         let id = d.playlists[0].id.clone();
-        assert_eq!(d.playlists[0].name, "Ma playlist n° 1");
+        assert_eq!(d.playlists[0].name, "My playlist #1");
         assert_eq!(d.playlists[0].tracks.len(), 2);
         c.add_to_playlist(&id, vec![track("y"), track("z")]).unwrap();
         c.move_in_playlist(&id, 2, 0).unwrap();
@@ -244,7 +244,7 @@ mod tests {
         c.record_play(track("h1")).unwrap();
         c.record_play(track("h2")).unwrap();
         let d = c.record_play(track("h1")).unwrap();
-        assert_eq!(d.history.iter().map(|p| p.track.id.as_str()).collect::<Vec<_>>(), ["h1", "h2"]);
+        assert_eq!(d.history.iter().map(|p| p.track.id.as_str()).collect::<Vec<_>>(), ["h1", "h2", "h1"]);
         assert!(c.clear_history().unwrap().history.is_empty());
         c.delete_playlist(&id).unwrap();
         assert!(Collection::load(&path).get().playlists.is_empty());

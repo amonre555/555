@@ -71,6 +71,11 @@ impl YtDlp {
         })
     }
 
+    /// Client HTTP partagé.
+    pub fn client(&self) -> &reqwest::Client {
+        &self.client
+    }
+
     pub fn status(&self) -> YtDlpStatus {
         self.status.borrow().clone()
     }
@@ -178,7 +183,7 @@ impl YtDlp {
             None => self.signed_sums().await?,
         };
         let expected = hash_for(&sums, asset)
-            .ok_or_else(|| Error::Other(format!("yt-dlp : pas d'empreinte pour {asset}")))?;
+            .ok_or_else(|| Error::Other(format!("yt-dlp: no checksum for {asset}")))?;
 
         // Téléchargement, avec progression.
         let mut resp = self.client.get(format!("{RELEASES}/{asset}")).send().await?.error_for_status()?;
@@ -194,7 +199,7 @@ impl YtDlp {
         let actual = hex(&Sha256::digest(&data));
         if actual != expected {
             return Err(Error::Other(format!(
-                "yt-dlp : empreinte incorrecte, téléchargement rejeté (attendu {expected}, reçu {actual})"
+                "yt-dlp: wrong checksum, download rejected (expected {expected}, got {actual})"
             )));
         }
 
@@ -207,11 +212,11 @@ impl YtDlp {
             std::fs::create_dir_all(&tmp)?;
             zip::ZipArchive::new(Cursor::new(data))
                 .and_then(|mut z| z.extract(&tmp))
-                .map_err(|e| Error::Other(format!("yt-dlp : archive illisible ({e})")))?;
+                .map_err(|e| Error::Other(format!("yt-dlp: unreadable archive ({e})")))?;
             let _ = std::fs::remove_dir_all(&target);
             std::fs::rename(&tmp, &target)?;
             let exe = find_executable(&target)
-                .ok_or_else(|| Error::Other("yt-dlp : exécutable introuvable dans l'archive".into()))?;
+                .ok_or_else(|| Error::Other("yt-dlp: executable not found in the archive".into()))?;
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
@@ -282,7 +287,7 @@ impl YtDlp {
 }
 
 fn verify_signature(data: &[u8], sig: &[u8]) -> Result<()> {
-    let bad = |e: pgp::errors::Error| Error::Other(format!("yt-dlp : signature invalide ({e})"));
+    let bad = |e: pgp::errors::Error| Error::Other(format!("yt-dlp: invalid signature ({e})"));
     let (key, _) = SignedPublicKey::from_string(SIGNING_KEY).map_err(bad)?;
     let sig = DetachedSignature::from_bytes(sig).map_err(bad)?;
     sig.verify(&key, data).map_err(bad)
