@@ -28,7 +28,7 @@ pub fn spawn(hwnd: Option<*mut c_void>, cover_dir: PathBuf, controller: Arc<Cont
         .name("yato-media-controls".into())
         .spawn(move || {
             let config = PlatformConfig {
-                display_name: "yato",
+                display_name: "555",
                 dbus_name: "yato",
                 hwnd: hwnd.map(|h| h as *mut c_void),
             };

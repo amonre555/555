@@ -321,8 +321,7 @@ export default function App() {
 
       <aside class="sidebar">
         <button class="brand" onClick={() => goTo("discover")} title={t.home}>
-          <img src="/logo.svg" alt="" width="30" height="30" />
-          <span>yato</span>
+          <img src="/wordmark.svg" alt="555" height="26" />
         </button>
         <SideNav
           active={view() === "playlist" ? `pl:${playlistId()}` : view()}
@@ -521,7 +520,6 @@ export default function App() {
               <Show when={featured()} fallback={<Loader />}>
                 {(list) => (
                   <Show when={list().length > 0} fallback={<Empty text={t.featuredError} />}>
-                    <Hero track={list()[0]} playing={isCurrent(list()[0])} onPlay={() => play(list(), 0)} label={t.numberOne} />
                     <Show when={recentTracks().length > 0}>
                       <section class="section">
                         <h2 class="section-title">
@@ -538,8 +536,8 @@ export default function App() {
                     <section class="section">
                       <h2 class="section-title">{t.rightNow}</h2>
                       <div class="grid">
-                        <For each={list().slice(1, 13)}>
-                          {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(list(), i() + 1)} />}
+                        <For each={list().slice(0, 12)}>
+                          {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(list(), i())} />}
                         </For>
                       </div>
                     </section>

@@ -194,7 +194,7 @@ export function TrackList(props: {
             >
               <div class="row-num">
                 <span class="num">
-                  <Show when={isCurrent() && props.status === "playing"} fallback={i() + 1}>
+                  <Show when={isCurrent() && props.status === "playing"} fallback={String(i() + 1).padStart(2, "0")}>
                     <span class="eq"><i /><i /><i /></span>
                   </Show>
                 </span>

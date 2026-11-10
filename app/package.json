@@ -11,7 +11,8 @@
     "icon:mac": "sh src-tauri/icons/make-macos-icns.sh"
   },
   "dependencies": {
-    "@fontsource-variable/google-sans-flex": "5.3.2",
+    "@fontsource-variable/manrope": "5.3.0",
+    "@fontsource-variable/unbounded": "5.3.0",
     "@material/material-color-utilities": "0.4.0",
     "@tauri-apps/api": "^2.12.4",
     "@tauri-apps/plugin-dialog": "^2.8.4",

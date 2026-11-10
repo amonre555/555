@@ -84,7 +84,7 @@ export function UpdateCard() {
         const version = () => (s() as Exclude<State, { kind: "idle" }>).update.version;
         return (
           <div class="update-card" role="status">
-            <div class="update-title">yato {version()}</div>
+            <div class="update-title">555 {version()}</div>
             <Switch>
               <Match when={s().kind === "available"}>
                 <p class="update-text">{t.newVersion}</p>

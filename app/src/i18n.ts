@@ -36,7 +36,7 @@ const en = {
   addFolder: "Add a folder",
   chooseFolder: "Choose a music folder",
   libraryEmptyTitle: "Your music, instantly",
-  libraryEmptyText: "Add a folder: yato reads the tags on every core of your processor.",
+  libraryEmptyText: "Add a folder: 555 reads the tags on every core of your processor.",
   myLibrary: "My library",
 
   // Discover
@@ -159,7 +159,7 @@ const en = {
   updatesHint: "Updates are checked on launch, then every 6 hours.",
   checking: "Checking…",
   checkUpdates: "Check for updates",
-  upToDate: "yato is up to date",
+  upToDate: "555 is up to date",
   updateCheckFailed: "Couldn't check for updates (connection?)",
   updateFound: "A new version is available: see the bottom of the sidebar",
   general: "General",
@@ -180,9 +180,9 @@ const en = {
   // Updates
   newVersion: "A new version is available.",
   installAndRestart: "Install and restart",
-  installTitle: (v: string) => `Install yato ${v} and restart`,
+  installTitle: (v: string) => `Install 555 ${v} and restart`,
   downloading: "Downloading…",
-  installing: "Installing, yato will restart…",
+  installing: "Installing, 555 will restart…",
   updateFailed: (e: string) => `Update failed: ${e}`,
 };
 
@@ -216,7 +216,7 @@ const fr: Dict = {
   addFolder: "Ajouter un dossier",
   chooseFolder: "Choisir un dossier de musique",
   libraryEmptyTitle: "Ta musique, sans attendre",
-  libraryEmptyText: "Ajoute un dossier : yato lit les tags sur tous les cœurs de ton processeur.",
+  libraryEmptyText: "Ajoute un dossier : 555 lit les tags sur tous les cœurs de ton processeur.",
   myLibrary: "Ma bibliothèque",
 
   featuredError: "Impossible de charger le top du moment.",
@@ -332,7 +332,7 @@ const fr: Dict = {
   updatesHint: "Les mises à jour sont vérifiées au lancement, puis toutes les 6 h.",
   checking: "Vérification…",
   checkUpdates: "Rechercher une mise à jour",
-  upToDate: "yato est à jour",
+  upToDate: "555 est à jour",
   updateCheckFailed: "Impossible de vérifier les mises à jour (connexion ?)",
   updateFound: "Une nouvelle version est disponible : voir en bas de la barre latérale",
   general: "Général",
@@ -351,9 +351,9 @@ const fr: Dict = {
 
   newVersion: "Une nouvelle version est disponible.",
   installAndRestart: "Installer et relancer",
-  installTitle: (v) => `Installer yato ${v} et relancer`,
+  installTitle: (v) => `Installer 555 ${v} et relancer`,
   downloading: "Téléchargement…",
-  installing: "Installation, yato va redémarrer…",
+  installing: "Installation, 555 va redémarrer…",
   updateFailed: (e) => `Mise à jour impossible : ${e}`,
 };
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "yato",
+  "productName": "555",
   "identifier": "app.yato.player",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "yato",
+        "title": "555",
         "width": 1240,
         "height": 780,
         "minWidth": 880,

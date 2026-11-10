@@ -1,0 +1,1463 @@
+{
+ "vhs": {
+  "id": "deezer:3440241491",
+  "source": "deezer",
+  "title": "VHS",
+  "artist": "Mattyeux, Videoclub",
+  "album": "VHS",
+  "albumId": "781372291",
+  "duration": 195,
+  "trackNumber": 1,
+  "discNumber": null,
+  "artwork": "https://cdn-images.dzcdn.net/images/cover/4efc96f6e6acc32529045e42fb100cab/1000x1000-000000-80-0-0.jpg",
+  "hasCover": false,
+  "location": {
+   "kind": "remote",
+   "remoteId": "3440241491"
+  },
+  "artists": [
+   {
+    "name": "Mattyeux",
+    "id": "163940587"
+   },
+   {
+    "name": "Videoclub",
+    "id": "51276942"
+   }
+  ]
+ },
+ "artist": {
+  "id": "163940587",
+  "name": "Mattyeux",
+  "picture": "https://cdn-images.dzcdn.net/images/artist/e0c7fb1b0cb38c661c5db7a2caf62ffb/1000x1000-000000-80-0-0.jpg",
+  "top": [
+   {
+    "id": "deezer:698042932",
+    "source": "deezer",
+    "title": "Amour plastique",
+    "artist": "Videoclub, Adèle Castillon, Mattyeux",
+    "album": "Amour plastique",
+    "albumId": "100671172",
+    "duration": 227,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/0a0c9fdd4152206af7d1bc2e5dc047aa/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "698042932"
+    },
+    "artists": [
+     {
+      "name": "Videoclub",
+      "id": "51276942"
+     },
+     {
+      "name": "Adèle Castillon",
+      "id": "55936502"
+     },
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:1169758032",
+    "source": "deezer",
+    "title": "Roi",
+    "artist": "Videoclub, Adèle Castillon, Mattyeux",
+    "album": "Euphories",
+    "albumId": "191780262",
+    "duration": 223,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/db8f2caa1862f0d93a7b3ff0678d133a/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "1169758032"
+    },
+    "artists": [
+     {
+      "name": "Videoclub",
+      "id": "51276942"
+     },
+     {
+      "name": "Adèle Castillon",
+      "id": "55936502"
+     },
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3440241491",
+    "source": "deezer",
+    "title": "VHS",
+    "artist": "Mattyeux, Videoclub",
+    "album": "VHS",
+    "albumId": "781372291",
+    "duration": 195,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/4efc96f6e6acc32529045e42fb100cab/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3440241491"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     },
+     {
+      "name": "Videoclub",
+      "id": "51276942"
+     }
+    ]
+   },
+   {
+    "id": "deezer:1787126377",
+    "source": "deezer",
+    "title": "Sometimes",
+    "artist": "Mattyeux, Princess Chelsea, Videoclub",
+    "album": "Sometimes",
+    "albumId": "326484387",
+    "duration": 211,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/4ffd030a07a5ff90a2b9a0504e5892cc/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "1787126377"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     },
+     {
+      "name": "Princess Chelsea",
+      "id": "4571079"
+     },
+     {
+      "name": "Videoclub",
+      "id": "51276942"
+     }
+    ]
+   },
+   {
+    "id": "deezer:4005244471",
+    "source": "deezer",
+    "title": "J'te laisserai pas partir (feat. Mattyeux)",
+    "artist": "Vernis Rouge, Mattyeux",
+    "album": "J'te laisserai pas partir (feat. Mattyeux)",
+    "albumId": "976977911",
+    "duration": 162,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/722034c508469d54d562030865577182/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "4005244471"
+    },
+    "artists": [
+     {
+      "name": "Vernis Rouge",
+      "id": "72666582"
+     },
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3440241501",
+    "source": "deezer",
+    "title": "VHS (sped up version)",
+    "artist": "Mattyeux, Videoclub",
+    "album": "VHS",
+    "albumId": "781372291",
+    "duration": 171,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/4efc96f6e6acc32529045e42fb100cab/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3440241501"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     },
+     {
+      "name": "Videoclub",
+      "id": "51276942"
+     }
+    ]
+   },
+   {
+    "id": "deezer:2852484842",
+    "source": "deezer",
+    "title": "Émotions saturées (feat. TheFrenchKris)",
+    "artist": "Mattyeux, Videoclub, TheFrenchKris",
+    "album": "Émotions saturées (feat. TheFrenchKris)",
+    "albumId": "603428612",
+    "duration": 178,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/32bb31f009bc655df23cbd8b6eca78f2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "2852484842"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     },
+     {
+      "name": "Videoclub",
+      "id": "51276942"
+     },
+     {
+      "name": "TheFrenchKris",
+      "id": "118525542"
+     }
+    ]
+   },
+   {
+    "id": "deezer:1677782457",
+    "source": "deezer",
+    "title": "Break Up Diaries",
+    "artist": "Mattyeux, Videoclub",
+    "album": "Break Up Diaries",
+    "albumId": "301054217",
+    "duration": 193,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/af0ec7e294309abed5a848e7131d9cf3/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "1677782457"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     },
+     {
+      "name": "Videoclub",
+      "id": "51276942"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090601",
+    "source": "deezer",
+    "title": "D'un coup (feat. Satine)",
+    "artist": "Mattyeux, Videoclub, Satine",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 202,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090601"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     },
+     {
+      "name": "Videoclub",
+      "id": "51276942"
+     },
+     {
+      "name": "Satine",
+      "id": "192931937"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090631",
+    "source": "deezer",
+    "title": "Mirages",
+    "artist": "Mattyeux, Videoclub",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 156,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090631"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     },
+     {
+      "name": "Videoclub",
+      "id": "51276942"
+     }
+    ]
+   }
+  ],
+  "albums": [
+   {
+    "id": "650518461",
+    "title": "Mirages",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "year": "2024",
+    "kind": "album"
+   },
+   {
+    "id": "976977911",
+    "title": "J'te laisserai pas partir (feat. Mattyeux)",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/722034c508469d54d562030865577182/1000x1000-000000-80-0-0.jpg",
+    "year": "2026",
+    "kind": "single"
+   },
+   {
+    "id": "781372291",
+    "title": "VHS",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/4efc96f6e6acc32529045e42fb100cab/1000x1000-000000-80-0-0.jpg",
+    "year": "2025",
+    "kind": "single"
+   },
+   {
+    "id": "653242471",
+    "title": "D'un coup (feat. Satine)",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "year": "2024",
+    "kind": "single"
+   },
+   {
+    "id": "653245341",
+    "title": "Over me (feat. Eden Elf)",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "year": "2024",
+    "kind": "single"
+   },
+   {
+    "id": "603428612",
+    "title": "Émotions saturées (feat. TheFrenchKris)",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/32bb31f009bc655df23cbd8b6eca78f2/1000x1000-000000-80-0-0.jpg",
+    "year": "2024",
+    "kind": "single"
+   },
+   {
+    "id": "512557561",
+    "title": "Ouragan",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/35a2a533ea0e6786d33da34c2c91602c/1000x1000-000000-80-0-0.jpg",
+    "year": "2023",
+    "kind": "single"
+   },
+   {
+    "id": "481669725",
+    "title": "Honnête",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/2f2780b862e413427b9bd0017c5498db/1000x1000-000000-80-0-0.jpg",
+    "year": "2023",
+    "kind": "single"
+   },
+   {
+    "id": "326484387",
+    "title": "Sometimes",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/4ffd030a07a5ff90a2b9a0504e5892cc/1000x1000-000000-80-0-0.jpg",
+    "year": "2022",
+    "kind": "single"
+   },
+   {
+    "id": "301054217",
+    "title": "Break Up Diaries",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/af0ec7e294309abed5a848e7131d9cf3/1000x1000-000000-80-0-0.jpg",
+    "year": "2022",
+    "kind": "single"
+   },
+   {
+    "id": "100671162",
+    "title": "Roi",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/cc346bbe830f61bef1fdf4b554475dc6/1000x1000-000000-80-0-0.jpg",
+    "year": "2018",
+    "kind": "single"
+   },
+   {
+    "id": "100671172",
+    "title": "Amour plastique",
+    "cover": "https://cdn-images.dzcdn.net/images/cover/0a0c9fdd4152206af7d1bc2e5dc047aa/1000x1000-000000-80-0-0.jpg",
+    "year": "2018",
+    "kind": "single"
+   }
+  ],
+  "related": [
+   {
+    "id": "51276942",
+    "name": "Videoclub",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/712427d3bd73e5aea40e5199c25e2552/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "55936502",
+    "name": "Adèle Castillon",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/74c39750c11bd54df230b4dc12b31586/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "160336492",
+    "name": "DO not DO",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/cccd317cf14c4c356a948286bcf6c7e5/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "12086854",
+    "name": "Maxence",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/31b14e70839f92b2cc497c367d3490f6/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "118525542",
+    "name": "TheFrenchKris",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/7627de7be1efa6317b04303bcb28248d/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "87334242",
+    "name": "Felicien Adam",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/4b925e930b2ff0473e81d503232e8cc0/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "131040112",
+    "name": "noée",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/05e8608011a83404028f36a088f3bc6f/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "10267432",
+    "name": "BLOWSOM",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/23db33de356e262ad7832dbaea5f5b11/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "66705142",
+    "name": "Nina Battisti",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/fdf0b1ae33be828de8540d831cc58971/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "283914401",
+    "name": "Demain Les Garçons",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/44761d4a26e462a26a6e036dc2437cc6/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "5435777",
+    "name": "Zélie",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/a58c9a4701bd6ae11b244b805e6013c5/1000x1000-000000-80-0-0.jpg"
+   },
+   {
+    "id": "262532051",
+    "name": "Samson",
+    "picture": "https://cdn-images.dzcdn.net/images/artist/c41dd4c7aa1f12da58089b09dfecb7b8/1000x1000-000000-80-0-0.jpg"
+   }
+  ]
+ },
+ "album": {
+  "id": "650518461",
+  "title": "Mirages",
+  "cover": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+  "year": "2024",
+  "kind": "album",
+  "label": "Cathodic Prod",
+  "artists": [
+   {
+    "name": "Mattyeux",
+    "id": "163940587"
+   },
+   {
+    "name": "Videoclub",
+    "id": "51276942"
+   }
+  ],
+  "duration": 2210,
+  "tracks": [
+   {
+    "id": "deezer:3025090541",
+    "source": "deezer",
+    "title": "Encore",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 162,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090541"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090551",
+    "source": "deezer",
+    "title": "Break Up Diaries",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 193,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090551"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090561",
+    "source": "deezer",
+    "title": "Émotions saturées (feat. TheFrenchKris)",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 178,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090561"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090571",
+    "source": "deezer",
+    "title": "16 ans",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 155,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090571"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090581",
+    "source": "deezer",
+    "title": "Automne",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 196,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090581"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090591",
+    "source": "deezer",
+    "title": "Honnête",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 176,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090591"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090601",
+    "source": "deezer",
+    "title": "D'un coup (feat. Satine)",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 202,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090601"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090611",
+    "source": "deezer",
+    "title": "Sometimes",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 211,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090611"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090621",
+    "source": "deezer",
+    "title": "Ouragan",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 149,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090621"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090631",
+    "source": "deezer",
+    "title": "Mirages",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 156,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090631"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090641",
+    "source": "deezer",
+    "title": "Over me (feat. Eden Elf)",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 204,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090641"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   },
+   {
+    "id": "deezer:3025090651",
+    "source": "deezer",
+    "title": "Je sais pas",
+    "artist": "Mattyeux",
+    "album": "Mirages",
+    "albumId": "650518461",
+    "duration": 228,
+    "trackNumber": null,
+    "discNumber": null,
+    "artwork": "https://cdn-images.dzcdn.net/images/cover/ce68f10535aa4bf95c65a18d53c0efd2/1000x1000-000000-80-0-0.jpg",
+    "hasCover": false,
+    "location": {
+     "kind": "remote",
+     "remoteId": "3025090651"
+    },
+    "artists": [
+     {
+      "name": "Mattyeux",
+      "id": "163940587"
+     }
+    ]
+   }
+  ]
+ },
+ "chart": [
+  {
+   "id": "deezer:4015341011",
+   "source": "deezer",
+   "title": "Dai Dai",
+   "artist": "Shakira",
+   "album": "Dai Dai",
+   "albumId": "980745831",
+   "duration": 223,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/a7f9bae0243c512059298a68d09f45a1/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4015341011"
+   },
+   "artists": [
+    {
+     "name": "Shakira",
+     "id": "160"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4285685232",
+   "source": "deezer",
+   "title": "Cuenta (feat. Meryl & Shay)",
+   "artist": "Ronisia",
+   "album": "Cuenta (feat. Meryl & Shay)",
+   "albumId": "1078575412",
+   "duration": 183,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/c4417a5dda608ec67e1489f51f08071e/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4285685232"
+   },
+   "artists": [
+    {
+     "name": "Ronisia",
+     "id": "66228482"
+    }
+   ]
+  },
+  {
+   "id": "deezer:3602329332",
+   "source": "deezer",
+   "title": "Loser",
+   "artist": "Tame Impala",
+   "album": "Deadbeat",
+   "albumId": "837961612",
+   "duration": 223,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/23b006b2e956536d97612847bbd7a3b7/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "3602329332"
+   },
+   "artists": [
+    {
+     "name": "Tame Impala",
+     "id": "134790"
+    }
+   ]
+  },
+  {
+   "id": "deezer:3818963601",
+   "source": "deezer",
+   "title": "Dracula (with JENNIE)",
+   "artist": "Tame Impala",
+   "album": "Dracula (with JENNIE)",
+   "albumId": "910510411",
+   "duration": 209,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/b868399da682f34dcd7d98af1c0de80b/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "3818963601"
+   },
+   "artists": [
+    {
+     "name": "Tame Impala",
+     "id": "134790"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4048381021",
+   "source": "deezer",
+   "title": "Bodycount",
+   "artist": "Le Crime",
+   "album": "Casus Belli",
+   "albumId": "992468501",
+   "duration": 154,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/fa93568232a634fba9e698b3f3e5eab8/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4048381021"
+   },
+   "artists": [
+    {
+     "name": "Le Crime",
+     "id": "80268952"
+    }
+   ]
+  },
+  {
+   "id": "deezer:3848530521",
+   "source": "deezer",
+   "title": "Self Aware",
+   "artist": "Temper City",
+   "album": "Self Aware",
+   "albumId": "920694801",
+   "duration": 181,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/4e803aeb014d512c960b5cc7ccaa1800/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "3848530521"
+   },
+   "artists": [
+    {
+     "name": "Temper City",
+     "id": "370177892"
+    }
+   ]
+  },
+  {
+   "id": "deezer:66609426",
+   "source": "deezer",
+   "title": "Get Lucky (Radio Edit - feat. Pharrell Williams and Nile Rodgers)",
+   "artist": "Daft Punk",
+   "album": "Get Lucky (Radio Edit - feat. Pharrell Williams and Nile Rodgers)",
+   "albumId": "6516139",
+   "duration": 248,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/bc49adb87758e0c8c4e508a9c5cce85d/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "66609426"
+   },
+   "artists": [
+    {
+     "name": "Daft Punk",
+     "id": "27"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4019797791",
+   "source": "deezer",
+   "title": "Movin' To The Sun",
+   "artist": "HUGEL",
+   "album": "Movin' To The Sun",
+   "albumId": "982091821",
+   "duration": 142,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/021770bfdd65ae5978680a8e3b9e8899/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4019797791"
+   },
+   "artists": [
+    {
+     "name": "HUGEL",
+     "id": "7803478"
+    }
+   ]
+  },
+  {
+   "id": "deezer:65723649",
+   "source": "deezer",
+   "title": "Another Love",
+   "artist": "Tom Odell",
+   "album": "Long Way Down (Deluxe)",
+   "albumId": "6443018",
+   "duration": 243,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/23d34526dc6ef2073bb854fc91a25112/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "65723649"
+   },
+   "artists": [
+    {
+     "name": "Tom Odell",
+     "id": "4044787"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4048380931",
+   "source": "deezer",
+   "title": "Amiri",
+   "artist": "Le Crime",
+   "album": "Casus Belli",
+   "albumId": "992468501",
+   "duration": 176,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/fa93568232a634fba9e698b3f3e5eab8/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4048380931"
+   },
+   "artists": [
+    {
+     "name": "Le Crime",
+     "id": "80268952"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4273247042",
+   "source": "deezer",
+   "title": "Fille à Papa",
+   "artist": "Vacra",
+   "album": "Fille à Papa",
+   "albumId": "1073735862",
+   "duration": 169,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/82913d7ecc1098214160f256ac7bc0a1/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4273247042"
+   },
+   "artists": [
+    {
+     "name": "Vacra",
+     "id": "8673550"
+    }
+   ]
+  },
+  {
+   "id": "deezer:82715364",
+   "source": "deezer",
+   "title": "Skyfall",
+   "artist": "Adele",
+   "album": "Skyfall",
+   "albumId": "8307448",
+   "duration": 286,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/81e6d7baa7f47b804704922412e7a014/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "82715364"
+   },
+   "artists": [
+    {
+     "name": "Adele",
+     "id": "75798"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4314450762",
+   "source": "deezer",
+   "title": "J'assume",
+   "artist": "RnBoi",
+   "album": "J'assume",
+   "albumId": "1108263202",
+   "duration": 178,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/9241e11f46444199f6627d1e9675df7c/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4314450762"
+   },
+   "artists": [
+    {
+     "name": "RnBoi",
+     "id": "172662567"
+    }
+   ]
+  },
+  {
+   "id": "deezer:3650665212",
+   "source": "deezer",
+   "title": "ONE TRACK MIND",
+   "artist": "Naïka",
+   "album": "ONE TRACK MIND",
+   "albumId": "854701652",
+   "duration": 200,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/394843b3373ccccf7984d20aac64bcab/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "3650665212"
+   },
+   "artists": [
+    {
+     "name": "Naïka",
+     "id": "5516666"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4278713452",
+   "source": "deezer",
+   "title": "Chaussures Roses",
+   "artist": "TeddyBear",
+   "album": "Le Plus Beau",
+   "albumId": "1075783372",
+   "duration": 198,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/02a449ca102112cc7526ac14fc4c7a34/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4278713452"
+   },
+   "artists": [
+    {
+     "name": "TeddyBear",
+     "id": "376331971"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4160528852",
+   "source": "deezer",
+   "title": "D'or et d'étain",
+   "artist": "Vianney",
+   "album": "D'or et d'étain",
+   "albumId": "1031690522",
+   "duration": 196,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/a21d2d3521d35a94c4314fc87d22c060/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4160528852"
+   },
+   "artists": [
+    {
+     "name": "Vianney",
+     "id": "5835993"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4208859922",
+   "source": "deezer",
+   "title": "BbY WOW",
+   "artist": "KAROL G",
+   "album": "NO ME ARREPIENTO DE SENTIR TANTO",
+   "albumId": "1048237582",
+   "duration": 225,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/f794dd1931dac42fc13f938850b686c6/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4208859922"
+   },
+   "artists": [
+    {
+     "name": "KAROL G",
+     "id": "5297021"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4059400101",
+   "source": "deezer",
+   "title": "Mélo Décalé",
+   "artist": "Tiakola",
+   "album": "Mélo Décalé",
+   "albumId": "996625601",
+   "duration": 156,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/90f92f4883003958f33ac69decc15deb/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4059400101"
+   },
+   "artists": [
+    {
+     "name": "Tiakola",
+     "id": "13918545"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4603408",
+   "source": "deezer",
+   "title": "Billie Jean",
+   "artist": "Michael Jackson",
+   "album": "Michael Jackson's This Is It",
+   "albumId": "423368",
+   "duration": 293,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/a0ad67d1beb761f2cb9f8b60e5bcf07a/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4603408"
+   },
+   "artists": [
+    {
+     "name": "Michael Jackson",
+     "id": "259"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4359260502",
+   "source": "deezer",
+   "title": "Wetin Day",
+   "artist": "Zed",
+   "album": "Wetin Day",
+   "albumId": "1126148092",
+   "duration": 134,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/45a07fcb09e6597331fe4d23d1e9e0b4/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4359260502"
+   },
+   "artists": [
+    {
+     "name": "Zed",
+     "id": "2957"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4317190072",
+   "source": "deezer",
+   "title": "Four To The Floor",
+   "artist": "Ofenbach",
+   "album": "Four To The Floor",
+   "albumId": "1109298432",
+   "duration": 212,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/e5d5c118288523defb4f705e0170cc70/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4317190072"
+   },
+   "artists": [
+    {
+     "name": "Ofenbach",
+     "id": "6032634"
+    }
+   ]
+  },
+  {
+   "id": "deezer:3784724892",
+   "source": "deezer",
+   "title": "Talk To You (ft. 54 Ultra)",
+   "artist": "ANOTR",
+   "album": "Talk To You (ft. 54 Ultra)",
+   "albumId": "901075412",
+   "duration": 191,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/ab1abe2d073bf5a55943ccc6dff8bcdc/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "3784724892"
+   },
+   "artists": [
+    {
+     "name": "ANOTR",
+     "id": "8948922"
+    }
+   ]
+  },
+  {
+   "id": "deezer:2553265",
+   "source": "deezer",
+   "title": "Halo",
+   "artist": "Beyoncé",
+   "album": "I AM...SASHA FIERCE",
+   "albumId": "250046",
+   "duration": 262,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/7cf0bdc409e7a7898c745bf0244df312/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "2553265"
+   },
+   "artists": [
+    {
+     "name": "Beyoncé",
+     "id": "145"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4287282492",
+   "source": "deezer",
+   "title": "4",
+   "artist": "Mauvais djo",
+   "album": "4",
+   "albumId": "1079224642",
+   "duration": 140,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/437940fa0dd0408cd00d0b444dca6f12/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4287282492"
+   },
+   "artists": [
+    {
+     "name": "Mauvais djo",
+     "id": "148380152"
+    }
+   ]
+  },
+  {
+   "id": "deezer:3940103361",
+   "source": "deezer",
+   "title": "Pineapple",
+   "artist": "Leto",
+   "album": "Pineapple",
+   "albumId": "953728171",
+   "duration": 160,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/49628c81881f67a76bab8b8f22133b31/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "3940103361"
+   },
+   "artists": [
+    {
+     "name": "Leto",
+     "id": "455796"
+    }
+   ]
+  },
+  {
+   "id": "deezer:3313220951",
+   "source": "deezer",
+   "title": "Jalouse",
+   "artist": "Werenoi",
+   "album": "Jalouse",
+   "albumId": "738876291",
+   "duration": 192,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/aceebceb9c6b69bd276417c1e05553b4/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "3313220951"
+   },
+   "artists": [
+    {
+     "name": "Werenoi",
+     "id": "121672292"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4034126871",
+   "source": "deezer",
+   "title": "Été avec toi",
+   "artist": "Adèle Castillon",
+   "album": "Été avec toi",
+   "albumId": "987392741",
+   "duration": 187,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/cbfd04fb7bf792323de82023bbf974bd/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4034126871"
+   },
+   "artists": [
+    {
+     "name": "Adèle Castillon",
+     "id": "55936502"
+    }
+   ]
+  },
+  {
+   "id": "deezer:60200391",
+   "source": "deezer",
+   "title": "Just Give Me a Reason (feat. Nate Ruess)",
+   "artist": "P!nk",
+   "album": "The Truth About Love",
+   "albumId": "5884161",
+   "duration": 242,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/a43e104f2ff2872df2e1bf4207b6b5e6/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "60200391"
+   },
+   "artists": [
+    {
+     "name": "P!nk",
+     "id": "69925"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4246731441",
+   "source": "deezer",
+   "title": "Nouméa",
+   "artist": "Jok'air",
+   "album": "Nouméa",
+   "albumId": "1063386091",
+   "duration": 228,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/cc955a784400d5d6bc116853f5eccc42/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4246731441"
+   },
+   "artists": [
+    {
+     "name": "Jok'air",
+     "id": "4907510"
+    }
+   ]
+  },
+  {
+   "id": "deezer:4304492962",
+   "source": "deezer",
+   "title": "Jet Lag",
+   "artist": "Tiakola",
+   "album": "WpointM",
+   "albumId": "1103797432",
+   "duration": 181,
+   "trackNumber": null,
+   "discNumber": null,
+   "artwork": "https://cdn-images.dzcdn.net/images/cover/20e710fb1b502101b9ec74833e66a310/1000x1000-000000-80-0-0.jpg",
+   "hasCover": false,
+   "location": {
+    "kind": "remote",
+    "remoteId": "4304492962"
+   },
+   "artists": [
+    {
+     "name": "Tiakola",
+     "id": "13918545"
+    }
+   ]
+  }
+ ]
+}

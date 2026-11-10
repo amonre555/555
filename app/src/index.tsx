@@ -1,7 +1,8 @@
 import { render } from "solid-js/web";
-// Google Sans Flex (licence OFL), intégrée : l'app reste utilisable hors ligne. La version
-// complète expose l'axe « rond » (ROND), qu'on utilise pour des titres plus doux.
-import "@fontsource-variable/google-sans-flex/full.css";
+// Fonts (OFL license), bundled so the app works offline: Unbounded for titles and the brand,
+// Manrope for everything else.
+import "@fontsource-variable/unbounded";
+import "@fontsource-variable/manrope";
 import "./styles.css";
 
 async function start() {

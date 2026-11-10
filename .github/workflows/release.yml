@@ -1,6 +1,6 @@
-# Publishes a yato release: builds the app for macOS (Apple Silicon and Intel, one file) and
+# Publishes a 555 release: builds the app for macOS (Apple Silicon and Intel, one file) and
 # Windows, creates the GitHub Release for the tag with the installers, and `latest.json`,
-# which yato reads for its automatic updates.
+# which 555 reads for its automatic updates.
 #
 # To publish: `./scripts/release.sh 0.2.0`, then push the commit and the tag.
 # Required secrets (Settings → Secrets and variables → Actions):
@@ -69,12 +69,12 @@ jobs:
         with:
           projectPath: app
           tagName: ${{ github.ref_name }}
-          releaseName: yato ${{ github.ref_name }}
+          releaseName: 555 ${{ github.ref_name }}
           releaseBody: |
-            **macOS**: `yato_…_universal.dmg` (Apple Silicon and Intel). The app isn't signed by Apple: on first launch, right-click yato → “Open”, or run `xattr -cr /Applications/yato.app`.
-            **Windows**: `yato_…_x64-setup.exe`. If Windows says “Windows protected your PC”: “More info” → “Run anyway”.
+            **macOS**: `555_…_universal.dmg` (Apple Silicon and Intel). The app isn't signed by Apple: on first launch, right-click 555 → “Open”, or run `xattr -cr /Applications/555.app`.
+            **Windows**: `555_…_x64-setup.exe`. If Windows says “Windows protected your PC”: “More info” → “Run anyway”.
 
-            Once installed, yato updates itself.
+            Once installed, 555 updates itself.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

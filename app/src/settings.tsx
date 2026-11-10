@@ -149,7 +149,7 @@ export function SettingsView(props: { onImport: () => void; onLibrary: () => voi
             </section>
 
             <section class="settings-group">
-              <h2 class="section-title">yato</h2>
+              <h2 class="section-title">555</h2>
               <Row title={t.version(version() || "–")} hint={t.updatesHint}>
                 <button class="ghost" onClick={lookForUpdate} disabled={checking()}>
                   {checking() ? t.checking : t.checkUpdates}

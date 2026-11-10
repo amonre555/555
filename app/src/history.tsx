@@ -130,9 +130,9 @@ export function HistoryView(props: Props) {
                   {dayLabel(day.at)}
                   <span class="muted count-inline">{day.plays.length}</span>
                 </h2>
+                {/* No "now playing" highlight: a song played several times would light up everywhere. */}
                 <TrackList
                   tracks={tracks()}
-                  current={props.snap.track?.id}
                   status={props.snap.status}
                   onPlay={(i) => props.onPlay(tracks(), i)}
                   aside={(i) => clock(day.plays[i].at)}

@@ -2,6 +2,34 @@
 // Simule le cœur Rust : morceaux, lecture et paroles d'exemple.
 // Jamais inclus dans l'app : chargé seulement en développement, hors de Tauri.
 import type { AlbumPage, ArtistPage, Collection, Lyrics, Snapshot, Track } from "./api";
+import { openAlbum, openArtist } from "./nav";
+// Real metadata from Deezer's public API (VHS by Mattyeux, the artist, an album, the charts),
+// used by `?demo=…` to take the website's screenshots. Lyrics stay the made-up sample below.
+import DEMO from "./demo-data.json";
+
+/** Original cover for the made-up sample song (lyrics screenshot): neon lights in blue fog. */
+const SAMPLE_COVER = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+  <defs>
+    <linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0f5c"/><stop offset="0.6" stop-color="#1b22c9"/><stop offset="1" stop-color="#05051a"/></linearGradient>
+    <radialGradient id="m" cx="0.68" cy="0.34" r="0.3"><stop offset="0" stop-color="#ffd6f5"/><stop offset="0.35" stop-color="#ff5fb8"/><stop offset="1" stop-color="#ff5fb8" stop-opacity="0"/></radialGradient>
+    <filter id="b"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+  <rect width="600" height="600" fill="url(#s)"/>
+  <circle cx="408" cy="204" r="190" fill="url(#m)" opacity="0.9"/>
+  <g fill="#000" opacity="0.85">
+    <rect x="30" y="330" width="70" height="270"/><rect x="110" y="280" width="90" height="320"/><rect x="215" y="360" width="60" height="240"/>
+    <rect x="290" y="300" width="110" height="300"/><rect x="415" y="250" width="70" height="350"/><rect x="500" y="340" width="80" height="260"/>
+  </g>
+  <g filter="url(#b)" stroke-width="5" stroke-linecap="round">
+    <path d="M60 380 H90 M130 330 H180 M300 350 H380 M430 300 H470 M515 390 H560" stroke="#7d8bff"/>
+    <path d="M140 420 H170 M310 430 H340 M430 380 H460" stroke="#ff7cc8"/>
+  </g>
+  <path d="M60 380 H90 M130 330 H180 M300 350 H380 M430 300 H470 M515 390 H560" stroke="#dfe3ff" stroke-width="2"/>
+  <path d="M140 420 H170 M310 430 H340 M430 380 H460" stroke="#ffd0ee" stroke-width="2"/>
+</svg>`);
+
+/** `?demo` / `?demo=lyrics|artist|album|history`: a ready-made screen for screenshots. */
+const demo = new URLSearchParams(location.search).get("demo");
 
 type Listener = (payload: unknown) => void;
 const listeners = new Map<string, Listener[]>();
@@ -32,6 +60,7 @@ function playAt(i: number) {
 
 // Morceaux d'exemple (pochettes aléatoires de picsum.photos : l'aperçu n'a pas accès à Deezer).
 async function loadTrending(): Promise<Track[]> {
+  if (demo !== null && demo !== "lyrics") return DEMO.chart as Track[];
   const names: [string, string][] = [
     ["Néons sur la ville", "Les Cassettes"], ["Minuit à Lisbonne", "Clara Vent"], ["Rembobine", "VHS Club"],
     ["Encore une fois", "Mattéo Rive"], ["Lumières basses", "Nuit Blanche"], ["Sweat (Snoop Dogg vs David Guetta Remix)", "Snoop Dogg, David Guetta"],
@@ -155,11 +184,30 @@ const handlers: Record<string, (args: any) => unknown> = {
       coll.history = [0, 1, 2, 0, 3, 4, 0, 5, 1, 6, 2, 7].map((n, k) => ({ track: tracks[n], at: Date.now() - (k * 7 + 1) * hour }));
       setTimeout(() => emit("collection", structuredClone(coll)), 0);
     }
-    // `?demo`: start playing right away (screenshots for the website).
-    if (location.search.includes("demo") && !state.track) {
-      queue = tracks;
+    // `?demo`: start playing right away, then open the requested screen (website screenshots).
+    if (demo !== null && !state.track) {
+      const vhs = DEMO.vhs as Track;
+      // Lyrics: made-up sample lines, so the lyrics screen plays the made-up sample song, with
+      // an original cover drawn for it (never a real song's lyrics on the website).
+      const sample = { ...tracks[0], album: null, albumId: null, artwork: SAMPLE_COVER };
+      queue = demo === "lyrics" ? [sample, ...tracks.slice(1)] : [vhs, ...tracks.filter((t) => t.id !== vhs.id)];
       playAt(0);
-      startedAt -= 62_000;
+      startedAt -= demo === "lyrics" ? -6_000 : 62_000;
+      if (demo !== "lyrics") {
+        const pick = [vhs, ...DEMO.artist.top.slice(1, 4), ...tracks.slice(0, 8)] as Track[];
+        const hour = 3_600_000;
+        coll.history = [0, 1, 4, 0, 5, 2, 6, 0, 7, 3, 8, 1, 9, 10].map((n, k) => ({ track: pick[n], at: Date.now() - (k * 5 + 1) * hour }));
+        coll.liked = [vhs, ...(DEMO.artist.top.slice(1, 3) as Track[])];
+        setTimeout(() => emit("collection", structuredClone(coll)), 0);
+      }
+      const click = (sel: string, text?: string) =>
+        [...document.querySelectorAll<HTMLElement>(sel)].find((el) => !text || el.textContent?.includes(text))?.click();
+      setTimeout(() => {
+        if (demo === "lyrics") click(".now-btn");
+        if (demo === "artist") openArtist({ name: DEMO.artist.name, id: DEMO.artist.id });
+        if (demo === "album") openAlbum({ id: DEMO.album.id, title: DEMO.album.title });
+        if (demo === "history") click(".sidenav .nav", "History");
+      }, 900);
     }
     return tracks;
   },
@@ -188,8 +236,9 @@ const handlers: Record<string, (args: any) => unknown> = {
   queue: () => queue,
   prefetch: () => null,
   lyrics: () => LYRICS,
-  artist: ({ name }) => demoArtist(name),
+  artist: ({ name }) => (demo !== null && name === DEMO.artist.name ? (DEMO.artist as ArtistPage) : demoArtist(name)),
   album: async ({ title }): Promise<AlbumPage> => {
+    if (demo !== null && title === DEMO.album.title) return DEMO.album as AlbumPage;
     const all = tracks.length ? tracks : await loadTrending();
     const list = all.slice(0, 9).map((t) => ({ ...t, album: title, albumId: "demo-album", artwork: "https://picsum.photos/seed/album/600" }));
     return {

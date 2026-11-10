@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="app/public/logo.svg" width="110" alt="" />
+  <img src="app/public/logo.svg" width="110" alt="555" />
 </p>
 
-<h1 align="center">yato</h1>
+<h1 align="center">555</h1>
 
 <p align="center">
   A light, fast music player, written in Rust with Tauri.<br />
@@ -11,7 +11,12 @@
 </p>
 
 <p align="center">
-  <img src="site/assets/screenshot.jpg" width="860" alt="yato's Discover page" />
+  <img src="site/assets/shot-discover.jpg" width="860" alt="555 playing VHS by Mattyeux" />
+</p>
+
+<p align="center">
+  <img src="site/assets/shot-lyrics.jpg" width="425" alt="Word-synced lyrics" />
+  <img src="site/assets/shot-artist.jpg" width="425" alt="Artist page" />
 </p>
 
 ## Features
@@ -19,7 +24,7 @@
 - **Your local library**: MP3, FLAC, OGG, M4A/AAC, WAV, AIFF… scanned in parallel on every core, cached on disk, instant search.
 - **One source for the info, one for the sound** (like Nuclear):
   - **Deezer** (public API, no key): search, charts, clean titles and albums, 1000 × 1000 covers.
-  - **YouTube Music**: at play time, yato looks for the same recording (title, artist, length, skipping live, remix, sped-up versions…) through [rustypipe](https://codeberg.org/ThetaDev/rustypipe). YouTube search is still available for versions Deezer doesn't have.
+  - **YouTube Music**: at play time, 555 looks for the same recording (title, artist, length, skipping live, remix, sped-up versions…) through [rustypipe](https://codeberg.org/ThetaDev/rustypipe). YouTube search is still available for versions Deezer doesn't have.
 - **Instant start**: the audio stream's direct address (from rustypipe) starts the song in ~0.3 s, while [yt-dlp](https://github.com/yt-dlp/yt-dlp) starts in parallel and takes over seamlessly if YouTube cuts the direct stream. Both deliver the very same file into one buffer: the fastest one wins.
 - **Progressive streaming**: playback starts while downloading, and seeking is instant.
 - **Prefetching**: the next song, the first search result and hovered songs are downloaded ahead of time into memory (8 songs at most).
@@ -29,21 +34,21 @@
 - **Liked songs and playlists**: a heart on every song, and playlists that mix the local library, Deezer and YouTube. Right-click or "⋯" on a song to add it, drag and drop to reorder, click the name to rename. Everything is kept in `collection.json`, in the app data.
 - **Listening history**: every play (after 20 s of listening), grouped by day with the time, plus your most played songs.
 - **Shuffle, repeat (queue or song) and crossfade** from 1 to 12 s (two mixed players, constant-power curves).
-- **Resume**: on launch, yato brings back the last song, the queue and the position.
+- **Resume**: on launch, 555 brings back the last song, the queue and the position.
 - **Playlist import** from a Spotify link (no account: songs are found on Deezer), Deezer or YouTube Music.
 - **English and French**, switchable in Settings → General (English by default).
 - **Discord status**: "Listening to *title*", the artist, the cover and the progress bar. Very few updates (only on changes), and nothing happens when Discord is closed.
 - **Word-synced lyrics**: NetEase Cloud Music (YRC format) for per-word timing, [LRCLIB](https://lrclib.net) in parallel (lines, or words in Enhanced LRC). Without word timing, it's estimated from word length, without spreading over pauses. Click a line to jump there.
 - **Media keys and the system media panel** (Windows, MPRIS on Linux, macOS), with title, artist and cover.
-- **"Mist" interface**: the whole app floats in a haze tinted by the current cover (palette via [material-color-utilities](https://github.com/material-foundation/material-color-utilities)). No visible panels, light frosted glass, fine type (Google Sans Flex), a thread of light for progress, blur transitions.
-- **Now playing view**: the cover flies out of the player and its edges melt into the mist; karaoke lyrics where each word fills with white the moment it's sung.
+- **Blue on black**: deep electric-blue to black gradients, a fine paper grain, wide titles (Unbounded) and clean text (Manrope), dark glass, and pages that change through a soft blur.
+- **Now playing view**: the cover flies out of the player over a blue-to-black backdrop; karaoke lyrics where each word fills with white the moment it's sung.
 
 ## Install
 
-Installers are in the [Releases](https://github.com/amonre555/ondes/releases): `.dmg` for macOS (Apple Silicon and Intel), `-setup.exe` for Windows. Once installed, yato checks for a new version on launch (then every 6 h) and offers to install it in one click. Updates are signed, and the app refuses any whose signature doesn't match.
+Installers are in the [Releases](https://github.com/amonre555/ondes/releases): `.dmg` for macOS (Apple Silicon and Intel), `-setup.exe` for Windows. Once installed, 555 checks for a new version on launch (then every 6 h) and offers to install it in one click. Updates are signed, and the app refuses any whose signature doesn't match.
 
 The app isn't signed by Apple or Microsoft:
-- **macOS**: on first launch, right-click yato → "Open" (or `xattr -cr /Applications/yato.app`);
+- **macOS**: on first launch, right-click 555 → "Open" (or `xattr -cr /Applications/555.app`);
 - **Windows**: "More info" → "Run anyway".
 
 ## Structure
@@ -65,7 +70,7 @@ The core doesn't know about Tauri: it could power a mobile version (Tauri v2) or
 
 ## Run from source
 
-Requirements: stable Rust, Node.js 22+, MSVC build tools (Windows). Nothing else: yt-dlp installs itself on first launch (in `<app data>/bin/yt-dlp`). If that fails (offline…), yato uses a yt-dlp already on the system (PATH or winget).
+Requirements: stable Rust, Node.js 22+, MSVC build tools (Windows). Nothing else: yt-dlp installs itself on first launch (in `<app data>/bin/yt-dlp`). If that fails (offline…), 555 uses a yt-dlp already on the system (PATH or winget).
 
 ```bash
 cd app
@@ -75,9 +80,9 @@ npm run tauri dev
 
 Optimized build: `npm run tauri build`.
 
-On Windows, if the project folder is very deep, the linker can hit the 260-character limit. Build elsewhere, for example `set CARGO_TARGET_DIR=C:\yato-target`.
+On Windows, if the project folder is very deep, the linker can hit the 260-character limit. Build elsewhere, for example `set CARGO_TARGET_DIR=C:\555-target`.
 
-To work on the interface in a browser, without Tauri: `npm run dev` then http://localhost:1420. The core is then simulated (sample songs and lyrics), see `app/src/dev-mock.ts`; add `?demo` to the address to start playing right away. This mode is never shipped in the app.
+To work on the interface in a browser, without Tauri: `npm run dev` then http://localhost:1420. The core is then simulated (sample songs and lyrics), see `app/src/dev-mock.ts`. This mode is never shipped in the app. The website's screenshots come from its demo screens: `?demo` (Discover, playing), `?demo=lyrics`, `?demo=artist`, `?demo=album` and `?demo=history`, with real metadata from Deezer in `app/src/demo-data.json`.
 
 Quick tests, without the interface:
 

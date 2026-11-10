@@ -3,30 +3,32 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>yato — a light, fast music player</title>
-  <meta name="description" content="yato is a free, open-source music player for macOS and Windows. Stream from Deezer and YouTube Music, play your own files, word-synced lyrics, no account, no ads." />
-  <meta property="og:title" content="yato — a light, fast music player" />
+  <title>555 — a light, fast music player</title>
+  <meta name="description" content="555 is a free, open-source music player for macOS and Windows. Stream from Deezer and YouTube Music, play your own files, word-synced lyrics, no account, no ads." />
+  <meta property="og:title" content="555 — a light, fast music player" />
   <meta property="og:description" content="Free and open source. Stream, play your own files, word-synced lyrics. No account, no ads." />
-  <meta property="og:image" content="assets/screenshot.jpg" />
-  <meta name="theme-color" content="#08080f" />
+  <meta property="og:image" content="assets/shot-discover.jpg" />
+  <meta name="theme-color" content="#000000" />
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,300..700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&family=Unbounded:wght@400..800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #08080f;
-      --text: #f2f0fa;
-      --text-2: #b4b0c8;
-      --text-3: #7d7992;
+      --bg: #000;
+      --text: #f4f4f7;
+      --text-2: #a3a5b8;
+      --text-3: #686a7e;
       --glass: rgba(255, 255, 255, 0.05);
       --glass-2: rgba(255, 255, 255, 0.09);
       --line: rgba(255, 255, 255, 0.09);
-      --cyan: #8af1ff;
-      --violet: #a995ff;
-      --pink: #ff9fd2;
-      --iri: linear-gradient(120deg, var(--cyan), var(--violet) 50%, var(--pink));
+      --blue: #2433ff;
+      --blue-light: #6f7bff;
+      --cyan: var(--blue-light);
+      --iri: linear-gradient(120deg, #ffffff, #9aa3ff 55%, var(--blue-light));
+      --display: "Unbounded", "Manrope", system-ui, sans-serif;
+      --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
       --r: 22px;
       --soft: cubic-bezier(0.22, 1, 0.36, 1);
     }
@@ -34,7 +36,7 @@
     html { scroll-behavior: smooth; scroll-padding-top: 90px; }
     body {
       background: var(--bg); color: var(--text);
-      font-family: "Google Sans Flex", system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-family: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif; font-weight: 500;
       font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; overflow-x: hidden;
     }
     a { color: inherit; text-decoration: none; }
@@ -42,11 +44,12 @@
     code, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
 
     /* Mist: slow drifting coloured haze behind everything. */
-    .mist { position: fixed; inset: -20%; z-index: -1; pointer-events: none; filter: blur(110px); opacity: 0.55; }
+    .mist { position: fixed; inset: -20%; z-index: -1; pointer-events: none; filter: blur(110px); opacity: 0.7; }
+    body::after { content: ""; position: fixed; inset: 0; z-index: 100; pointer-events: none; background: var(--grain); background-size: 220px; opacity: 0.07; mix-blend-mode: overlay; }
     .mist i { position: absolute; border-radius: 50%; animation: drift 28s ease-in-out infinite alternate; }
-    .mist i:nth-child(1) { width: 46vw; height: 40vw; left: 12%; top: 8%; background: #5b3dff; }
-    .mist i:nth-child(2) { width: 40vw; height: 34vw; right: 10%; top: 2%; background: #1fb8e6; animation-delay: -9s; }
-    .mist i:nth-child(3) { width: 38vw; height: 30vw; left: 38%; top: 46%; background: #e0559e; opacity: 0.6; animation-delay: -17s; }
+    .mist i:nth-child(1) { width: 46vw; height: 40vw; left: 12%; top: 8%; background: #2433ff; }
+    .mist i:nth-child(2) { width: 40vw; height: 34vw; right: 10%; top: 2%; background: #0d14a8; animation-delay: -9s; }
+    .mist i:nth-child(3) { width: 38vw; height: 30vw; left: 38%; top: 46%; background: #1a24d6; opacity: 0.5; animation-delay: -17s; }
     @keyframes drift { to { transform: translate(6vw, 5vh) scale(1.15); } }
     @media (prefers-reduced-motion: reduce) { .mist i { animation: none; } html { scroll-behavior: auto; } }
 
@@ -60,7 +63,7 @@
       box-shadow: inset 0 0 0 1px var(--line);
     }
     .brand { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 500; margin-right: auto; }
-    .brand img { width: 28px; height: 28px; }
+    .brand img { width: auto; height: 20px; }
     .nav-links a { padding: 8px 12px; border-radius: 999px; font-size: 14px; color: var(--text-2); transition: color 0.2s, background 0.2s; }
     .nav-links a:hover { color: var(--text); background: var(--glass); }
     .btn {
@@ -68,8 +71,8 @@
       border-radius: 999px; font-weight: 500; font-size: 15px; transition: transform 0.25s var(--soft), background 0.2s, box-shadow 0.3s;
     }
     .btn:active { transform: scale(0.97); }
-    .btn-primary { background: var(--text); color: #0b0a12; box-shadow: 0 8px 40px -10px rgba(169, 149, 255, 0.7); }
-    .btn-primary:hover { box-shadow: 0 8px 50px -6px rgba(138, 241, 255, 0.75); }
+    .btn-primary { background: linear-gradient(135deg, #3a48ff, var(--blue) 60%, #0d14a8); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 8px 40px -10px rgba(36, 51, 255, 0.9); }
+    .btn-primary:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 8px 50px -6px rgba(36, 51, 255, 1); }
     .btn-ghost { background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
     .btn-ghost:hover { background: var(--glass-2); }
     .btn-sm { height: 36px; padding: 0 14px; font-size: 14px; }
@@ -77,25 +80,26 @@
 
     /* Hero */
     .hero { text-align: center; padding: 88px 0 40px; }
-    .hero-logo { width: 104px; height: 104px; margin: 0 auto 18px; filter: drop-shadow(0 10px 40px rgba(169, 149, 255, 0.45)); animation: float 6s ease-in-out infinite; }
+    .hero-logo { width: 104px; height: 104px; margin: 0 auto 26px; border-radius: 24px; filter: drop-shadow(0 16px 50px rgba(36, 51, 255, 0.6)); animation: float 6s ease-in-out infinite; }
     @keyframes float { 50% { transform: translateY(-8px); } }
-    h1 { font-size: clamp(64px, 12vw, 128px); font-weight: 300; line-height: 0.95; letter-spacing: -0.04em; }
-    .tagline { margin-top: 18px; font-size: clamp(19px, 2.6vw, 25px); color: var(--text-2); font-weight: 350; }
-    .tagline b { font-weight: 500; background: var(--iri); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero-mark { display: block; height: clamp(84px, 14vw, 150px); width: auto; margin: 0 auto 30px; filter: drop-shadow(0 18px 60px rgba(36, 51, 255, 0.55)); }
+    h1 { font-family: var(--display); font-size: clamp(64px, 12vw, 132px); font-weight: 700; line-height: 0.95; letter-spacing: -0.05em; }
+    .tagline { margin-top: 18px; font-size: clamp(18px, 2.4vw, 23px); color: var(--text-2); font-weight: 500; }
+    .tagline b { font-weight: 700; background: var(--iri); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 32px; }
     .hero-meta { margin-top: 14px; font-size: 14px; color: var(--text-3); min-height: 1.5em; }
 
     .shot { position: relative; margin: 54px auto 0; width: min(1040px, 100%); }
     .shot::before {
       content: ""; position: absolute; inset: 8% 6% -4%; z-index: -1; border-radius: 40px;
-      background: var(--iri); filter: blur(70px); opacity: 0.35;
+      background: var(--blue); filter: blur(80px); opacity: 0.55;
     }
     .shot img { display: block; width: 100%; height: auto; border-radius: 18px; box-shadow: 0 0 0 1px var(--line), 0 40px 120px -30px rgba(0, 0, 0, 0.9); }
 
     /* Sections */
     section { padding: 90px 0 0; }
-    .eyebrow { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); margin-bottom: 10px; }
-    h2 { font-size: clamp(34px, 5vw, 52px); font-weight: 350; line-height: 1.08; letter-spacing: -0.025em; max-width: 720px; }
+    .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: var(--blue-light); margin-bottom: 12px; }
+    h2 { font-family: var(--display); font-size: clamp(30px, 4.6vw, 50px); font-weight: 600; line-height: 1.08; letter-spacing: -0.04em; max-width: 760px; }
     .lead { margin-top: 14px; max-width: 620px; color: var(--text-2); font-size: 18px; }
 
     .features { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-top: 40px; }
@@ -106,9 +110,9 @@
     }
     .card:hover { transform: translateY(-3px); background: var(--glass-2); }
     .card.wide { grid-column: span 3; }
-    .card h3 { font-size: 20px; font-weight: 500; margin: 14px 0 6px; letter-spacing: -0.01em; }
+    .card h3 { font-family: var(--display); font-size: 17px; font-weight: 600; margin: 14px 0 6px; letter-spacing: -0.01em; }
     .card p { color: var(--text-2); font-size: 15px; }
-    .icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--glass-2); color: var(--cyan); }
+    .icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: linear-gradient(145deg, #3a48ff, #0d14a8); color: #fff; }
     .icon svg { width: 22px; height: 22px; }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
     .chip { padding: 4px 10px; border-radius: 999px; font-size: 12px; color: var(--text-2); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
@@ -124,8 +128,8 @@
     /* Download */
     .downloads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; }
     .dl { display: flex; flex-direction: column; gap: 8px; padding: 26px; border-radius: var(--r); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
-    .dl.detected { box-shadow: inset 0 0 0 1px rgba(169, 149, 255, 0.55), 0 20px 60px -30px rgba(169, 149, 255, 0.6); }
-    .dl h3 { font-size: 22px; font-weight: 500; display: flex; align-items: center; gap: 10px; }
+    .dl.detected { background: linear-gradient(150deg, rgba(36, 51, 255, 0.45), rgba(0, 0, 0, 0.2) 70%); box-shadow: inset 0 0 0 1px rgba(111, 123, 255, 0.5), 0 20px 60px -30px rgba(36, 51, 255, 0.9); }
+    .dl h3 { font-family: var(--display); font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
     .dl h3 svg { width: 22px; height: 22px; }
     .dl .sub { font-size: 14px; color: var(--text-3); }
     .dl p { color: var(--text-2); font-size: 15px; flex: 1; }
@@ -150,6 +154,18 @@
     footer .brand { font-size: 16px; margin-right: auto; color: var(--text-2); }
     footer a:hover { color: var(--text); }
 
+    /* A closer look: big screenshots alternating with their story. */
+    .tour { display: grid; gap: clamp(60px, 9vw, 110px); margin-top: 50px; }
+    .tour-row { display: grid; grid-template-columns: 1.55fr 1fr; gap: clamp(28px, 4vw, 56px); align-items: center; }
+    .tour-row:nth-child(even) { grid-template-columns: 1fr 1.55fr; }
+    .tour-row:nth-child(even) .tour-shot { order: 2; }
+    .tour-shot { position: relative; }
+    .tour-shot::before { content: ""; position: absolute; inset: 10% 8% -6%; z-index: -1; border-radius: 30px; background: var(--blue); filter: blur(70px); opacity: 0.4; }
+    .tour-shot img { display: block; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 0 0 1px var(--line), 0 30px 90px -30px rgba(0, 0, 0, 0.9); }
+    .tour-text h3 { font-family: var(--display); font-size: clamp(24px, 2.6vw, 34px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; margin-bottom: 14px; }
+    .tour-text p { color: var(--text-2); font-size: 17px; }
+    .tour-text .eyebrow { margin-bottom: 14px; }
+
     /* Reveal on scroll */
     .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.9s var(--soft), transform 0.9s var(--soft); }
     .reveal.in { opacity: 1; transform: none; }
@@ -157,6 +173,8 @@
     @media (max-width: 900px) {
       .card, .card.wide { grid-column: span 3; }
       .downloads { grid-template-columns: 1fr; }
+      .tour-row, .tour-row:nth-child(even) { grid-template-columns: 1fr; }
+      .tour-row:nth-child(even) .tour-shot { order: 0; }
     }
     @media (max-width: 640px) {
       .nav-links { display: none; }
@@ -171,7 +189,7 @@
   <div class="mist" aria-hidden="true"><i></i><i></i><i></i></div>
 
   <nav class="nav">
-    <a class="brand" href="#top"><img src="assets/logo.svg" alt="" />yato</a>
+    <a class="brand" href="#top" aria-label="555"><img src="assets/wordmark.svg" alt="555" /></a>
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#download">Download</a>
@@ -185,9 +203,8 @@
 
   <main id="top" class="wrap">
     <header class="hero">
-      <img class="hero-logo" src="assets/logo.svg" alt="" />
-      <h1>yato</h1>
-      <p class="tagline">A light, fast music player. <b>Everything you love, in the mist.</b></p>
+      <h1><img class="hero-mark" src="assets/wordmark.svg" alt="555" /></h1>
+      <p class="tagline">A light, fast music player. <b>All your music, nothing in the way.</b></p>
       <div class="hero-actions">
         <a class="btn btn-primary" id="main-download" href="#download">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>
@@ -199,15 +216,56 @@
       <p class="hero-meta" id="hero-meta">Free and open source. macOS and Windows.</p>
 
       <div class="shot reveal">
-        <img src="assets/screenshot.jpg" width="2400" height="1500" alt="yato's Discover page, with the cover of the current song coloring the whole window" />
+        <img src="assets/shot-discover.jpg" width="2000" height="1250" alt="555 playing VHS by Mattyeux, on the Discover page" />
       </div>
     </header>
+
+    <section id="tour">
+      <div class="reveal">
+        <p class="eyebrow">A closer look</p>
+        <h2>Made to be looked at, too.</h2>
+      </div>
+      <div class="tour">
+        <div class="tour-row reveal">
+          <div class="tour-shot"><img src="assets/shot-lyrics.jpg" width="2000" height="1250" loading="lazy" alt="The Now playing view, with word-synced lyrics" /></div>
+          <div class="tour-text">
+            <p class="eyebrow">Now playing</p>
+            <h3>Lyrics that follow every word.</h3>
+            <p>Open the Now playing view: the cover flies out of the player, and each word fills with light the moment it's sung. Click any line to jump there.</p>
+          </div>
+        </div>
+        <div class="tour-row reveal">
+          <div class="tour-shot"><img src="assets/shot-artist.jpg" width="2000" height="1250" loading="lazy" alt="Mattyeux's artist page" /></div>
+          <div class="tour-text">
+            <p class="eyebrow">Artists</p>
+            <h3>Every artist, one click away.</h3>
+            <p>Photo, popular songs, albums, singles and similar artists. Every name on a song is a link, features included.</p>
+          </div>
+        </div>
+        <div class="tour-row reveal">
+          <div class="tour-shot"><img src="assets/shot-album.jpg" width="2000" height="1250" loading="lazy" alt="The album page of Mirages by Mattyeux" /></div>
+          <div class="tour-text">
+            <p class="eyebrow">Albums</p>
+            <h3>Albums the way they were made.</h3>
+            <p>The full track list, year, length and label. Play it all, or add the whole album to a playlist in two clicks.</p>
+          </div>
+        </div>
+        <div class="tour-row reveal">
+          <div class="tour-shot"><img src="assets/shot-history.jpg" width="2000" height="1250" loading="lazy" alt="The listening history, grouped by day" /></div>
+          <div class="tour-text">
+            <p class="eyebrow">History</p>
+            <h3>Everything you've played.</h3>
+            <p>Every listen, day by day, with the time. Your most played songs on top, and the whole day back in one click.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section id="features">
       <div class="reveal">
         <p class="eyebrow">Features</p>
         <h2>All your music, one quiet window.</h2>
-        <p class="lead">yato finds songs on Deezer, plays them through YouTube Music, and plays your own files too. No account, no ads, no tracking.</p>
+        <p class="lead">555 finds songs on Deezer, plays them through YouTube Music, and plays your own files too. No account, no ads, no tracking.</p>
       </div>
 
       <div class="features">
@@ -240,8 +298,8 @@
         </article>
         <article class="card reveal">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18"/></svg></div>
-          <h3>Colors from the cover</h3>
-          <p>The whole app floats in a mist tinted by the current cover. Frosted glass, fine type, soft blur transitions.</p>
+          <h3>Blue on black</h3>
+          <p>Deep electric-blue gradients, paper grain, big wide type. Every change of page goes through a soft blur.</p>
         </article>
         <article class="card reveal">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12h.01M16 12h.01M7 17c1.5 1 3 1.5 5 1.5s3.5-.5 5-1.5l1.5-9C17 7 15.5 6.5 14 6.3L13.5 7h-3L10 6.3C8.5 6.5 7 7 5.5 8z"/></svg></div>
@@ -260,13 +318,13 @@
       <div class="reveal">
         <p class="eyebrow">Download</p>
         <h2>Free, for good.</h2>
-        <p class="lead" id="download-lead">Pick your system. yato updates itself once installed.</p>
+        <p class="lead" id="download-lead">Pick your system. 555 updates itself once installed.</p>
       </div>
       <div class="downloads">
         <article class="dl reveal" data-os="mac">
           <h3><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.8 1.3 10.3.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.2zM13.9 4.9c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.2 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z"/></svg>macOS</h3>
           <span class="sub">Apple silicon and Intel, one app</span>
-          <p>Unsigned for now: on first launch, right-click yato → Open, or run the command below.</p>
+          <p>Unsigned for now: on first launch, right-click 555 → Open, or run the command below.</p>
           <a class="btn btn-primary" data-asset="mac" href="https://github.com/amonre555/ondes/releases/latest">Download .dmg</a>
         </article>
         <article class="dl reveal" data-os="win">
@@ -278,13 +336,13 @@
         <article class="dl reveal" data-os="linux">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 9-3 3 3 3m8-6 3 3-3 3M13 6l-2 12"/></svg>Linux</h3>
           <span class="sub">Build from source</span>
-          <p>No package yet. yato builds on Linux with Rust and Node.js; media keys work through MPRIS.</p>
+          <p>No package yet. 555 builds on Linux with Rust and Node.js; media keys work through MPRIS.</p>
           <a class="btn btn-ghost" href="https://github.com/amonre555/ondes#run-from-source" target="_blank" rel="noopener">Build instructions</a>
         </article>
       </div>
       <div class="note reveal">
-        <b>If macOS says “yato is damaged” or won't open it</b>, run this in Terminal, then open yato again:
-        <div class="cmd"><code>xattr -cr /Applications/yato.app</code><button class="copy" type="button">Copy</button></div>
+        <b>If macOS says “555 is damaged” or won't open it</b>, run this in Terminal, then open 555 again:
+        <div class="cmd"><code>xattr -cr /Applications/555.app</code><button class="copy" type="button">Copy</button></div>
       </div>
     </section>
 
@@ -294,20 +352,20 @@
         <h2>Questions</h2>
       </div>
       <div class="faq reveal">
-        <details><summary>Does yato cost anything?</summary><p>No. yato is free and open source (GPL-3.0), with no subscription and no paid tier.</p></details>
-        <details><summary>Do I need an account?</summary><p>No. Install it and press play. yato never asks you to sign in and doesn't collect usage data.</p></details>
+        <details><summary>Does 555 cost anything?</summary><p>No. 555 is free and open source (GPL-3.0), with no subscription and no paid tier.</p></details>
+        <details><summary>Do I need an account?</summary><p>No. Install it and press play. 555 never asks you to sign in and doesn't collect usage data.</p></details>
         <details><summary>Where does the music come from?</summary><p>Song info, covers and charts come from Deezer's public API. The sound itself comes from YouTube Music, matched to the same recording (title, artist, length, skipping live and sped-up versions). Your own files play straight from disk.</p></details>
-        <details><summary>Can it play my own files?</summary><p>Yes: MP3, FLAC, OGG, M4A/AAC, WAV and AIFF. yato reads tags and cover art and never touches the originals.</p></details>
-        <details><summary>How do I import a Spotify playlist?</summary><p>Paste the link of a public playlist (or album). yato finds each song on Deezer and creates the playlist, no Spotify account needed.</p></details>
+        <details><summary>Can it play my own files?</summary><p>Yes: MP3, FLAC, OGG, M4A/AAC, WAV and AIFF. 555 reads tags and cover art and never touches the originals.</p></details>
+        <details><summary>How do I import a Spotify playlist?</summary><p>Paste the link of a public playlist (or album). 555 finds each song on Deezer and creates the playlist, no Spotify account needed.</p></details>
         <details><summary>Which languages does it speak?</summary><p>English and French for now. Change it in Settings → General.</p></details>
-        <details><summary>Is it safe? The app isn't signed.</summary><p>Signing with Apple and Microsoft costs money each year, so the installers aren't signed yet. The code is public and the builds are made by GitHub Actions from it. Updates are signed, and yato refuses any update whose signature doesn't match.</p></details>
+        <details><summary>Is it safe? The app isn't signed.</summary><p>Signing with Apple and Microsoft costs money each year, so the installers aren't signed yet. The code is public and the builds are made by GitHub Actions from it. Updates are signed, and 555 refuses any update whose signature doesn't match.</p></details>
       </div>
     </section>
   </main>
 
   <footer>
     <div class="wrap">
-      <span class="brand"><img src="assets/logo.svg" alt="" />yato</span>
+      <span class="brand"><img src="assets/wordmark.svg" alt="555" /></span>
       <a href="https://github.com/amonre555/ondes" target="_blank" rel="noopener">GitHub</a>
       <a href="https://github.com/amonre555/ondes/releases" target="_blank" rel="noopener">Releases</a>
       <a href="https://github.com/amonre555/ondes/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a>

@@ -14,8 +14,8 @@ import {
   sourceColorFromImageBytes,
 } from "@material/material-color-utilities";
 
-/** Couleur de yato quand rien ne joue (le lilas du logo). */
-const DEFAULT_SOURCE = argbFromHex("#a995ff");
+/** 555's color when nothing is playing (the brand's electric blue). */
+const DEFAULT_SOURCE = argbFromHex("#2433ff");
 
 /** Rôles Material 3 utilisés par l'interface → variable CSS `--md-<nom>`. */
 const ROLES: Record<string, DynamicColor> = {

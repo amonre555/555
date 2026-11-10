@@ -86,12 +86,18 @@ export function PlayerBar(props: {
         <LikeButton track={props.snap.track} class="now-like" />
       </div>
 
+      {/* Progress: a thin line along the top edge of the bar (it thickens on hover). */}
+      <Progress snap={props.snap} position={props.position} run={props.run} line />
+
       <div class="transport">
         <Transport snap={props.snap} run={props.run} playing={playing()} />
-        <Progress snap={props.snap} position={props.position} run={props.run} />
       </div>
 
       <div class="side-controls">
+        <span class="player-time">
+          {formatTime(props.position)}
+          <span class="player-time-total"> / {formatTime(props.snap.duration)}</span>
+        </span>
         <button
           classList={{ "icon-btn": true, active: props.expanded }}
           title={tr.lyricsAndNowPlaying}
@@ -153,14 +159,27 @@ function Transport(props: { snap: Snapshot; run: Run; playing: boolean; big?: bo
   );
 }
 
-function Progress(props: { snap: Snapshot; position: number; run: Run }) {
+/** `line`: no times, just the bar (the player's top edge). */
+function Progress(props: { snap: Snapshot; position: number; run: Run; line?: boolean }) {
   const [dragging, setDragging] = createSignal<number | null>(null);
   const shown = () => dragging() ?? props.position;
   const duration = () => props.snap.duration ?? 0;
   const pct = () => (duration() > 0 ? (shown() / duration()) * 100 : 0);
+  // Max and value set together, max first: on resume the position can arrive before the
+  // duration, and the browser would clamp the value to the old max (thumb stuck at the start).
+  let input: HTMLInputElement | undefined;
+  createEffect(() => {
+    const max = duration() || 1;
+    const value = Math.min(shown(), max);
+    if (!input) return;
+    input.max = String(max);
+    input.value = String(value);
+  });
   return (
-    <div class="progress">
-      <span class="time">{formatTime(shown())}</span>
+    <div classList={{ progress: true, "progress-line": !!props.line }}>
+      <Show when={!props.line}>
+        <span class="time">{formatTime(shown())}</span>
+      </Show>
       {/*
         Barre ondulée (Material 3 Expressive) : la partie écoutée est une vague qui défile
         pendant la lecture et s'aplatit en pause. Le curseur natif reste par-dessus pour la
@@ -170,12 +189,11 @@ function Progress(props: { snap: Snapshot; position: number; run: Run }) {
         {/* Fil de lumière : la partie écoutée, qui brille doucement. */}
         <div class="seek-played" style={{ width: `${pct()}%` }} aria-hidden="true" />
       <input
+        ref={input}
         type="range"
         class="slider"
         min="0"
-        max={duration() || 1}
         step="0.1"
-        value={shown()}
         style={{ "--pct": `${pct()}%` }}
         disabled={!props.snap.track || !duration()}
         aria-label={tr.seekLabel}
@@ -187,7 +205,9 @@ function Progress(props: { snap: Snapshot; position: number; run: Run }) {
         }}
       />
       </div>
-      <span class="time">{formatTime(props.snap.duration)}</span>
+      <Show when={!props.line}>
+        <span class="time">{formatTime(props.snap.duration)}</span>
+      </Show>
     </div>
   );
 }
@@ -217,8 +237,8 @@ function playerCoverRect(): DOMRect | null {
 }
 
 /** Rayons des coins des deux pochettes (doivent suivre `.np-art` et `.cover.md` dans styles.css). */
-const ART_RADIUS_PX = 36;
-const PLAYER_RADIUS_PX = 16;
+const ART_RADIUS_PX = 22;
+const PLAYER_RADIUS_PX = 10;
 
 /**
  * Fait voler la grande pochette depuis (ou vers) celle du lecteur (technique « FLIP ») :
