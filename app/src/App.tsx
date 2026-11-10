@@ -8,6 +8,7 @@ import { pageRequest, type Page } from "./nav";
 import { IconClose, IconCompass, IconFolderPlus, IconHeart, IconLibrary, IconNote, IconPlay, IconPlus, IconRefresh, IconSearch } from "./icons";
 import { collection, createPlaylist, dismissToast, loadCollection, notify, toast } from "./collection";
 import { LikedView, PlaylistView } from "./playlist";
+import { UpdateCard } from "./update";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
 import { AlbumLink, ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, PlaylistArt, SourceTag, TrackCard, TrackList, TrackMenuHost, YtDlpBadge } from "./ui";
 
@@ -343,6 +344,7 @@ export default function App() {
             </button>
           </div>
         </Show>
+        <UpdateCard />
         <YtDlpBadge status={ytdlp()} />
       </aside>
       <div classList={{ "nav-progress": true, on: navigating() }} aria-hidden="true" />

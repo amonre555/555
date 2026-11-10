@@ -1,0 +1,80 @@
+# Publie une version de yato : compile l'app pour macOS (Apple Silicon et Intel, un seul
+# fichier) et Windows, crée la Release GitHub du tag avec les installateurs, et `latest.json`
+# que yato consulte pour ses mises à jour automatiques.
+#
+# Pour publier : `./scripts/release.sh 0.2.0`, puis pousser le commit et le tag.
+# Secrets nécessaires (Settings → Secrets and variables → Actions) :
+#   TAURI_SIGNING_PRIVATE_KEY           contenu de ~/.tauri/yato.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  contenu de ~/.tauri/yato.key.password
+name: Publier une version
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            args: --target universal-apple-darwin
+          - name: Windows
+            os: windows-latest
+            rust-targets: ""
+            args: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier que le tag correspond à la version
+        shell: bash
+        run: |
+          version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Le tag $GITHUB_REF_NAME ne correspond pas à la version $version de Cargo.toml"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.name }}
+
+      - name: Dépendances de l'interface
+        working-directory: app
+        run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: app
+          tagName: ${{ github.ref_name }}
+          releaseName: yato ${{ github.ref_name }}
+          releaseBody: |
+            **macOS** : `yato_…_universal.dmg` (Apple Silicon et Intel). L'app n'est pas signée par Apple : au premier lancement, clic droit sur yato → « Ouvrir », ou `xattr -cr /Applications/yato.app`.
+            **Windows** : `yato_…_x64-setup.exe`. Si Windows affiche « Windows a protégé votre ordinateur » : « Informations complémentaires » → « Exécuter quand même ».
+
+            Une fois installé, yato se met à jour tout seul.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

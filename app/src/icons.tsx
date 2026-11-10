@@ -154,3 +154,8 @@ export const IconMinus = (p: { size?: number }) => (
     <path d="M5 12h14" />
   </Svg>
 );
+export const IconDownload = () => (
+  <Svg size={16}>
+    <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+  </Svg>
+);

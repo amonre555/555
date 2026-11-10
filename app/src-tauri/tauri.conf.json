@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "yato",
-  "version": "0.1.0",
   "identifier": "app.yato.player",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -27,6 +26,24 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEEzQkFFQ0FGQjY3MEQ2MDEKUldRQjFuQzJyK3k2bzJZblcwaW5WZjlQcm1LRHJWb1Z5NlFxUGJXN1pYQlZqWEI4OFpHMzRzU1kK",
+      "endpoints": [
+        "https://github.com/amonre555/ondes/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

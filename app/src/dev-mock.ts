@@ -162,6 +162,11 @@ const handlers: Record<string, (args: any) => unknown> = {
   },
   track_artists: ({ track }) => track.artists ?? [{ name: track.artist }],
   ytdlp_status: () => ({ state: "ready" }),
+  // Mises à jour : aucune, sauf avec `?update` dans l'adresse (pour voir la carte).
+  "plugin:updater|check": () =>
+    location.search.includes("update") ? { rid: 1, currentVersion: "0.1.0", version: "0.2.0", date: null, body: "", rawJson: {} } : null,
+  "plugin:updater|download_and_install": () => new Promise((done) => setTimeout(done, 1500)),
+  "plugin:process|restart": () => location.reload(),
 };
 
 (window as any).__TAURI_INTERNALS__ = {

@@ -274,6 +274,9 @@ fn cover_response(uri_path: &str) -> http::Response<Vec<u8>> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // Mises à jour automatiques, publiées dans les Releases GitHub (voir .github/workflows).
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .register_asynchronous_uri_scheme_protocol("cover", |_ctx, request, responder| {
             let path = request.uri().path().to_owned();
             tauri::async_runtime::spawn_blocking(move || responder.respond(cover_response(&path)));

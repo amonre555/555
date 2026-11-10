@@ -61,6 +61,25 @@ cargo run -p yato-core --example lyrics -- "tout oublier angele"   # paroles, et
 cargo test -p yato-core -- --include-ignored   # dont la vérification de signature réelle
 ```
 
+## Installer, publier une version
+
+Les installateurs sont dans les [Releases](https://github.com/amonre555/ondes/releases) : `.dmg` pour macOS (Apple Silicon et Intel), `-setup.exe` pour Windows. Une fois installé, yato vérifie au démarrage (puis toutes les 6 h) s'il existe une nouvelle version et propose de l'installer en un clic. Les mises à jour sont signées, et l'app refuse celles dont la signature ne correspond pas.
+
+L'app n'est pas signée par Apple ni par Microsoft :
+- **macOS** : au premier lancement, clic droit sur yato → « Ouvrir » (ou `xattr -cr /Applications/yato.app`) ;
+- **Windows** : « Informations complémentaires » → « Exécuter quand même ».
+
+Publier une version (le numéro vit dans `Cargo.toml`, `[workspace.package]`) :
+
+```bash
+./scripts/release.sh 0.2.0
+git push && git push origin v0.2.0
+```
+
+Le workflow GitHub « Publier une version » compile alors macOS et Windows, et crée la Release avec `latest.json` pour les mises à jour. Il a besoin de deux secrets (Settings → Secrets and variables → Actions) : `TAURI_SIGNING_PRIVATE_KEY` (contenu de `~/.tauri/yato.key`) et `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (contenu de `~/.tauri/yato.key.password`). Sans cette clé, plus aucune mise à jour ne peut être publiée : garde-la précieusement.
+
+Icône macOS : `npm run icon:mac` (dans `app/`) régénère `icon.icns` depuis `icon-macos.svg`, le dessin de `icon.svg` posé sur la grille Apple.
+
 ## Ajouter une source
 
 Implémenter `yato_core::MusicSource` (`search`, `featured`, `resolve`) puis l'enregistrer dans `app/src-tauri/src/lib.rs` :
