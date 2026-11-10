@@ -7062,7 +7062,7 @@ dependencies = [
 
 [[package]]
 name = "yato"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "discord-rich-presence",
  "parking_lot 0.13.0",
@@ -7081,7 +7081,7 @@ dependencies = [
 
 [[package]]
 name = "yato-core"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
