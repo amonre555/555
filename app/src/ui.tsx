@@ -1,8 +1,8 @@
 // Briques d'interface réutilisables : pochettes, listes, états vides.
-import { createEffect, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js";
+import { createEffect, createSignal, For, Match, onCleanup, onMount, Show, Switch, type JSX } from "solid-js";
 import { albumRefOf, api, artistsOf, coverUrl, formatTime, type ArtistRef, type Snapshot, type Track, type YtDlpStatus } from "./api";
 import { openAlbum, openArtist } from "./nav";
-import { IconGrip, IconHeart, IconMore, IconNote, IconPlay, IconPlaylist, IconPlus } from "./icons";
+import { IconBack, IconForward, IconGrip, IconHeart, IconMore, IconNote, IconPlay, IconPlaylist, IconPlus } from "./icons";
 import { t as tr } from "./i18n";
 import { isMobile } from "./mobile";
 import {
@@ -286,6 +286,46 @@ export function TrackList(props: {
           );
         }}
       </For>
+    </div>
+  );
+}
+
+/**
+ * Rangée de cartes sur une seule ligne, qui défile de côté (glisser sur téléphone, flèches au
+ * survol sur ordinateur). Jamais de défilement vertical à l'intérieur : il gênerait celui de la page.
+ */
+export function Carousel(props: { children: JSX.Element; class?: string }) {
+  let el!: HTMLDivElement;
+  const [atStart, setAtStart] = createSignal(true);
+  const [atEnd, setAtEnd] = createSignal(true);
+  const update = () => {
+    setAtStart(el.scrollLeft < 4);
+    setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+  };
+  onMount(() => {
+    update();
+    // Cartes ajoutées ou fenêtre redimensionnée : les flèches suivent.
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    const mo = new MutationObserver(update);
+    mo.observe(el, { childList: true });
+    onCleanup(() => {
+      ro.disconnect();
+      mo.disconnect();
+    });
+  });
+  const by = (dir: number) => el.scrollBy({ left: dir * el.clientWidth * 0.85, behavior: "smooth" });
+  return (
+    <div class="carousel-wrap" onMouseEnter={update}>
+      <div ref={el} class={`grid carousel ${props.class ?? ""}`} onScroll={update}>
+        {props.children}
+      </div>
+      <button class="carousel-nav prev" classList={{ off: atStart() }} onClick={() => by(-1)} title={tr.scrollPrev} aria-label={tr.scrollPrev} tabIndex={-1}>
+        <IconBack />
+      </button>
+      <button class="carousel-nav next" classList={{ off: atEnd() }} onClick={() => by(1)} title={tr.scrollNext} aria-label={tr.scrollNext} tabIndex={-1}>
+        <IconForward />
+      </button>
     </div>
   );
 }

@@ -76,6 +76,8 @@ struct DzArtist {
     name: String,
     picture_xl: Option<String>,
     picture_big: Option<String>,
+    /// Présent dans la recherche : départage les homonymes.
+    nb_fan: Option<u64>,
 }
 
 #[derive(Deserialize)]
@@ -127,7 +129,7 @@ pub struct ArtistPage {
     pub related: Vec<ArtistCard>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Album {
     pub id: String,
@@ -157,7 +159,7 @@ pub struct AlbumPage {
     pub tracks: Vec<Track>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ArtistCard {
     pub id: String,
@@ -184,6 +186,20 @@ fn credits(t: &DzTrack) -> Vec<ArtistRef> {
         }
     }
     out
+}
+
+fn card(a: DzArtist) -> Option<ArtistCard> {
+    Some(ArtistCard { id: a.id?.to_string(), name: a.name, picture: a.picture_xl.or(a.picture_big) })
+}
+
+fn to_album(a: DzAlbum) -> Option<Album> {
+    Some(Album {
+        id: a.id?.to_string(),
+        title: a.title,
+        cover: a.cover_xl.or(a.cover_big),
+        year: a.release_date.as_deref().and_then(|d| d.get(..4)).map(str::to_owned),
+        kind: a.record_type.unwrap_or_else(|| "album".into()),
+    })
 }
 
 /// Album connu d'avance (morceaux d'un album) : identifiant, titre, pochette.
@@ -385,12 +401,7 @@ impl DeezerSource {
         let id = match id {
             Some(id) => id.to_owned(),
             None => {
-                let found: Vec<DzArtist> = self.list("/search/artist", &[("q", name.to_owned()), ("limit", "5".into())]).await?;
-                // Nom identique de préférence, sinon le premier (le plus populaire).
-                let best = found.iter().find(|a| a.name.eq_ignore_ascii_case(name)).or(found.first());
-                best.and_then(|a| a.id)
-                    .map(|i| i.to_string())
-                    .ok_or_else(|| Error::Other(format!("No artist \"{name}\" found")))?
+                self.find_artist_id(name).await?.ok_or_else(|| Error::Other(format!("No artist \"{name}\" found")))?
             }
         };
         let (info_path, top_path, albums_path, related_path) =
@@ -407,30 +418,82 @@ impl DeezerSource {
         let mut albums = albums.unwrap_or_default();
         // Du plus récent au plus ancien (date complète « 2013-05-17 »).
         albums.sort_by(|a, b| b.release_date.cmp(&a.release_date));
-        let albums: Vec<Album> = albums
-            .into_iter()
-            .filter_map(|a| {
-                Some(Album {
-                    id: a.id?.to_string(),
-                    title: a.title,
-                    cover: a.cover_xl.or(a.cover_big),
-                    year: a.release_date.as_deref().and_then(|d| d.get(..4)).map(str::to_owned),
-                    kind: a.record_type.unwrap_or_else(|| "album".into()),
-                })
-            })
-            .collect();
+        let albums: Vec<Album> = albums.into_iter().filter_map(to_album).collect();
         Ok(ArtistPage {
             id,
             picture: info.picture_xl.or(info.picture_big),
             name: info.name,
             top: top.unwrap_or_default(),
             albums,
-            related: related
-                .unwrap_or_default()
-                .into_iter()
-                .filter_map(|a| Some(ArtistCard { id: a.id?.to_string(), name: a.name, picture: a.picture_xl.or(a.picture_big) }))
-                .collect(),
+            related: related.unwrap_or_default().into_iter().filter_map(card).collect(),
         })
+    }
+
+    // ---------- Découvrir ----------
+
+    /// Identifiant Deezer d'un artiste à partir de son nom (même nom de préférence).
+    pub async fn find_artist_id(&self, name: &str) -> Result<Option<String>> {
+        let found: Vec<DzArtist> = self.list("/search/artist", &[("q", name.to_owned()), ("limit", "25".into())]).await?;
+        // Nom identique de préférence (le plus suivi : « Justice » le groupe, pas un homonyme
+        // inconnu que la recherche classe avant), sinon le premier.
+        let best = found
+            .iter()
+            .filter(|a| a.name.trim().eq_ignore_ascii_case(name.trim()))
+            .max_by_key(|a| a.nb_fan.unwrap_or(0))
+            .or(found.first());
+        Ok(best.and_then(|a| a.id).map(|i| i.to_string()))
+    }
+
+    /// « Radio » d'un artiste : ses morceaux mêlés à ceux d'artistes proches.
+    pub async fn artist_radio(&self, id: &str, limit: usize) -> Result<Vec<Track>> {
+        self.tracks(&format!("/artist/{id}/radio"), &[("limit", limit.to_string())]).await
+    }
+
+    /// Morceaux les plus écoutés d'un artiste.
+    pub async fn artist_top(&self, id: &str, limit: usize) -> Result<Vec<Track>> {
+        self.tracks(&format!("/artist/{id}/top"), &[("limit", limit.to_string())]).await
+    }
+
+    /// Artistes proches.
+    pub async fn related_artists(&self, id: &str, limit: usize) -> Result<Vec<ArtistCard>> {
+        let found: Vec<DzArtist> = self.list(&format!("/artist/{id}/related"), &[("limit", limit.to_string())]).await?;
+        Ok(found.into_iter().filter_map(card).collect())
+    }
+
+    /// Sorties d'un artiste avec leur date complète (« 2026-11-07 »), dans l'ordre de Deezer.
+    pub async fn artist_releases(&self, id: &str) -> Result<Vec<(Album, String)>> {
+        let found: Vec<DzAlbum> = self.list(&format!("/artist/{id}/albums"), &[("limit", "50".into())]).await?;
+        Ok(found
+            .into_iter()
+            .filter_map(|a| {
+                let date = a.release_date.clone()?;
+                Some((to_album(a)?, date))
+            })
+            .collect())
+    }
+
+    /// Artistes du moment (top du pays).
+    pub async fn chart_artists(&self, limit: usize) -> Result<Vec<ArtistCard>> {
+        let found: Vec<DzArtist> = self.list("/chart/0/artists", &[("limit", limit.to_string())]).await?;
+        Ok(found.into_iter().filter_map(card).collect())
+    }
+
+    /// Albums du moment (top du pays), avec leur artiste.
+    pub async fn chart_albums(&self, limit: usize) -> Result<Vec<(Album, String)>> {
+        #[derive(Deserialize)]
+        struct Hit {
+            #[serde(flatten)]
+            album: DzAlbum,
+            artist: Option<DzArtist>,
+        }
+        let found: Vec<Hit> = self.list("/chart/0/albums", &[("limit", limit.to_string())]).await?;
+        Ok(found
+            .into_iter()
+            .filter_map(|h| {
+                let artist = h.artist.map(|a| a.name).unwrap_or_default();
+                Some((to_album(h.album)?, artist))
+            })
+            .collect())
     }
 
     /// Fiche d'un album : par son identifiant, sinon retrouvé par son titre (et son artiste).

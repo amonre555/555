@@ -284,6 +284,45 @@ html[data-vt] .content { view-transition-name: page; }
 .card-title { margin-top: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-sub { color: var(--text-2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @keyframes rise { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
+
+/* Rangées de cartes (Découvrir) : une seule ligne qui défile de côté. Rien ne défile en hauteur
+   à l'intérieur (ça accrocherait le défilement de la page) : les marges internes laissent la
+   place aux ombres et à l'élévation des pochettes. */
+.carousel-wrap { position: relative; }
+.grid.carousel {
+  grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 184px; gap: 6px;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none;
+  scroll-snap-type: x proximity; padding: 8px 10px 12px; margin: -8px -10px -12px; scroll-padding: 0 10px;
+}
+.grid.carousel::-webkit-scrollbar { display: none; }
+.grid.carousel > * { scroll-snap-align: start; }
+.carousel-nav {
+  position: absolute; top: 72px; z-index: 2; width: 38px; height: 38px; display: grid; place-items: center;
+  border-radius: 50%; color: var(--text); background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  backdrop-filter: blur(14px); box-shadow: var(--shadow), var(--hairline);
+  opacity: 0; transition: opacity 0.25s var(--soft), transform 0.3s var(--soft);
+}
+.carousel-nav.prev { left: 4px; }
+.carousel-nav.next { right: 4px; }
+.carousel-nav:hover { transform: scale(1.08); }
+.carousel-wrap:hover .carousel-nav:not(.off) { opacity: 1; }
+.carousel-nav.off { pointer-events: none; }
+
+/* Découvrir */
+.section-sub { margin: -8px 0 12px; color: var(--text-3); font-size: 13px; }
+.mix-play { display: inline-flex; align-items: center; gap: 6px; margin-top: 0; }
+.because-artist { font: inherit; color: var(--text); padding: 0; text-decoration: underline 1px transparent; text-underline-offset: 4px; transition: text-decoration-color 0.2s; }
+.because-artist:hover { text-decoration-color: currentColor; }
+.chart-full { margin-top: 30px; }
+.discover-welcome { margin-top: 8px; padding: 22px 24px; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--hairline); }
+.discover-welcome h2 { margin: 0 0 6px; }
+.card.skeleton { pointer-events: none; animation: fade-in 0.4s var(--soft) both; }
+.skeleton-art, .skeleton-line { background: var(--surface-2); animation: pulse 1.4s ease-in-out infinite; }
+.skeleton-art { aspect-ratio: 1; border-radius: var(--r-md); }
+.card.skeleton.round .skeleton-art { border-radius: 50%; }
+.skeleton-line { height: 11px; width: 78%; margin-top: 14px; border-radius: 6px; }
+.skeleton-line.short { width: 48%; margin-top: 8px; }
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.85; } }
 @keyframes fade-in { from { opacity: 0; } }
 
 .tracklist { display: flex; flex-direction: column; gap: 2px; }
@@ -1041,11 +1080,11 @@ textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; f
   .card-play { display: none; }
   /* Découvrir : les rangées de cartes défilent de côté. */
   .grid.carousel {
-    grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 42%; gap: 12px;
-    overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; scroll-padding: 0 16px;
+    grid-auto-columns: 42%; gap: 12px; scroll-snap-type: x mandatory;
+    margin: -6px -16px -10px; padding: 6px 16px 10px; scroll-padding: 0 16px;
   }
-  .grid.carousel::-webkit-scrollbar { display: none; }
-  .grid.carousel .card { scroll-snap-align: start; }
+  .grid.carousel.artists-row { grid-auto-columns: 36%; }
+  .carousel-nav { display: none; }
 
   /* Lignes : pochette, titre, « ⋯ » (le cœur et la durée sont dans le menu et la vue En lecture). */
   .row, .with-album .row { grid-template-columns: 48px minmax(0, 1fr) 40px; gap: 12px; padding: 6px 2px 6px 4px; }

@@ -1,7 +1,7 @@
 // Mode aperçu, pour travailler l'interface dans un simple navigateur (`npm run dev`).
 // Simule le cœur Rust : morceaux, lecture et paroles d'exemple.
 // Jamais inclus dans l'app : chargé seulement en développement, hors de Tauri.
-import type { AlbumPage, ArtistPage, Collection, Lyrics, Period, Snapshot, Stats, Track } from "./api";
+import type { AlbumPage, ArtistPage, Collection, DiscoverSection, Lyrics, Period, Snapshot, Stats, Track } from "./api";
 import { openAlbum, openArtist } from "./nav";
 // Real metadata from Deezer's public API (VHS by Mattyeux, the artist, an album, the charts),
 // used by `?demo=…` to take the website's screenshots. Lyrics stay the made-up sample below.
@@ -74,6 +74,74 @@ async function demoArtist(name: string): Promise<ArtistPage> {
       .filter((n) => n !== name)
       .map((n) => ({ id: `demo-${n}`, name: n, picture: `https://picsum.photos/seed/${encodeURIComponent(n)}/400` })),
   };
+}
+
+// ---------- Découvrir ----------
+// `?newcomer` : page d'un nouvel utilisateur (tendances, artistes et albums du moment).
+
+const WORDS = ["Néon", "Velours", "Rivage", "Comète", "Mirage", "Ruban", "Écho", "Vertige", "Lagune", "Orage", "Satin", "Prisme"];
+const PLACES = ["de minuit", "sur la ville", "d'août", "bleu", "en sourdine", "au ralenti", "des phares", "de verre"];
+const NEW_ARTISTS = ["Lune Sauvage", "Les Vitrines", "Marée Haute", "Polaire", "Odéon Club", "Ciel Rose", "Brume", "Kilomètre", "Les Échos", "Néréide", "Halo", "Station 9"];
+
+/** Morceaux inventés (pochettes aléatoires), variés d'une section à l'autre. */
+function fakeTracks(prefix: string, n: number, artists: string[]): Track[] {
+  return Array.from({ length: n }, (_, i) => {
+    const artist = artists[i % artists.length];
+    const title = `${WORDS[(i * 7 + prefix.length) % WORDS.length]} ${PLACES[(i * 3 + prefix.length) % PLACES.length]}`;
+    return {
+      id: `deezer:${prefix}${i}`, source: "deezer", title, artist, album: "Cassettes et néons", albumId: "demo-album",
+      duration: 160 + ((i * 17) % 90), trackNumber: null, discNumber: null, artwork: `https://picsum.photos/seed/${prefix}${i}/480`,
+      hasCover: false, location: { kind: "remote", remoteId: `${prefix}${i}` }, artists: [{ name: artist, id: `demo-${artist}` }],
+    };
+  });
+}
+
+let discoverCache: DiscoverSection[] | null = null;
+
+async function demoDiscover(): Promise<DiscoverSection[]> {
+  const chart = (await handlers.featured({})) as Track[];
+  if (discoverCache) return discoverCache;
+  const day = Math.floor(Date.now() / 86_400_000);
+  const section = (id: string, kind: DiscoverSection["kind"], more: Partial<DiscoverSection> = {}): DiscoverSection => ({
+    id, kind, tracks: [], albums: [], artists: [], ready: false, at: 0, ...more,
+  });
+  const iso = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10);
+  const releases = ["Clara Vent", "Les Cassettes", "VHS Club", "Nuit Blanche", "Sable Rose", "Orbite"].map((artist, i) => ({
+    id: `demo-rel${i}`, title: `${WORDS[i + 2]} ${PLACES[i]}`, cover: `https://picsum.photos/seed/rel${i}/480`,
+    year: iso(i * 9).slice(0, 4), kind: ["album", "single", "ep"][i % 3], artist, date: iso(i * 9),
+  }));
+  const suggestions = NEW_ARTISTS.map((name, i) => ({
+    id: `demo-${name}`, name, picture: `https://picsum.photos/seed/${encodeURIComponent(name)}/400`, near: ["Clara Vent", "Les Cassettes", "VHS Club"][i % 3],
+  }));
+  let full: DiscoverSection[];
+  if (new URLSearchParams(location.search).has("newcomer")) {
+    full = [
+      section("charts", "charts", { tracks: chart }),
+      section("chart-artists", "chartArtists", { artists: suggestions.map((s) => ({ ...s, near: null })) }),
+      section("chart-albums", "chartAlbums", { albums: releases.map((r) => ({ ...r, date: "" })) }),
+    ];
+  } else {
+    full = [
+      section(`mix:${day}`, "mix", { tracks: [...fakeTracks("mix", 28, NEW_ARTISTS), ...chart.slice(0, 12)].sort((a, b) => a.id.localeCompare(b.id)) }),
+      section("because:clara vent", "because", { artist: { name: "Clara Vent", id: "demo-Clara Vent" }, tracks: fakeTracks("bcv", 15, NEW_ARTISTS.slice(0, 6)) }),
+      section("because:les cassettes", "because", { artist: { name: "Les Cassettes", id: "demo-Les Cassettes" }, tracks: fakeTracks("blc", 15, NEW_ARTISTS.slice(4)) }),
+      section("releases", "releases", { albums: releases }),
+      section("artists", "artists", { artists: suggestions }),
+      section("rediscover", "rediscover", { tracks: chart.slice(4, 13), ready: true }),
+      section("charts", "charts", { tracks: chart }),
+    ];
+  }
+  // Chargement progressif : les sections arrivent une à une, comme depuis Deezer.
+  full.forEach((s, i) => {
+    if (s.ready) return;
+    setTimeout(() => {
+      const done = { ...s, ready: true, at: Date.now() };
+      discoverCache = discoverCache?.map((x) => (x.id === done.id ? done : x)) ?? null;
+      emit("discover-section", done);
+    }, 400 + i * 250);
+  });
+  discoverCache = full.map((s) => (s.ready ? s : { ...s, tracks: [], albums: [], artists: [] }));
+  return discoverCache;
 }
 
 const LYRICS: Lyrics = {
@@ -307,6 +375,7 @@ const handlers: Record<string, (args: any) => unknown> = {
   list_sources: () => [{ id: "local", name: "Ma bibliothèque" }, { id: "deezer", name: "Titres" }, { id: "youtube", name: "YouTube Music" }],
   library_tracks: () => [],
   library_folders: () => [],
+  discover: () => demoDiscover(),
   featured: async () => {
     tracks = tracks.length ? tracks : await loadTrending();
     // Example history over a few days (so the History page has something to show).

@@ -53,6 +53,29 @@ const en = {
   fullChart: "Full chart",
   nowPlaying: "Now playing",
   listen: "Listen",
+  dailyMix: "Your daily mix",
+  dailyMixSub: (n: number) => `${n} songs · new finds and favorites, refreshed every day`,
+  playMix: "Play the mix",
+  becauseYouListen: "Because you listen to",
+  newReleases: "New from your artists",
+  artistsToDiscover: "Artists to discover",
+  nearArtist: (name: string) => `Like ${name}`,
+  rediscover: "Rediscover",
+  rediscoverSub: "Songs you loved, a while ago",
+  trending: "Trending",
+  chartArtists: "Artists right now",
+  chartAlbums: "Albums right now",
+  welcomeTitle: "Make it yours",
+  welcomeText: "Listen to a few songs or like them: this page fills with recommendations made for you.",
+  scrollPrev: "Previous",
+  scrollNext: "Next",
+  releasedOn: (date: Date) => {
+    const days = Math.round((Date.now() - date.getTime()) / 86_400_000);
+    if (days <= 0) return "Today";
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days} days ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  },
 
   // Track lists
   loading: "Loading",
@@ -323,6 +346,29 @@ const fr: Dict = {
   fullChart: "Tout le top",
   nowPlaying: "En lecture",
   listen: "Écouter",
+  dailyMix: "Ton mix du jour",
+  dailyMixSub: (n) => `${n} titres · découvertes et favoris, renouvelés chaque jour`,
+  playMix: "Lancer le mix",
+  becauseYouListen: "Parce que tu écoutes",
+  newReleases: "Nouveautés de tes artistes",
+  artistsToDiscover: "Artistes à découvrir",
+  nearArtist: (name) => `Proche de ${name}`,
+  rediscover: "Redécouvertes",
+  rediscoverSub: "Des titres que tu aimais, il y a quelque temps",
+  trending: "Tendances",
+  chartArtists: "Artistes du moment",
+  chartAlbums: "Albums du moment",
+  welcomeTitle: "Fais-la tienne",
+  welcomeText: "Écoute ou like quelques titres : cette page se remplit de recommandations faites pour toi.",
+  scrollPrev: "Précédent",
+  scrollNext: "Suivant",
+  releasedOn: (date) => {
+    const days = Math.round((Date.now() - date.getTime()) / 86_400_000);
+    if (days <= 0) return "Aujourd'hui";
+    if (days === 1) return "Hier";
+    if (days < 7) return `Il y a ${days} jours`;
+    return date.toLocaleDateString("fr-FR", { month: "short", day: "numeric" });
+  },
 
   loading: "Chargement",
   play: "Lire",

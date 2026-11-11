@@ -18,7 +18,8 @@ import { ImportDialog, SettingsView } from "./settings";
 import { LikedView, PlaylistView } from "./playlist";
 import { UpdateCard } from "./update";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
-import { AlbumLink, ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, PlaylistArt, SourceTag, TrackCard, TrackList, TrackMenuHost, YtDlpBadge } from "./ui";
+import { DiscoverView, discoverSections, listenDiscover, loadDiscover, refreshDiscover } from "./discover";
+import { AlbumLink, ArtistLinks, Carousel, cancelHover, Cover, Empty, hoverPrefetch, Loader, PlaylistArt, SourceTag, TrackCard, TrackList, TrackMenuHost, YtDlpBadge } from "./ui";
 
 /** `hub` : page « Ta musique » du téléphone (bibliothèque, likes, playlists, historique, stats). */
 type View = "discover" | "library" | "liked" | "history" | "stats" | "playlist" | "settings" | "search" | "artist" | "album" | "hub";
@@ -35,7 +36,6 @@ export default function App() {
   const [library, setLibrary] = createSignal<Track[]>([]);
   const [folders, setFolders] = createSignal<string[]>([]);
   const [scanning, setScanning] = createSignal(false);
-  const [featured, setFeatured] = createSignal<Track[] | null>(null);
   const [query, setQuery] = createSignal("");
   const [results, setResults] = createSignal<Track[] | null>(null);
   const [snap, setSnap] = createSignal<Snapshot>(EMPTY);
@@ -181,6 +181,8 @@ export default function App() {
     on(view, (v) => {
       if (v === "discover" || v === "search" || v === "settings") setTab(v);
       else if (v !== "artist" && v !== "album") setTab("hub");
+      // Retour sur Découvrir après un moment : les recommandations suivent tes dernières écoutes.
+      if (v === "discover") refreshDiscover();
     }),
   );
   const selectTab = (next: Tab) => {
@@ -273,6 +275,7 @@ export default function App() {
     // Nettoyages enregistrés avant tout `await`, sinon Solid les perd.
     raf = requestAnimationFrame(frame);
     const unlisten = api.onPlayer(applySnap);
+    const unlistenDiscover = listenDiscover();
     const unlistenYt = api.onYtdlp(setYtdlp);
     api.ytdlpStatus().then(setYtdlp).catch(() => {});
     window.addEventListener("keydown", onKey);
@@ -280,6 +283,7 @@ export default function App() {
     onCleanup(() => {
       stopBack();
       unlisten.then((u) => u());
+      unlistenDiscover.then((u) => u());
       unlistenYt.then((u) => u());
       window.removeEventListener("keydown", onKey);
       cancelAnimationFrame(raf);
@@ -295,17 +299,15 @@ export default function App() {
     if (recapSeason() && !recapSeen()) {
       api.stats({ kind: "year", year: thisYear }).then((s) => setRecapWorthy(s.plays >= 5)).catch(() => {});
     }
-    api
-      .featured("deezer")
+    loadDiscover()
       .then((list) => {
-        setFeatured(list);
-        // Accueil rempli : l'écran de lancement peut partir.
+        // Accueil rempli (depuis le cache) : l'écran de lancement peut partir.
         requestAnimationFrame(dismissSplash);
-        // Les premiers morceaux du top sont les plus cliqués au lancement : un clic doit démarrer aussitôt.
-        api.warm(list.slice(0, 8)).catch(() => {});
+        // Les premiers morceaux proposés sont les plus cliqués au lancement : un clic doit démarrer aussitôt.
+        const first = list.find((s) => s.ready && s.tracks.length > 0);
+        if (first) api.warm(first.tracks.slice(0, 8)).catch(() => {});
       })
       .catch((e) => {
-        setFeatured([]);
         dismissSplash();
         fail(e);
       });
@@ -696,41 +698,27 @@ export default function App() {
             </Match>
 
             <Match when={view() === "discover"}>
-              <Show when={featured()} fallback={<Loader />}>
-                {(list) => (
-                  <Show when={list().length > 0} fallback={<Empty text={t.featuredError} />}>
-                    <Show when={recapHighlighted()}>
-                      <div class="discover-recap">
-                        <RecapCard year={thisYear} title={t.recapReady(thisYear)} onOpen={() => openRecap(thisYear)} onDismiss={markRecapSeen} />
-                      </div>
-                    </Show>
-                    <Show when={recentTracks().length > 0}>
-                      <section class="section">
-                        <h2 class="section-title">
-                          {t.recentlyPlayed}
-                          <button class="link-btn section-link" onClick={() => goTo("history")}>{t.seeAll}</button>
-                        </h2>
-                        <div class="grid recent carousel">
-                          <For each={recentTracks().slice(0, 6)}>
-                            {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(recentTracks(), i())} />}
-                          </For>
-                        </div>
-                      </section>
-                    </Show>
+              <Show when={discoverSections()} fallback={<Loader />}>
+                <DiscoverView snap={snap()} onPlay={play} onError={fail}>
+                  <Show when={recapHighlighted()}>
+                    <div class="discover-recap">
+                      <RecapCard year={thisYear} title={t.recapReady(thisYear)} onOpen={() => openRecap(thisYear)} onDismiss={markRecapSeen} />
+                    </div>
+                  </Show>
+                  <Show when={recentTracks().length > 0}>
                     <section class="section">
-                      <h2 class="section-title">{t.rightNow}</h2>
-                      <div class="grid carousel">
-                        <For each={list().slice(0, 12)}>
-                          {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(list(), i())} />}
+                      <h2 class="section-title">
+                        {t.recentlyPlayed}
+                        <button class="link-btn section-link" onClick={() => goTo("history")}>{t.seeAll}</button>
+                      </h2>
+                      <Carousel class="recent">
+                        <For each={recentTracks().slice(0, 12)}>
+                          {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(recentTracks(), i())} />}
                         </For>
-                      </div>
-                    </section>
-                    <section class="section">
-                      <h2 class="section-title">{t.fullChart}</h2>
-                      <TrackList tracks={list()} current={snap().track?.id} status={snap().status} onPlay={(i) => play(list(), i)} />
+                      </Carousel>
                     </section>
                   </Show>
-                )}
+                </DiscoverView>
               </Show>
             </Match>
           </Switch>

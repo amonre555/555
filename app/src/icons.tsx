@@ -105,6 +105,11 @@ export const IconBack = () => (
     <path d="M15 18l-6-6 6-6" />
   </Svg>
 );
+export const IconForward = () => (
+  <Svg size={20}>
+    <path d="M9 18l6-6-6-6" />
+  </Svg>
+);
 export const IconUser = () => (
   <Svg size={40}>
     <circle cx="12" cy="8" r="4" />

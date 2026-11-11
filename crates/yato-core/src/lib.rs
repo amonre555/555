@@ -2,6 +2,7 @@
 //!
 //! - [`model`]   : les types partagés (morceau, emplacement du son)
 //! - [`collection`] : titres likés, playlists et historique
+//! - [`discover`] : recommandations de la page Découvrir
 //! - [`stats`]   : journal des écoutes et statistiques (page Stats, récap de l'année)
 //! - [`searches`] : recherches récentes
 //! - [`import`]  : import de playlists (Spotify, Deezer, YouTube Music)
@@ -13,6 +14,7 @@
 //! L'interface (Tauri aujourd'hui, autre chose demain) ne fait qu'appeler ce crate.
 
 pub mod collection;
+pub mod discover;
 pub mod error;
 pub mod import;
 pub mod lyrics;

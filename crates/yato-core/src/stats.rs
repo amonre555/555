@@ -55,10 +55,15 @@ struct Passage {
     last: f64,
 }
 
+/// Au-delà de ce temps d'écoute, quitter un morceau n'est plus un saut.
+const SKIP_MAX: f64 = 15.0;
+
 /// Suit l'état du lecteur et repère les écoutes terminées.
 #[derive(Debug, Default)]
 pub struct ListenTracker {
     current: Option<Passage>,
+    /// Dernier morceau sauté (quitté pour un autre après quelques secondes), pas encore relevé.
+    skipped: Option<(Track, Listen)>,
 }
 
 impl ListenTracker {
@@ -87,6 +92,14 @@ impl ListenTracker {
             }
             return None;
         }
+        // Passage à un autre morceau après quelques secondes seulement : un saut (signal pour les
+        // recommandations). Un lecteur vidé ou un morceau relancé n'en sont pas.
+        if !same && track.is_some() {
+            self.skipped = self.current.as_ref().filter(|p| is_skip(p)).map(|p| {
+                let secs = (p.listened * 10.0).round() / 10.0;
+                (p.track.clone(), Listen { at: p.started, id: p.track.id.clone(), secs })
+            });
+        }
         let done = self.finish();
         self.current = track.map(|t| Passage {
             track: t.clone(),
@@ -96,6 +109,11 @@ impl ListenTracker {
             last: position,
         });
         done
+    }
+
+    /// Le dernier morceau sauté, s'il y en a un (une seule fois).
+    pub fn take_skip(&mut self) -> Option<(Track, Listen)> {
+        self.skipped.take()
     }
 
     /// Termine l'écoute en cours (fermeture de l'app) ; la renvoie si elle compte.
@@ -110,6 +128,13 @@ impl ListenTracker {
     }
 }
 
+/// Un passage quitté tôt : écouté au moins une seconde (pas juste survolé), moins de 15 s (et
+/// moins que le seuil d'une écoute), et pas arrivé à la fin du morceau.
+fn is_skip(p: &Passage) -> bool {
+    let near_end = p.duration.is_some_and(|d| p.last >= d - 5.0);
+    p.listened >= 1.0 && p.listened < SKIP_MAX.min(threshold(p.duration)) && !near_end
+}
+
 // ---------- Journal sur disque ----------
 
 /// Une ligne du journal : la description d'un morceau, ou une écoute.
@@ -118,11 +143,15 @@ impl ListenTracker {
 enum Line {
     Track(Track),
     Listen(Listen),
+    /// Morceau sauté. Les versions qui ne connaissent pas cette ligne l'ignorent.
+    Skip(Listen),
 }
 
 #[derive(Debug, Default)]
 struct LogData {
     listens: Vec<Listen>,
+    /// Sauts, dans l'ordre d'arrivée.
+    skips: Vec<Listen>,
     tracks: HashMap<String, Track>,
     /// Le fichier ne finit pas par un retour à la ligne (écriture interrompue) : on en ajoute un
     /// avant la prochaine ligne, pour ne pas la coller à la ligne abîmée.
@@ -147,6 +176,7 @@ impl ListenLog {
                         data.tracks.insert(t.id.clone(), t);
                     }
                     Ok(Line::Listen(l)) => data.listens.push(l),
+                    Ok(Line::Skip(l)) => data.skips.push(l),
                     Err(_) => {}
                 }
             }
@@ -171,6 +201,15 @@ impl ListenLog {
     /// Ajoute une écoute à la fin du journal (et la description du morceau, si elle est nouvelle
     /// ou a changé).
     pub fn record(&self, track: &Track, listen: Listen) -> Result<()> {
+        self.append(track, Line::Listen(listen))
+    }
+
+    /// Note un morceau sauté (recommandations : on évite de le reproposer).
+    pub fn record_skip(&self, track: &Track, skip: Listen) -> Result<()> {
+        self.append(track, Line::Skip(skip))
+    }
+
+    fn append(&self, track: &Track, entry: Line) -> Result<()> {
         let mut data = self.data.lock();
         let mut out = String::new();
         if data.broken_end {
@@ -179,17 +218,29 @@ impl ListenLog {
         if data.tracks.get(&track.id) != Some(track) {
             out += &line(&Line::Track(track.clone()))?;
         }
-        out += &line(&Line::Listen(listen.clone()))?;
+        out += &line(&entry)?;
         if let Some(dir) = self.path.parent() {
             fs::create_dir_all(dir)?;
         }
         OpenOptions::new().create(true).append(true).open(&self.path)?.write_all(out.as_bytes())?;
         data.broken_end = false;
         data.tracks.insert(track.id.clone(), track.clone());
-        // Les écoutes arrivent dans l'ordre : on garde la liste triée sans tout retrier.
-        let i = data.listens.partition_point(|l| l.at <= listen.at);
-        data.listens.insert(i, listen);
+        match entry {
+            Line::Listen(listen) => {
+                // Les écoutes arrivent dans l'ordre : on garde la liste triée sans tout retrier.
+                let i = data.listens.partition_point(|l| l.at <= listen.at);
+                data.listens.insert(i, listen);
+            }
+            Line::Skip(skip) => data.skips.push(skip),
+            Line::Track(_) => {}
+        }
         Ok(())
+    }
+
+    /// Donne accès aux écoutes (triées), aux sauts et aux morceaux décrits, sans les copier.
+    pub fn with_data<R>(&self, f: impl FnOnce(&[Listen], &[Listen], &HashMap<String, Track>) -> R) -> R {
+        let data = self.data.lock();
+        f(&data.listens, &data.skips, &data.tracks)
     }
 
     /// Premier lancement avec les stats : reprend l'historique existant (une écoute par lecture,
@@ -441,7 +492,7 @@ impl Tally {
 }
 
 /// Les artistes d'un morceau : (clé de regroupement, nom affiché, identifiant).
-fn artists_of(t: &Track) -> Vec<(String, String, Option<String>)> {
+pub(crate) fn artists_of(t: &Track) -> Vec<(String, String, Option<String>)> {
     let list: Vec<(String, Option<String>)> = if t.artists.is_empty() {
         split_artists(&t.artist).into_iter().map(|n| (n, None)).collect()
     } else {
@@ -710,6 +761,31 @@ mod tests {
     }
 
     #[test]
+    fn leaving_a_song_after_a_few_seconds_is_a_skip() {
+        let mut tr = ListenTracker::new();
+        let mut now = 0;
+        let (a, b) = (track("a", "A", None, 200.0), track("b", "B", None, 200.0));
+        // 5 s puis un autre morceau : saut.
+        play(&mut tr, &a, 0.0, 5.0, &mut now);
+        play(&mut tr, &b, 0.0, 0.5, &mut now);
+        let (t, l) = tr.take_skip().expect("saut");
+        assert_eq!(t.id, "a");
+        assert!((l.secs - 5.0).abs() < 0.3);
+        assert!(tr.take_skip().is_none());
+        // À peine lancé (moins d'une seconde) : pas un saut.
+        play(&mut tr, &a, 0.0, 20.0, &mut now);
+        assert!(tr.take_skip().is_none());
+        // 20 s : plus un saut.
+        play(&mut tr, &b, 0.0, 1.0, &mut now);
+        assert!(tr.take_skip().is_none());
+        // Lecteur vidé après 5 s : fin de la file, pas un saut.
+        play(&mut tr, &a, 0.0, 5.0, &mut now);
+        assert_eq!(tr.take_skip().map(|s| s.0.id), Some("b".into()), "b quitté après 1 s");
+        tr.observe(None, false, 0.0, None, now);
+        assert!(tr.take_skip().is_none());
+    }
+
+    #[test]
     fn calendar_dates_round_trip() {
         assert_eq!(days_from_civil(1970, 1, 1), 0);
         assert_eq!(civil_from_days(0), (1970, 1, 1));
@@ -809,11 +885,13 @@ mod tests {
         let log = ListenLog::load(&path);
         assert_eq!(log.len(), 2);
         log.record(&t, Listen { at: at(2026, 3, 3, 12), id: "a".into(), secs: 30.0 }).unwrap();
+        log.record_skip(&t, Listen { at: at(2026, 3, 4, 12), id: "a".into(), secs: 4.0 }).unwrap();
         // Import refusé : le journal existe déjà.
         log.import_history(&[Played { track: t.clone(), at: 5 }]).unwrap();
         let log = ListenLog::load(&path);
         let s = log.stats(Period::Year { year: 2026 }, 0);
-        assert_eq!((s.plays, s.seconds), (3, 290.0));
+        assert_eq!((s.plays, s.seconds), (3, 290.0), "un saut n'est pas une écoute");
+        assert_eq!(log.with_data(|l, sk, _| (l.len(), sk.len())), (3, 1));
         // Le morceau n'est décrit qu'une fois dans le fichier.
         let text = fs::read_to_string(&path).unwrap();
         assert_eq!(text.matches("\"track\"").count(), 1);

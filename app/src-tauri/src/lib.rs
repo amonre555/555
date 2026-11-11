@@ -18,6 +18,7 @@ use std::{
 use yato_core::{
     ArtistRef, Collection, CollectionData, Controller, Error, ListenLog, ListenTracker, Period, RecentSearches, Repeat, Session,
     Snapshot, SourceInfo, SourceRegistry, Stats, Track,
+    discover::{self, Discover, Section},
     lyrics::{Lyrics, LyricsClient},
     sources::{
         DeezerSource, LocalLibrary, YouTubeMusicSource,
@@ -43,6 +44,8 @@ struct AppState {
     collection: Collection,
     /// Journal des écoutes (page Stats, récap de l'année).
     listens: ListenLog,
+    /// Page Découvrir : sections en cache.
+    discover: Arc<Discover>,
     /// Suivi de l'écoute en cours, pour noter sa durée réelle.
     tracker: Mutex<ListenTracker>,
     searches: RecentSearches,
@@ -213,6 +216,32 @@ fn listening_stats(state: State<'_, AppState>, period: Period, offset: i32) -> S
 #[tauri::command]
 fn clear_stats(state: State<'_, AppState>) -> Res<()> {
     state.listens.clear()
+}
+
+// ---------- Découvrir ----------
+
+/// Sections de la page Découvrir, tout de suite (contenu en cache, éventuellement un peu ancien,
+/// ou vide en attendant). Si le cache a vieilli, elles sont recalculées en arrière-plan et
+/// arrivent une à une par l'événement `discover-section`. `offset` : décalage de l'heure locale
+/// sur UTC, en minutes (le choix des sections change à minuit).
+#[tauri::command]
+fn discover(app: tauri::AppHandle, state: State<'_, AppState>, force: bool, offset: i32) -> Vec<Section> {
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64);
+    let day = (now as i64 + i64::from(offset) * 60_000).div_euclid(86_400_000);
+    let profile = discover::profile_from(&state.listens, &state.collection.get(), now);
+    let plan = discover::plan(&profile, day);
+    let (sections, stale) = state.discover.page(&plan, now, force);
+    if stale && state.discover.claim(&plan) {
+        let (engine, deezer) = (state.discover.clone(), state.deezer.clone());
+        tauri::async_runtime::spawn(async move {
+            engine
+                .build(deezer, plan, &profile, now, day, |s| {
+                    let _ = app.emit("discover-section", s);
+                })
+                .await;
+        });
+    }
+    sections
 }
 
 // ---------- Recherches récentes ----------
@@ -446,6 +475,7 @@ pub fn run() {
             if let Err(e) = listens.import_history(&collection.get().history) {
                 eprintln!("stats : reprise de l'historique impossible : {e}");
             }
+            let discover = Arc::new(Discover::load(&app.path().app_cache_dir()?.join("discover.json")));
             let searches = RecentSearches::load(&app.path().app_data_dir()?.join("searches.json"));
             let settings_path = app.path().app_data_dir()?.join("settings.json");
             let session_path = app.path().app_data_dir()?.join("session.json");
@@ -478,6 +508,7 @@ pub fn run() {
                 deezer,
                 collection,
                 listens,
+                discover,
                 tracker: Mutex::new(ListenTracker::new()),
                 searches,
                 youtube: youtube.clone(),
@@ -591,6 +622,11 @@ pub fn run() {
                             eprintln!("stats : écoute non notée : {e}");
                         }
                     }
+                    // Morceau sauté : noté pour ne pas le reproposer dans Découvrir.
+                    let skipped = state.tracker.lock().take_skip();
+                    if let Some((track, skip)) = skipped {
+                        let _ = state.listens.record_skip(&track, skip);
+                    }
 
                     // Session : enregistrée quand elle change, et toutes les 10 s pendant la lecture.
                     let session = controller.session();
@@ -618,6 +654,7 @@ pub fn run() {
             rescan,
             search,
             featured,
+            discover,
             play_queue,
             play_index,
             toggle,

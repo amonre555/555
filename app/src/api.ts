@@ -70,6 +70,37 @@ export interface ArtistCard {
   picture: string | null;
 }
 
+/** Page Découvrir. */
+export type SectionKind = "mix" | "because" | "releases" | "artists" | "rediscover" | "charts" | "chartArtists" | "chartAlbums";
+
+/** Une sortie (album, EP, single) et son artiste. `date` : « 2026-11-07 », vide si inconnue. */
+export interface Release extends Album {
+  artist: string;
+  date: string;
+}
+
+/** Un artiste proposé, proche d'un artiste que tu écoutes (`near`). */
+export interface Suggestion {
+  id: string;
+  name: string;
+  picture: string | null;
+  near: string | null;
+}
+
+export interface DiscoverSection {
+  /** Stable : `mix:<jour>`, `because:<artiste>`, `releases`… */
+  id: string;
+  kind: SectionKind;
+  /** « Parce que tu écoutes X » : X. */
+  artist?: ArtistRef | null;
+  tracks: Track[];
+  albums: Release[];
+  artists: Suggestion[];
+  /** Contenu présent ; sinon en cours de chargement. */
+  ready: boolean;
+  at: number;
+}
+
 export type Status = "idle" | "loading" | "playing" | "paused" | "error";
 
 /** Répétition : rien, toute la file, ou le morceau en cours. */
@@ -237,6 +268,10 @@ export const api = {
   rescan: () => invoke<number>("rescan"),
   search: (query: string, source?: string) => invoke<Track[]>("search", { query, source: source ?? null }),
   featured: (source: string) => invoke<Track[]>("featured", { source }),
+  /** Sections de Découvrir, tout de suite (cache) ; les sections recalculées arrivent par `onDiscoverSection`. */
+  discover: (force = false) => invoke<DiscoverSection[]>("discover", { force, offset: utcOffset() }),
+  onDiscoverSection: (cb: (s: DiscoverSection) => void): Promise<UnlistenFn> =>
+    listen<DiscoverSection>("discover-section", (e) => cb(e.payload)),
   playQueue: (tracks: Track[], index: number) => invoke<Snapshot>("play_queue", { tracks, index }),
   playIndex: (index: number) => invoke<Snapshot>("play_index", { index }),
   toggle: () => invoke<Snapshot>("toggle"),
