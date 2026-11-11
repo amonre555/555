@@ -6,7 +6,7 @@
 
 <p align="center">
   A light, fast music player, written in Rust with Tauri.<br />
-  <a href="https://amonre555.github.io/555/">Website</a> ·
+  <a href="https://555.amon.lol/">Website</a> ·
   <a href="https://github.com/amonre555/555/releases/latest">Download</a>
 </p>
 
