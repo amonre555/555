@@ -262,6 +262,13 @@ async fn prefetch(state: State<'_, AppState>, track: Track) -> Res<()> {
     Ok(())
 }
 
+/// Préparation légère des morceaux affichés (top, résultats) : un clic démarre aussitôt.
+#[tauri::command]
+async fn warm(state: State<'_, AppState>, tracks: Vec<Track>) -> Res<()> {
+    state.controller.warm(tracks);
+    Ok(())
+}
+
 #[tauri::command]
 fn set_shuffle(state: State<'_, AppState>, on: bool) -> Snapshot {
     state.controller.set_shuffle(on);
@@ -351,6 +358,7 @@ fn cover_response(uri_path: &str) -> http::Response<Vec<u8>> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    yato_core::timing::start();
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         // Mises à jour automatiques, publiées dans les Releases GitHub (voir .github/workflows).
@@ -395,7 +403,7 @@ pub fn run() {
                 library,
                 deezer,
                 collection,
-                youtube,
+                youtube: youtube.clone(),
                 client: client.clone(),
                 cache_path,
                 settings: Mutex::new(prefs),
@@ -425,6 +433,15 @@ pub fn run() {
                 }
             });
             tauri::async_runtime::spawn(async move { ytdlp.maintain().await });
+
+            // Premier clic rapide : client YouTube Music chauffé (connexion, jetons), et le
+            // morceau de la session reprise préparé.
+            let (yt, c) = (youtube.clone(), controller.clone());
+            let resumed: Vec<Track> = c.snapshot().track.into_iter().collect();
+            tauri::async_runtime::spawn(async move {
+                yt.warm_up().await;
+                c.warm(resumed);
+            });
 
             // Boucle d'état, 4 fois par seconde : enchaîne les morceaux (et les fondus), pousse
             // l'état à l'interface, note les écoutes et garde la session.
@@ -511,6 +528,7 @@ pub fn run() {
             seek,
             set_volume,
             prefetch,
+            warm,
             lyrics,
             artist,
             album,

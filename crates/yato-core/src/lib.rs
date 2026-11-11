@@ -19,6 +19,7 @@ pub mod player;
 pub mod source;
 pub mod sources;
 pub mod stream;
+pub mod timing;
 pub mod ytdlp;
 
 pub use collection::{Collection, CollectionData, Played, Playlist};

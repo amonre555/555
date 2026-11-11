@@ -178,6 +178,8 @@ export const api = {
   previous: () => invoke<Snapshot>("previous"),
   seek: (position: number) => invoke<Snapshot>("seek", { position }),
   prefetch: (track: Track) => invoke<void>("prefetch", { track }),
+  /** Préparation légère (adresse du son, sans téléchargement) des morceaux affichés. */
+  warm: (tracks: Track[]) => invoke<void>("warm", { tracks }),
   lyrics: (track: Track) => invoke<Lyrics | null>("lyrics", { track }),
   artist: (ref: ArtistRef) => invoke<ArtistPage>("artist", { id: ref.id ?? null, name: ref.name }),
   album: (ref: AlbumRef) => invoke<AlbumPage>("album", { id: ref.id ?? null, title: ref.title, artist: ref.artist ?? null }),

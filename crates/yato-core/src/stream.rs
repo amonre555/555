@@ -49,6 +49,8 @@ struct Shared {
     cancelled: AtomicBool,
     /// Sources encore en train d'écrire (voir [`Shared::writer_done`]).
     writers: AtomicUsize,
+    /// Création du téléchargement (minutage).
+    born: std::time::Instant,
 }
 
 impl Shared {
@@ -141,6 +143,7 @@ impl Download {
             cond: Condvar::new(),
             cancelled: AtomicBool::new(false),
             writers: AtomicUsize::new(0),
+            born: std::time::Instant::now(),
         });
         let guard = Arc::new(CancelOnDrop(shared.clone()));
         (Self { shared: shared.clone(), guard }, shared)
@@ -201,13 +204,31 @@ impl Download {
         if attempts.is_empty() {
             return Err(Error::Other("no arguments for the program".into()));
         }
+        let program = program.to_owned();
+        Ok(Self::process_when_ready(async move { Ok((program, attempts)) }))
+    }
+
+    /// Comme [`Download::process`], mais le programme n'est connu qu'une fois `prepare` terminé
+    /// (ex. yt-dlp en cours d'installation). Le téléchargement existe tout de suite : une autre
+    /// source ([`Download::add_http`]) peut le remplir en attendant.
+    pub fn process_when_ready<F>(prepare: F) -> Self
+    where
+        F: std::future::Future<Output = Result<(std::path::PathBuf, Vec<Vec<String>>)>> + Send + 'static,
+    {
         let (dl, shared) = Self::new(None);
         shared.writers.fetch_add(1, Ordering::AcqRel);
-        let program = program.to_owned();
         tokio::spawn(async move {
+            let (program, attempts) = match prepare.await {
+                Ok(p) => p,
+                Err(e) => return shared.writer_done(Err(e.to_string())),
+            };
             let mut result = Err("no attempt".to_owned());
             let mut written = 0u64;
             for args in attempts {
+                if shared.cancelled() || shared.complete() {
+                    result = Ok(());
+                    break;
+                }
                 result = run_process(&shared, &program, &args, &mut written).await;
                 if result.is_ok() || written > 0 || shared.cancelled() || shared.complete() {
                     break;
@@ -222,7 +243,7 @@ impl Download {
             }
             shared.writer_done(result);
         });
-        Ok(dl)
+        dl
     }
 
     /// Ajoute une deuxième source : l'adresse HTTP directe du **même** fichier (`len` octets).
@@ -240,6 +261,7 @@ impl Download {
         tokio::spawn(async move {
             let result = async {
                 let mut pos = shared.state.lock().buf.len() as u64;
+                let mut first = true;
                 while pos < len {
                     if shared.cancelled() || shared.complete() {
                         return Ok(());
@@ -251,6 +273,9 @@ impl Download {
                         if shared.cancelled() || shared.complete() {
                             return Ok(());
                         }
+                        if std::mem::take(&mut first) {
+                            crate::timing::step("flux direct : premiers octets (depuis le début du téléchargement)", shared.born);
+                        }
                         shared.push_at(pos, &bytes);
                         pos += bytes.len() as u64;
                     }
@@ -260,6 +285,10 @@ impl Download {
                 Ok(())
             }
             .await;
+            if crate::timing::enabled() {
+                let have = shared.state.lock().buf.len();
+                crate::timing::step(&format!("flux direct : fin ({result:?}, tampon {} Ko / {} Ko)", have / 1024, len / 1024), shared.born);
+            }
             shared.writer_done(result);
         });
     }
@@ -284,6 +313,7 @@ impl Download {
 
     /// Attend d'avoir assez de données pour démarrer, puis renvoie un lecteur.
     pub async fn reader(&self) -> Result<StreamReader> {
+        let t0 = std::time::Instant::now();
         let waiter = self.shared.clone();
         tokio::task::spawn_blocking(move || {
             let mut st = waiter.state.lock();
@@ -293,11 +323,12 @@ impl Download {
         })
         .await
         .ok();
+        crate::timing::step("tampon : attente des 128 premiers Ko", t0);
         let st = self.shared.state.lock();
         if st.buf.is_empty() {
             return Err(Error::Other(st.error.clone().unwrap_or_else(|| "empty stream".into())));
         }
-        Ok(StreamReader { shared: self.shared.clone(), _guard: self.guard.clone(), pos: 0 })
+        Ok(StreamReader { shared: self.shared.clone(), _guard: self.guard.clone(), pos: 0, quick_open: None })
     }
 }
 
@@ -350,6 +381,9 @@ async fn run_process(shared: &Shared, program: &Path, args: &[String], written: 
         if n == 0 {
             break;
         }
+        if *written == 0 {
+            crate::timing::step("yt-dlp : premiers octets (depuis le début du téléchargement)", shared.born);
+        }
         shared.push_at(*written, &buf[..n]);
         *written += n as u64;
     }
@@ -374,16 +408,113 @@ pub struct StreamReader {
     shared: Arc<Shared>,
     _guard: Arc<CancelOnDrop>,
     pos: u64,
+    /// Ouverture rapide d'un MP4 fragmenté, voir [`StreamReader::quick_open_mp4`].
+    quick_open: Option<QuickOpen>,
+}
+
+/// Pendant l'ouverture du décodeur : au-delà de `cutoff`, le fichier est présenté comme un
+/// seul atome `free` jusqu'à la fin (`len`), sans attendre le téléchargement.
+struct QuickOpen {
+    cutoff: u64,
+    len: u64,
+    /// Le faux atome a été lu au moins une fois.
+    served: bool,
+    /// Mis à `true` quand le décodeur est ouvert (voir [`QuickOpenGuard`]).
+    over: Arc<AtomicBool>,
+}
+
+/// Termine l'ouverture rapide quand il disparaît (à garder pendant l'ouverture du décodeur).
+pub struct QuickOpenGuard(Option<Arc<AtomicBool>>);
+
+impl Drop for QuickOpenGuard {
+    fn drop(&mut self) {
+        if let Some(over) = &self.0 {
+            over.store(true, Ordering::Relaxed);
+        }
+    }
 }
 
 impl StreamReader {
     pub fn total_len(&self) -> Option<u64> {
         self.shared.state.lock().total
     }
+
+    /// À appeler juste avant d'ouvrir le décodeur, pour un MP4 fragmenté (le m4a de YouTube :
+    /// `ftyp`, `moov`, `sidx`, puis des dizaines de paires `moof` + `mdat` sur tout le fichier).
+    ///
+    /// Quand la source est « seekable », le démuxeur MP4 de symphonia parcourt **tous** les
+    /// atomes du fichier avant de rendre la main : il faudrait attendre le téléchargement
+    /// complet avant le premier son. Ici, tant qu'il n'est pas revenu au début du fichier (ce
+    /// qu'il fait à la fin de ce parcours), tout ce qui suit les atomes déjà reçus en entier lui
+    /// apparaît comme un atome `free` (vide) jusqu'à la fin. Il ne retient de ce parcours que
+    /// `ftyp` et `moov` (les fragments sont relus ensuite, au fil de la lecture) : rien n'est
+    /// perdu, et l'avance rapide reste possible.
+    ///
+    /// Sans effet si le fichier est déjà complet, n'est pas un MP4, ou si `moov` manque encore.
+    /// Le garde renvoyé est à lâcher une fois le décodeur ouvert.
+    #[must_use]
+    pub fn quick_open_mp4(&mut self) -> QuickOpenGuard {
+        let st = self.shared.state.lock();
+        let Some(len) = st.total.filter(|&t| t > st.buf.len() as u64) else { return QuickOpenGuard(None) };
+        match complete_mp4_prefix(&st.buf) {
+            Some(cutoff) if len - cutoff >= 8 && len - cutoff <= u64::from(u32::MAX) => {
+                let over = Arc::new(AtomicBool::new(false));
+                self.quick_open = Some(QuickOpen { cutoff, len, served: false, over: over.clone() });
+                QuickOpenGuard(Some(over))
+            }
+            _ => QuickOpenGuard(None),
+        }
+    }
+
+    fn quick_open_active(&mut self) -> Option<&mut QuickOpen> {
+        if self.quick_open.as_ref().is_some_and(|q| q.over.load(Ordering::Relaxed)) {
+            self.quick_open = None;
+        }
+        self.quick_open.as_mut()
+    }
+}
+
+/// Fin des atomes de premier niveau d'un MP4 entièrement présents dans `buf`, si `ftyp` et
+/// `moov` en font partie.
+fn complete_mp4_prefix(buf: &[u8]) -> Option<u64> {
+    let (mut pos, mut ftyp, mut moov) = (0usize, false, false);
+    while pos + 8 <= buf.len() {
+        let size = u32::from_be_bytes(buf[pos..pos + 4].try_into().ok()?) as usize;
+        let kind = &buf[pos + 4..pos + 8];
+        if size < 8 || pos + size > buf.len() {
+            break; // atome incomplet (ou taille sur 64 bits, rare : on s'arrête là)
+        }
+        ftyp |= kind == b"ftyp";
+        moov |= kind == b"moov";
+        pos += size;
+    }
+    (ftyp && moov).then_some(pos as u64)
 }
 
 impl Read for StreamReader {
     fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
+        let pos = self.pos;
+        if let Some(q) = self.quick_open_active()
+            && pos >= q.cutoff
+        {
+            // Faux atome `free` : en-tête (taille, type), puis des zéros.
+            if pos >= q.len || out.is_empty() {
+                return Ok(0);
+            }
+            q.served = true;
+            let mut header = [0u8; 8];
+            header[..4].copy_from_slice(&((q.len - q.cutoff) as u32).to_be_bytes());
+            header[4..].copy_from_slice(b"free");
+            let n = out.len().min((q.len - pos) as usize);
+            for (i, b) in out[..n].iter_mut().enumerate() {
+                let at = pos - q.cutoff + i as u64;
+                *b = if at < 8 { header[at as usize] } else { 0 };
+            }
+            self.pos += n as u64;
+            return Ok(n);
+        }
+        // Pendant l'ouverture rapide, ne jamais déborder sur le faux atome.
+        let limit = self.quick_open.as_ref().map_or(usize::MAX, |q| (q.cutoff - self.pos) as usize);
         let mut st = self.shared.state.lock();
         // Attendre que les données demandées soient arrivées.
         while (st.buf.len() as u64) <= self.pos && !st.done {
@@ -396,7 +527,7 @@ impl Read for StreamReader {
                 None => Ok(0),
             };
         }
-        let n = out.len().min(st.buf.len() - start);
+        let n = out.len().min(st.buf.len() - start).min(limit);
         out[..n].copy_from_slice(&st.buf[start..start + n]);
         self.pos += n as u64;
         Ok(n)
@@ -429,6 +560,61 @@ impl Seek for StreamReader {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, "negative position"));
         }
         self.pos = new as u64;
+        // Le démuxeur revient au début après son parcours : le vrai fichier reprend sa place.
+        let pos = self.pos;
+        if self.quick_open_active().is_some_and(|q| q.served && pos < q.cutoff) {
+            self.quick_open = None;
+        }
         Ok(self.pos)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn atom(kind: &[u8; 4], body: usize) -> Vec<u8> {
+        let mut a = ((body + 8) as u32).to_be_bytes().to_vec();
+        a.extend_from_slice(kind);
+        a.resize(body + 8, 7);
+        a
+    }
+
+    #[test]
+    fn mp4_prefix_stops_at_the_first_incomplete_atom() {
+        let mut buf = [atom(b"ftyp", 16), atom(b"moov", 100), atom(b"moof", 50)].concat();
+        let complete = buf.len() as u64;
+        buf.extend_from_slice(&atom(b"mdat", 1000)[..300]);
+        assert_eq!(complete_mp4_prefix(&buf), Some(complete));
+        // Sans `moov`, pas d'ouverture rapide.
+        assert_eq!(complete_mp4_prefix(&[atom(b"ftyp", 16), atom(b"moof", 50)].concat()), None);
+        assert_eq!(complete_mp4_prefix(b"ID3\x04 pas un mp4"), None);
+    }
+
+    #[test]
+    fn quick_open_hides_the_missing_part_until_the_demuxer_rewinds() {
+        let head = [atom(b"ftyp", 16), atom(b"moov", 100)].concat();
+        let mdat = atom(b"mdat", 1000);
+        let len = (head.len() + mdat.len()) as u64;
+        let (dl, shared) = Download::new(Some(len));
+        shared.writers.fetch_add(1, Ordering::AcqRel);
+        shared.push(&head);
+        shared.push(&mdat[..100]);
+        let mut r = StreamReader { shared: shared.clone(), _guard: dl.guard.clone(), pos: 0, quick_open: None };
+        let guard = r.quick_open_mp4();
+
+        // Au-delà des atomes complets : un atome `free` jusqu'à la fin, lu sans attendre.
+        r.seek(SeekFrom::Start(head.len() as u64)).unwrap();
+        let mut h = [0u8; 8];
+        r.read_exact(&mut h).unwrap();
+        assert_eq!(u32::from_be_bytes(h[..4].try_into().unwrap()) as usize, mdat.len());
+        assert_eq!(&h[4..], b"free");
+
+        // Retour au début : le vrai fichier reprend sa place.
+        r.seek(SeekFrom::Start(0)).unwrap();
+        drop(guard);
+        let mut all = vec![0u8; head.len() + 100];
+        r.read_exact(&mut all).unwrap();
+        assert_eq!(&all[head.len()..], &mdat[..100]);
     }
 }

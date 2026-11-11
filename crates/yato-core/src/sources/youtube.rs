@@ -5,10 +5,12 @@
 //! - **Son** : `yt-dlp` (géré par [`YtDlp`]) télécharge lui-même le m4a et nous l'envoie sur sa
 //!   sortie standard. On le lit au fil de l'eau.
 //! - **Démarrage rapide** : l'adresse directe du flux (rustypipe) remplit le début du tampon
-//!   pendant que yt-dlp démarre ; yt-dlp prend le relais si YouTube coupe ce flux direct.
+//!   pendant que yt-dlp démarre (ou s'installe) ; yt-dlp prend le relais si YouTube coupe ce
+//!   flux direct.
 //! - **Anticipation** : démarrer yt-dlp prend ~1 à 3 s. [`MusicSource::prefetch`] lance donc le
 //!   téléchargement à l'avance (morceau suivant, premier résultat, survol) dans un cache mémoire
-//!   limité : au clic, le son est déjà là.
+//!   limité : au clic, le son est déjà là. [`YouTubeMusicSource::warm_id`] est la version
+//!   légère (l'adresse directe seulement), pour les morceaux affichés.
 //!
 //! ⚠️ Lire YouTube en dehors de son lecteur est contraire à ses conditions d'utilisation.
 
@@ -26,12 +28,38 @@ use crate::{ArtistRef, Error, Location, MusicSource, Result, StreamData, Track, 
 
 /// Nombre de morceaux gardés en mémoire (un morceau ≈ 3 à 8 Mo).
 const CACHE_TRACKS: usize = 8;
+/// Durée pendant laquelle une adresse directe est réutilisée (YouTube les garde ~6 h).
+const DIRECT_TTL: std::time::Duration = std::time::Duration::from_secs(3600);
+/// Nombre d'adresses directes gardées.
+const DIRECT_MAX: usize = 200;
+
+/// Identifiant → (obtenue à, adresse directe du m4a, taille).
+type DirectUrls = Arc<Mutex<std::collections::HashMap<String, (Instant, String, u64)>>>;
+
+/// Demande à YouTube l'adresse directe du m4a (itag 140) et la garde.
+async fn fetch_direct(rp: &RustyPipe, direct: &DirectUrls, id: &str) -> Option<(String, u64)> {
+    let t0 = Instant::now();
+    let player = rp.query().player(id).await;
+    crate::timing::step("flux direct : adresse obtenue (rustypipe player)", t0);
+    let a = player.ok()?.audio_streams.into_iter().find(|a| a.itag == 140)?;
+    let mut direct = direct.lock();
+    if direct.len() >= DIRECT_MAX {
+        direct.retain(|_, (at, _, _)| at.elapsed() < DIRECT_TTL);
+        if direct.len() >= DIRECT_MAX {
+            direct.clear();
+        }
+    }
+    direct.insert(id.to_owned(), (Instant::now(), a.url.clone(), a.size));
+    Some((a.url, a.size))
+}
 
 pub struct YouTubeMusicSource {
     rp: RustyPipe,
     ytdlp: Arc<YtDlp>,
     /// Téléchargements récents ou anticipés : `(id, dernier accès, téléchargement)`.
     cache: Mutex<Vec<(String, Instant, Download)>>,
+    /// Adresses directes déjà obtenues (voir [`Self::warm_id`]).
+    direct: DirectUrls,
 }
 
 impl YouTubeMusicSource {
@@ -50,7 +78,7 @@ impl YouTubeMusicSource {
             .storage_dir(storage_dir)
             .build()
             .map_err(|e| Error::Other(e.to_string()))?;
-        Ok(Self { rp, ytdlp, cache: Mutex::new(Vec::new()) })
+        Ok(Self { rp, ytdlp, cache: Mutex::new(Vec::new()), direct: DirectUrls::default() })
     }
 
     fn cached(&self, id: &str) -> Option<Download> {
@@ -61,44 +89,59 @@ impl YouTubeMusicSource {
     }
 
     /// Le téléchargement de `id` : celui du cache, ou un nouveau.
+    ///
+    /// Deux sources remplissent le même tampon, lancées tout de suite et sans s'attendre :
+    /// - l'adresse directe du fichier (itag 140), lue par rustypipe en ~0,1 à 0,3 s (ou déjà
+    ///   connue, voir [`Self::warm_id`]) : le son démarre sans attendre yt-dlp. YouTube refuse
+    ///   en général ce flux direct après le premier Mo (≈ 1 min de son) ;
+    /// - yt-dlp, qui prend alors le relais sans coupure. Le lancer prend 1 à 3 s (bien plus au
+    ///   tout premier lancement, surtout sous Windows : installation, antivirus, Python), d'où
+    ///   l'intérêt de ne pas l'attendre pour démarrer.
+    ///
+    /// L'adresse directe donne aussi la taille du flux, pour l'avance rapide avant la fin du
+    /// téléchargement.
     async fn download(&self, id: &str) -> Result<Download> {
         if let Some(d) = self.cached(id) {
+            crate::timing::step("youtube : déjà dans le cache (anticipé)", Instant::now());
             return Ok(d);
         }
-        let program = self.ytdlp.path().await?;
-        // Re-vérifier : une autre demande a pu le lancer pendant l'attente de yt-dlp.
-        if let Some(d) = self.cached(id) {
-            return Ok(d);
-        }
-        let base: Vec<String> = [
-            // m4a/AAC : décodé nativement par symphonia, sans conversion.
-            "-f", "140/bestaudio[ext=m4a]",
-            "-o", "-",
-            "--quiet", "--no-warnings", "--no-playlist", "--no-part",
-        ]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+        let ytdlp = self.ytdlp.clone();
         let url = format!("https://music.youtube.com/watch?v={id}");
-        // 1er essai sans moteur JavaScript (~2 s), 2e avec (~8 s) si YouTube l'exige.
-        let mut attempts = vec![[base.clone(), vec![url.clone()]].concat()];
-        let js = self.ytdlp.js_runtime_args();
-        if !js.is_empty() {
-            attempts.push([base, js, vec![url]].concat());
-        }
-        let download = Download::process(&program, attempts)?;
+        let download = Download::process_when_ready(async move {
+            let t0 = Instant::now();
+            let program = ytdlp.path().await?;
+            crate::timing::step("yt-dlp : chemin prêt (installation si absent)", t0);
+            let base: Vec<String> = [
+                // m4a/AAC : décodé nativement par symphonia, sans conversion.
+                "-f", "140/bestaudio[ext=m4a]",
+                "-o", "-",
+                "--quiet", "--no-warnings", "--no-playlist", "--no-part",
+            ]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+            // 1er essai sans moteur JavaScript (~2 s), 2e avec (~8 s) si YouTube l'exige.
+            let mut attempts = vec![[base.clone(), vec![url.clone()]].concat()];
+            let js = ytdlp.js_runtime_args();
+            if !js.is_empty() {
+                attempts.push([base, js, vec![url]].concat());
+            }
+            Ok((program, attempts))
+        });
 
-        // En parallèle, l'adresse directe du même fichier (itag 140), lue par rustypipe en
-        // ~0,2 s : le son démarre sans attendre yt-dlp (1 à 3 s, souvent plus sous Windows où
-        // chaque lancement de Python est lent). YouTube coupe parfois ce flux direct après le
-        // premier Mo ; yt-dlp, lancé en même temps, prend alors le relais sans coupure. Ça donne
-        // aussi la taille du flux, pour l'avance rapide avant la fin du téléchargement.
+        let this_direct = self.direct_known(id);
         let (rp, dl, vid, client) = (self.rp.clone(), download.clone(), id.to_owned(), self.ytdlp.client().clone());
+        let direct = self.direct.clone();
         tokio::spawn(async move {
-            if let Ok(player) = rp.query().player(&vid).await
-                && let Some(a) = player.audio_streams.iter().find(|a| a.itag == 140)
-            {
-                dl.add_http(&client, &a.url, a.size);
+            let found = match this_direct {
+                Some(d) => {
+                    crate::timing::step("flux direct : adresse déjà connue", Instant::now());
+                    Some(d)
+                }
+                None => fetch_direct(&rp, &direct, &vid).await,
+            };
+            if let Some((url, size)) = found {
+                dl.add_http(&client, &url, size);
             }
         });
 
@@ -111,6 +154,28 @@ impl YouTubeMusicSource {
         }
         cache.push((id.to_owned(), Instant::now(), download.clone()));
         Ok(download)
+    }
+
+    /// Adresse directe déjà connue et encore valable.
+    fn direct_known(&self, id: &str) -> Option<(String, u64)> {
+        let direct = self.direct.lock();
+        direct.get(id).filter(|(at, _, _)| at.elapsed() < DIRECT_TTL).map(|(_, u, s)| (u.clone(), *s))
+    }
+
+    /// Préparation légère : l'adresse directe du son, sans rien télécharger. Au clic, il ne
+    /// reste qu'à lire les premiers Ko.
+    pub async fn warm_id(&self, id: &str) {
+        if self.cached(id).is_none() && self.direct_known(id).is_none() {
+            fetch_direct(&self.rp, &self.direct, id).await;
+        }
+    }
+
+    /// Chauffe le client YouTube Music (connexion, jetons) au lancement de l'appli, pour que
+    /// la première recherche de correspondance ne paie pas ce coût.
+    pub async fn warm_up(&self) {
+        let t0 = Instant::now();
+        let _ = self.rp.query().music_search_tracks("a").await;
+        crate::timing::step("youtube : client chauffé au lancement", t0);
     }
 
     /// Le son d'une vidéo YouTube Music, par son identifiant.
@@ -131,7 +196,9 @@ impl YouTubeMusicSource {
     /// n'en est pas une.
     pub async fn find_match(&self, title: &str, artist: &str, duration: Option<f64>) -> Result<String> {
         let query = format!("{artist} {title}");
+        let t0 = Instant::now();
         let res = self.rp.query().music_search_tracks(&query).await.map_err(yt_err)?;
+        crate::timing::step("deezer → youtube : recherche de la correspondance", t0);
         res.items
             .items
             .iter()
@@ -310,6 +377,12 @@ impl MusicSource for YouTubeMusicSource {
     async fn prefetch(&self, track: &Track) {
         if let Ok(id) = remote_id(track) {
             let _ = self.download(id).await;
+        }
+    }
+
+    async fn warm(&self, track: &Track) {
+        if let Ok(id) = remote_id(track) {
+            self.warm_id(id).await;
         }
     }
 

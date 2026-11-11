@@ -524,6 +524,12 @@ impl MusicSource for DeezerSource {
         }
     }
 
+    async fn warm(&self, track: &Track) {
+        if let Ok(id) = self.youtube_id(track).await {
+            self.youtube.warm_id(&id).await;
+        }
+    }
+
     async fn resolve(&self, track: &Track) -> Result<StreamData> {
         let id = self.youtube_id(track).await?;
         self.youtube.stream_id(&id).await

@@ -210,10 +210,17 @@ export default function App() {
     } catch (e) {
       fail(e);
     }
-    api.featured("deezer").then(setFeatured).catch((e) => {
-      setFeatured([]);
-      fail(e);
-    });
+    api
+      .featured("deezer")
+      .then((list) => {
+        setFeatured(list);
+        // Les premiers morceaux du top sont les plus cliqués au lancement : un clic doit démarrer aussitôt.
+        api.warm(list.slice(0, 8)).catch(() => {});
+      })
+      .catch((e) => {
+        setFeatured([]);
+        fail(e);
+      });
   });
 
   // ---------- Recherche (anti-rebond, sans course entre requêtes) ----------
@@ -240,8 +247,10 @@ export default function App() {
         if (id !== searchId) return;
         setResults(r);
         // Le premier résultat en ligne est le plus souvent cliqué : on le prépare tout de suite.
-        const first = r.find((t) => t.source === "deezer" || t.source === "youtube");
-        if (first) api.prefetch(first);
+        const online = r.filter((t) => t.source === "deezer" || t.source === "youtube");
+        if (online[0]) api.prefetch(online[0]);
+        // Les suivants : préparation légère seulement.
+        api.warm(online.slice(1, 6)).catch(() => {});
       } catch (e) {
         fail(e);
       }

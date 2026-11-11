@@ -36,6 +36,10 @@ pub trait MusicSource: Send + Sync {
     /// Ne fait rien par défaut.
     async fn prefetch(&self, _track: &Track) {}
 
+    /// Préparation légère d'un morceau affiché (ex. résoudre son adresse, sans rien
+    /// télécharger), pour qu'un clic démarre vite. Ne fait rien par défaut.
+    async fn warm(&self, _track: &Track) {}
+
     /// Donne l'emplacement réel du son.
     async fn resolve(&self, track: &Track) -> Result<StreamData>;
 }

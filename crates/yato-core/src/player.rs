@@ -135,6 +135,9 @@ impl State {
     }
 }
 
+/// Nombre de morceaux préparés par [`Controller::warm`].
+pub const WARM_MAX: usize = 8;
+
 pub struct Controller {
     players: [rodio::Player; 2],
     /// Lecteur qui joue le morceau en cours (0 ou 1).
@@ -267,6 +270,20 @@ impl Controller {
         }
     }
 
+    /// Préparation légère des morceaux affichés (les premiers [`WARM_MAX`]), un par un, en
+    /// arrière-plan. Sans runtime tokio, ne fait rien.
+    pub fn warm(&self, tracks: Vec<Track>) {
+        let Ok(rt) = tokio::runtime::Handle::try_current() else { return };
+        let sources = self.sources.clone();
+        rt.spawn(async move {
+            for track in tracks.into_iter().take(WARM_MAX) {
+                if let Ok(source) = sources.get(&track.source) {
+                    source.warm(&track).await;
+                }
+            }
+        });
+    }
+
     /// Prépare le morceau qui suivra : enchaînement (ou fondu) instantané.
     fn prefetch_next(&self, st: &State) {
         let next = if st.repeat == Repeat::One { st.index } else { st.next_index(st.repeat == Repeat::All) };
@@ -332,7 +349,9 @@ impl Controller {
     /// Charge `track` dans le lecteur `slot` et le lance. Renvoie la durée lue dans le fichier.
     /// Ne touche pas à l'état : c'est à l'appelant de dire ce qui joue.
     async fn open(&self, track: &Track, generation: u64, slot: usize) -> Result<Option<Duration>> {
+        let t0 = std::time::Instant::now();
         let data = self.sources.get(&track.source)?.resolve(track).await?;
+        crate::timing::step("lecteur : source résolue", t0);
         let is_current = || self.generation.load(Ordering::SeqCst) == generation;
         let player = &self.players[slot];
 
@@ -362,7 +381,10 @@ impl Controller {
                     return Ok(None);
                 }
                 let decoder = tokio::task::spawn_blocking(move || {
+                    let mut reader = reader;
                     let len = reader.total_len();
+                    // m4a de YouTube : ouvrir sans attendre la fin du téléchargement.
+                    let _quick = reader.quick_open_mp4();
                     let mut b = Decoder::builder().with_data(reader).with_seekable(true);
                     if let Some(len) = len {
                         b = b.with_byte_len(len);
@@ -374,6 +396,7 @@ impl Controller {
                 })
                 .await
                 .map_err(|e| Error::Other(e.to_string()))??;
+                crate::timing::step("lecteur : décodeur prêt (depuis le clic)", t0);
                 if !is_current() {
                     return Ok(None);
                 }
@@ -387,6 +410,7 @@ impl Controller {
             return Ok(None);
         }
         player.play();
+        crate::timing::step(&format!("lecteur : « {} » lancé (total depuis le clic)", track.title), t0);
         Ok(duration)
     }
 

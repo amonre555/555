@@ -233,7 +233,7 @@ mod tests {
             location: yato_core::Location::Remote { remote_id: "1".into() },
             artists: Vec::new(),
         };
-        Snapshot { track: Some(track), status, position, duration: Some(223.0), volume: 1.0, index: Some(0), queue_len: 1, error: None }
+        Snapshot { track: Some(track), status, position, duration: Some(223.0), volume: 1.0, index: Some(0), queue_len: 1, error: None, shuffle: false, repeat: yato_core::Repeat::Off }
     }
 
     /// Simule un envoi réussi : Discord affiche ce qui était voulu.

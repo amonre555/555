@@ -111,11 +111,16 @@ impl YtDlp {
     /// les mises à jour (au plus toutes les 12 h).
     pub async fn maintain(&self) {
         if self.managed().is_none() {
-            let _ = self.path().await;
+            if let Ok(p) = self.path().await {
+                warm_exe(&p).await;
+            }
             return;
         }
         self.set(YtDlpStatus::Ready);
         if !self.update_due() {
+            if let Some(p) = self.managed() {
+                warm_exe(&p).await;
+            }
             return;
         }
         let _guard = self.install_lock.lock().await;
@@ -131,6 +136,9 @@ impl YtDlp {
             }
         }
         self.cleanup();
+        if let Some(p) = self.managed() {
+            warm_exe(&p).await;
+        }
     }
 
     /// Arguments à ajouter pour que yt-dlp utilise un moteur JavaScript du système
@@ -164,7 +172,9 @@ impl YtDlp {
 
     async fn install(&self, sums: Option<String>) -> Result<PathBuf> {
         self.set(YtDlpStatus::Installing { progress: 0.0 });
+        let t0 = std::time::Instant::now();
         let result = self.download_and_extract(sums).await;
+        crate::timing::step("yt-dlp : téléchargement + vérification + extraction", t0);
         match &result {
             Ok(_) => {
                 self.touch_last_check();
@@ -284,6 +294,24 @@ impl YtDlp {
             }
         }
     }
+}
+
+/// Lance une fois `yt-dlp --version`, en arrière-plan, pour que le premier vrai lancement soit
+/// rapide : le tout premier démarrage d'un yt-dlp fraîchement installé est très lent (analyse
+/// antivirus de chaque fichier sous Windows ou macOS, fichiers à charger depuis le disque,
+/// Python à initialiser) : jusqu'à ~13 s mesurées sous macOS, contre ~1,5 s ensuite.
+async fn warm_exe(program: &Path) {
+    let t0 = std::time::Instant::now();
+    let mut cmd = tokio::process::Command::new(program);
+    cmd.arg("--version")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .kill_on_drop(true);
+    #[cfg(windows)]
+    cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+    let _ = tokio::time::timeout(Duration::from_secs(60), cmd.status()).await;
+    crate::timing::step("yt-dlp : préchauffage (--version)", t0);
 }
 
 fn verify_signature(data: &[u8], sig: &[u8]) -> Result<()> {

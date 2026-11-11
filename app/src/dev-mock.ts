@@ -220,6 +220,7 @@ const handlers: Record<string, (args: any) => unknown> = {
   player_state: () => snap(),
   queue: () => queue,
   prefetch: () => null,
+  warm: () => null,
   lyrics: () => LYRICS,
   artist: ({ name }) => (demo !== null && name === DEMO.artist.name ? (DEMO.artist as ArtistPage) : demoArtist(name)),
   album: async ({ title }): Promise<AlbumPage> => {
