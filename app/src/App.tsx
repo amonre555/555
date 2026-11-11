@@ -244,6 +244,7 @@ export default function App() {
   const applySnap = (s: Snapshot) => {
     snapAt = performance.now();
     setSnap(s);
+    startFrames();
   };
   const position = createMemo(() => {
     const s = snap();
@@ -256,12 +257,21 @@ export default function App() {
     // Téléphone, vue « En lecture » fermée : seul le fil du mini-lecteur bouge, 4 fois par
     // seconde suffisent (redessiner 60 fois par seconde fait ramer les petits téléphones).
     // Ouverte, les paroles karaoké ont besoin de chaque image.
+    // Hors lecture, la boucle s'arrête : la position ne bouge pas, inutile de réveiller la
+    // WebView 60 fois par seconde. `applySnap` la relance au prochain « playing ».
+    if (snap().status !== "playing") {
+      raf = 0;
+      return;
+    }
     const smooth = !isMobile() || np() !== "closed" || t - lastFrame >= 250;
-    if (snap().status === "playing" && smooth) {
+    if (smooth) {
       lastFrame = t;
       setNow(performance.now());
     }
     raf = requestAnimationFrame(frame);
+  };
+  const startFrames = () => {
+    if (!raf && snap().status === "playing") raf = requestAnimationFrame(frame);
   };
 
   // ---------- Chargement ----------
@@ -273,7 +283,7 @@ export default function App() {
 
   onMount(async () => {
     // Nettoyages enregistrés avant tout `await`, sinon Solid les perd.
-    raf = requestAnimationFrame(frame);
+    startFrames();
     const unlisten = api.onPlayer(applySnap);
     const unlistenDiscover = listenDiscover();
     const unlistenYt = api.onYtdlp(setYtdlp);
