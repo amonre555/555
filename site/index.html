@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>555 - a light, fast music player</title>
-  <meta name="description" content="555 is a free, open-source music player for macOS and Windows. Stream from Deezer and YouTube Music, play your own files, word-synced lyrics, no account, no ads." />
+  <meta name="description" content="555 is a free, open-source music player for macOS, Windows and Android. Stream from Deezer and YouTube Music, play your own files, word-synced lyrics, no account, no ads." />
   <meta property="og:title" content="555 - a light, fast music player" />
   <meta property="og:description" content="Free and open source. Stream, play your own files, word-synced lyrics. No account, no ads." />
   <meta property="og:image" content="assets/shot-discover.jpg" />
@@ -126,7 +126,7 @@
     .lyrics-demo .next { display: block; color: rgba(255, 255, 255, 0.28); filter: blur(1px); font-size: 18px; }
 
     /* Download */
-    .downloads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; }
+    .downloads { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 40px; }
     .dl { display: flex; flex-direction: column; gap: 8px; padding: 26px; border-radius: var(--r); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
     .dl.detected { background: linear-gradient(150deg, rgba(36, 51, 255, 0.45), rgba(0, 0, 0, 0.2) 70%); box-shadow: inset 0 0 0 1px rgba(111, 123, 255, 0.5), 0 20px 60px -30px rgba(36, 51, 255, 0.9); }
     .dl h3 { font-family: var(--display); font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
@@ -170,6 +170,7 @@
     .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.9s var(--soft), transform 0.9s var(--soft); }
     .reveal.in { opacity: 1; transform: none; }
 
+    @media (max-width: 1100px) { .downloads { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 900px) {
       .card, .card.wide { grid-column: span 3; }
       .downloads { grid-template-columns: 1fr; }
@@ -214,7 +215,7 @@
         <a class="btn btn-ghost" href="#download">Other platforms</a>
         <a class="btn btn-ghost" href="https://github.com/amonre555/555" target="_blank" rel="noopener">View source</a>
       </div>
-      <p class="hero-meta" id="hero-meta">Free and open source. macOS and Windows.</p>
+      <p class="hero-meta" id="hero-meta">Free and open source. macOS, Windows and Android.</p>
 
       <div class="shot reveal">
         <img src="assets/shot-discover.jpg" width="2000" height="1250" alt="555 playing VHS by Mattyeux, on the Discover page" />
@@ -319,7 +320,7 @@
       <div class="reveal">
         <p class="eyebrow">Download</p>
         <h2>Free, for good.</h2>
-        <p class="lead" id="download-lead">Pick your system. 555 updates itself once installed.</p>
+        <p class="lead" id="download-lead">Pick your system. On macOS and Windows, 555 updates itself once installed.</p>
       </div>
       <div class="downloads">
         <article class="dl reveal" data-os="mac">
@@ -333,6 +334,12 @@
           <span class="sub">Windows 10 and 11, 64-bit</span>
           <p>A single installer. Works with media keys and the system media panel. If SmartScreen shows up: More info → Run anyway.</p>
           <a class="btn btn-primary" data-asset="win" href="https://github.com/amonre555/555/releases/latest">Download installer</a>
+        </article>
+        <article class="dl reveal" data-os="android">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17V14a8 8 0 0 1 16 0v3zM7 6l1.8 2.8M17 6l-1.8 2.8"/><circle cx="9" cy="13" r=".6" fill="currentColor"/><circle cx="15" cy="13" r=".6" fill="currentColor"/></svg>Android</h3>
+          <span class="sub">Android 8 or later, 64-bit phones</span>
+          <p>Not on the Play Store: open the APK on your phone and allow installs. If Play Protect warns you: More details → Install anyway. To update, install the new APK over the old one.</p>
+          <a class="btn btn-primary" data-asset="android" href="https://github.com/amonre555/555/releases/latest">Download .apk</a>
         </article>
         <article class="dl reveal" data-os="linux">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 9-3 3 3 3m8-6 3 3-3 3M13 6l-2 12"/></svg>Linux</h3>
@@ -359,7 +366,7 @@
         <details><summary>Can it play my own files?</summary><p>Yes: MP3, FLAC, OGG, M4A/AAC, WAV and AIFF. 555 reads tags and cover art and never touches the originals.</p></details>
         <details><summary>How do I import a Spotify playlist?</summary><p>Paste the link of a public playlist (or album). 555 finds each song on Deezer and creates the playlist, no Spotify account needed.</p></details>
         <details><summary>Which languages does it speak?</summary><p>English and French for now. Change it in Settings → General.</p></details>
-        <details><summary>Is it safe? The app isn't signed.</summary><p>Signing with Apple and Microsoft costs money each year, so the installers aren't signed yet. The code is public and the builds are made by GitHub Actions from it. Updates are signed, and 555 refuses any update whose signature doesn't match.</p></details>
+        <details><summary>Is it safe? The app isn't signed.</summary><p>Signing with Apple and Microsoft costs money each year, so the macOS and Windows installers aren't signed yet (the Android APK is signed, but isn't on the Play Store). The code is public and the builds are made by GitHub Actions from it. Updates are signed, and 555 refuses any update whose signature doesn't match.</p></details>
       </div>
     </section>
   </main>
@@ -377,8 +384,8 @@
   <script>
     const REPO = "amonre555/555";
     const ua = navigator.userAgent;
-    const os = /Mac/.test(ua) && !/iPhone|iPad/.test(ua) ? "mac" : /Windows/.test(ua) ? "win" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null;
-    const label = { mac: "Download for macOS", win: "Download for Windows", linux: "Build for Linux" };
+    const os = /Android/.test(ua) ? "android" : /Mac/.test(ua) && !/iPhone|iPad/.test(ua) ? "mac" : /Windows/.test(ua) ? "win" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null;
+    const label = { mac: "Download for macOS", win: "Download for Windows", linux: "Build for Linux", android: "Download for Android" };
 
     const main = document.getElementById("main-download");
     if (os) {
@@ -394,7 +401,7 @@
         const latest = releases.find((r) => !r.draft && !r.prerelease);
         if (!latest) return;
         const find = (re) => latest.assets.find((a) => re.test(a.name))?.browser_download_url;
-        const links = { mac: find(/\.dmg$/), win: find(/-setup\.exe$/) };
+        const links = { mac: find(/\.dmg$/), win: find(/-setup\.exe$/), android: find(/_android\.apk$/) };
         for (const [k, url] of Object.entries(links)) {
           if (!url) continue;
           document.querySelectorAll(`[data-asset="${k}"]`).forEach((a) => (a.href = url));
