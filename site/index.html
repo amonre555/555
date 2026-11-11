@@ -126,7 +126,7 @@
     .lyrics-demo .next { display: block; color: rgba(255, 255, 255, 0.28); filter: blur(1px); font-size: 18px; }
 
     /* Download */
-    .downloads { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 40px; }
+    .downloads { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 40px; }
     .dl { display: flex; flex-direction: column; gap: 8px; padding: 26px; border-radius: var(--r); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
     .dl.detected { background: linear-gradient(150deg, rgba(36, 51, 255, 0.45), rgba(0, 0, 0, 0.2) 70%); box-shadow: inset 0 0 0 1px rgba(111, 123, 255, 0.5), 0 20px 60px -30px rgba(36, 51, 255, 0.9); }
     .dl h3 { font-family: var(--display); font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
@@ -170,7 +170,6 @@
     .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.9s var(--soft), transform 0.9s var(--soft); }
     .reveal.in { opacity: 1; transform: none; }
 
-    @media (max-width: 1100px) { .downloads { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 900px) {
       .card, .card.wide { grid-column: span 3; }
       .downloads { grid-template-columns: 1fr; }
