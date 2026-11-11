@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icône à thème (Android 13+) : le 555 seul, teinté par le système. Généré depuis le logo (icons/icon.svg). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:scaleX="0.07612" android:scaleY="0.07612" android:translateX="15.029" android:translateY="15.486">
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="58" android:strokeLineJoin="round" android:pathData="M 229.63,389.00 L 836.63,389.00" />
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="58" android:strokeLineJoin="round" android:pathData="M 258.63,389.00 L 241.17,488.00 L 301.17,488.00 C 346.46,488.00 376.70,524.71 368.72,570.00 C 360.73,615.29 317.54,652.00 272.26,652.00 L 182.26,652.00" />
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="58" android:strokeLineJoin="round" android:pathData="M 476.63,389.00 L 459.17,488.00 L 519.17,488.00 C 564.46,488.00 594.70,524.71 586.72,570.00 C 578.73,615.29 535.54,652.00 490.26,652.00 L 400.26,652.00" />
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="58" android:strokeLineJoin="round" android:pathData="M 694.63,389.00 L 677.17,488.00 L 737.17,488.00 C 782.46,488.00 812.70,524.71 804.72,570.00 C 796.73,615.29 753.54,652.00 708.26,652.00 L 618.26,652.00" />
+    </group>
+</vector>

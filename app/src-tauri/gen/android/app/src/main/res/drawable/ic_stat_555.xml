@@ -1,18 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icône de la notification du lecteur : le logo 555 (blanc, la barre d'état le teinte). -->
+<!-- Icône de la notification du lecteur : le 555 (la barre d'état le teinte). Généré depuis le logo (icons/icon.svg). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="762"
-    android:viewportHeight="762">
-    <group android:translateX="-131" android:translateY="-125">
-        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="70" android:strokeLineJoin="round"
-            android:pathData="M 209,389 H 816" />
-        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="70" android:strokeLineJoin="round"
-            android:pathData="M 238,389 V 488 H 298 A 82,82 0 0 1 298,652 H 208" />
-        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="70" android:strokeLineJoin="round"
-            android:pathData="M 456,389 V 488 H 516 A 82,82 0 0 1 516,652 H 426" />
-        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="70" android:strokeLineJoin="round"
-            android:pathData="M 674,389 V 488 H 734 A 82,82 0 0 1 734,652 H 644" />
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group android:scaleX="0.02887" android:scaleY="0.02887" android:translateX="-2.782" android:translateY="-2.609">
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="64" android:strokeLineJoin="round" android:pathData="M 229.63,389.00 L 836.63,389.00" />
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="64" android:strokeLineJoin="round" android:pathData="M 258.63,389.00 L 241.17,488.00 L 301.17,488.00 C 346.46,488.00 376.70,524.71 368.72,570.00 C 360.73,615.29 317.54,652.00 272.26,652.00 L 182.26,652.00" />
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="64" android:strokeLineJoin="round" android:pathData="M 476.63,389.00 L 459.17,488.00 L 519.17,488.00 C 564.46,488.00 594.70,524.71 586.72,570.00 C 578.73,615.29 535.54,652.00 490.26,652.00 L 400.26,652.00" />
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="64" android:strokeLineJoin="round" android:pathData="M 694.63,389.00 L 677.17,488.00 L 737.17,488.00 C 782.46,488.00 812.70,524.71 804.72,570.00 C 796.73,615.29 753.54,652.00 708.26,652.00 L 618.26,652.00" />
     </group>
 </vector>
