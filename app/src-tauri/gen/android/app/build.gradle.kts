@@ -14,16 +14,46 @@ val tauriProperties = Properties().apply {
     }
 }
 
+/**
+ * Clé de signature des versions publiées : ANDROID_KEYSTORE_PATH et ANDROID_KEYSTORE_PASSWORD
+ * (scripts/android.sh avec ~/.tauri/555-android.jks, ou le workflow de publication avec ses
+ * secrets). Sans elle, la version optimisée reste non signée (signée ensuite avec la clé de
+ * test locale par scripts/android.sh).
+ */
+/**
+ * Version de l'appli : celle de l'espace de travail Cargo (Cargo.toml à la racine), comme sur
+ * ordinateur. Code de version croissant : 0.3.0 → 300, 1.2.3 → 10203.
+ */
+val appVersion: String = rootProject.file("../../../../Cargo.toml").readLines()
+    .dropWhile { it.trim() != "[workspace.package]" }
+    .firstOrNull { it.trim().startsWith("version") }
+    ?.substringAfter('"')?.substringBefore('"') ?: "0.0.0"
+val appVersionCode: Int = appVersion.split(".").map { it.toIntOrNull() ?: 0 }
+    .let { (major, minor, patch) -> major * 10000 + minor * 100 + patch }
+
+val releaseKeystore = System.getenv("ANDROID_KEYSTORE_PATH")?.let { file(it) }?.takeIf { it.exists() }
+
 android {
     compileSdk = 37
     namespace = "app.yato.player"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
         applicationId = "app.yato.player"
-        minSdk = 24
+        // Android 8 : AAudio, utilisé par le moteur audio (voir tauri.conf.json).
+        minSdk = 26
         targetSdk = 37
-        versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
-        versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
+        versionCode = appVersionCode
+        versionName = appVersion
+    }
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "555"
+                keyPassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            }
+        }
     }
     buildTypes {
         getByName("debug") {
@@ -39,6 +69,7 @@ android {
             }
         }
         getByName("release") {
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
             optimization {
                enable = true
             }

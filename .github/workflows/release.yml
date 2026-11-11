@@ -1,11 +1,13 @@
 # Publishes a 555 release: builds the app for macOS (Apple Silicon and Intel, one file) and
 # Windows, creates the GitHub Release for the tag with the installers, and `latest.json`,
-# which 555 reads for its automatic updates.
+# which 555 reads for its automatic updates. Then adds the Android APK to the same release.
 #
 # To publish: `./scripts/release.sh 0.2.0`, then push the commit and the tag.
 # Required secrets (Settings → Secrets and variables → Actions):
 #   TAURI_SIGNING_PRIVATE_KEY           contents of ~/.tauri/yato.key
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  contents of ~/.tauri/yato.key.password
+#   ANDROID_KEYSTORE_BASE64             base64 of ~/.tauri/555-android.jks (signs the APK)
+#   ANDROID_KEYSTORE_PASSWORD           contents of ~/.tauri/555-android.password
 name: Publish a release
 
 on:
@@ -73,8 +75,71 @@ jobs:
           releaseBody: |
             **macOS**: `555_…_universal.dmg` (Apple Silicon and Intel). The app isn't signed by Apple: on first launch, right-click 555 → “Open”, or run `xattr -cr /Applications/555.app`.
             **Windows**: `555_…_x64-setup.exe`. If Windows says “Windows protected your PC”: “More info” → “Run anyway”.
+            **Android** (8 or later): `555_…_android.apk`. Open it on the phone and allow your browser or file manager to install apps. 555 isn't on the Play Store, so Play Protect may warn you: “More details” → “Install anyway”. To update, install the new APK over the old one.
 
             Once installed, 555 updates itself.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+  # The release exists once the desktop builds are done: the APK is added to it.
+  android:
+    name: Android
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: 29.0.14206865
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          key: Android
+
+      - name: Android SDK and NDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "ndk;$NDK_VERSION" >/dev/null
+          echo "NDK_HOME=$ANDROID_HOME/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+
+      - name: Frontend dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Build the APK
+        working-directory: app
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          TC="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          # OpenSSL (built with the app) needs the NDK archive tools; QuickJS bindings are generated.
+          export RANLIB_aarch64_linux_android="$TC/bin/llvm-ranlib" AR_aarch64_linux_android="$TC/bin/llvm-ar"
+          export BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="--sysroot=$TC/sysroot"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/555-android.jks"
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/555-android.jks"
+          npx tauri android build --apk --target aarch64
+          rm "$RUNNER_TEMP/555-android.jks"
+
+      - name: Add the APK to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          apk="555_${version}_android.apk"
+          cp app/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk "$apk"
+          gh release upload "$GITHUB_REF_NAME" "$apk" --clobber

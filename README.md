@@ -51,6 +51,10 @@ The app isn't signed by Apple or Microsoft:
 - **macOS**: on first launch, right-click 555 → "Open" (or `xattr -cr /Applications/555.app`);
 - **Windows**: "More info" → "Run anyway".
 
+**Android** (8 or later): `_android.apk` in the same Releases. Open it on the phone and allow your browser or file manager to install apps; Play Protect may warn you since 555 isn't on the Play Store ("More details" → "Install anyway"). To update, install the new APK over the old one. On Android, music keeps playing with the screen off, with the controls on the lock screen and in the notification.
+
+To build it yourself, with an Android phone plugged in (USB debugging on): `sh scripts/android.sh`.
+
 ## Structure
 
 ```
@@ -66,7 +70,7 @@ app/src-tauri/       Tauri bridge: commands, events, cover:// protocol
 site/                Website (GitHub Pages)
 ```
 
-The core doesn't know about Tauri: it could power a mobile version (Tauri v2) or a native UI (GPUI) without a rewrite.
+The core doesn't know about Tauri: the same core powers the desktop app and the Android version (Tauri v2).
 
 ## Run from source
 

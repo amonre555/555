@@ -24,14 +24,22 @@ if [ "$1" = "debug" ]; then
   npx tauri android build --debug --apk --target aarch64
   APK="$OUT/debug/app-universal-debug.apk"
 else
+  # Clé de publication (voir le workflow « Publish a release ») si elle est sur ce Mac : l'APK
+  # installé est alors identique à celui des versions publiées. Sinon, clé de test locale.
+  KEY="$HOME/.tauri/555-android.jks"
+  if [ -f "$KEY" ]; then
+    export ANDROID_KEYSTORE_PATH="$KEY" ANDROID_KEYSTORE_PASSWORD="$(cat "$HOME/.tauri/555-android.password")"
+  fi
   npx tauri android build --apk --target aarch64
-  # Signé avec la clé de test locale d'Android (pas une clé de publication) : de quoi
-  # l'installer sur son propre téléphone, par-dessus une version de débogage.
-  APK="$OUT/release/app-universal-release-signed.apk"
-  BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
-  "$BT/zipalign" -f 4 "$OUT/release/app-universal-release-unsigned.apk" "$OUT/release/aligned.apk"
-  "$BT/apksigner" sign --ks "$HOME/.android/debug.keystore" --ks-pass pass:android --key-pass pass:android \
-    --out "$APK" "$OUT/release/aligned.apk"
+  if [ -f "$KEY" ]; then
+    APK="$OUT/release/app-universal-release.apk"
+  else
+    APK="$OUT/release/app-universal-release-signed.apk"
+    BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+    "$BT/zipalign" -f 4 "$OUT/release/app-universal-release-unsigned.apk" "$OUT/release/aligned.apk"
+    "$BT/apksigner" sign --ks "$HOME/.android/debug.keystore" --ks-pass pass:android --key-pass pass:android \
+      --out "$APK" "$OUT/release/aligned.apk"
+  fi
 fi
 ls -lh "$APK"
 "$ADB" install -r "$APK"
