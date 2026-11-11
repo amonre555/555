@@ -5,9 +5,12 @@ import { AlbumView } from "./album";
 import { ArtistView } from "./artist";
 import { nameForTransition, transition } from "./motion";
 import { pageRequest, type Page } from "./nav";
-import { IconClock, IconClose, IconCompass, IconFolderPlus, IconHeart, IconLibrary, IconLink, IconNote, IconPlay, IconPlus, IconRefresh, IconSearch, IconSettings } from "./icons";
+import { IconChart, IconClock, IconClose, IconCompass, IconFolderPlus, IconHeart, IconLibrary, IconLink, IconNote, IconPlay, IconPlus, IconRefresh, IconSearch, IconSettings } from "./icons";
 import { t } from "./i18n";
 import { HistoryView } from "./history";
+import { RecapCard, recapSeason, StatsView } from "./stats";
+import { Recap } from "./recap";
+import { loadRecentSearches, recent, RecentSearches, rememberSearch } from "./recent";
 import { collection, createPlaylist, dismissToast, loadCollection, notify, recentTracks, toast } from "./collection";
 import { ImportDialog, SettingsView } from "./settings";
 import { LikedView, PlaylistView } from "./playlist";
@@ -15,7 +18,7 @@ import { UpdateCard } from "./update";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
 import { AlbumLink, ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, PlaylistArt, SourceTag, TrackCard, TrackList, TrackMenuHost, YtDlpBadge } from "./ui";
 
-type View = "discover" | "library" | "liked" | "history" | "playlist" | "settings" | "search" | "artist" | "album";
+type View = "discover" | "library" | "liked" | "history" | "stats" | "playlist" | "settings" | "search" | "artist" | "album";
 
 const EMPTY: Snapshot = {
   track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off",
@@ -57,6 +60,36 @@ export default function App() {
   const [importing, setImporting] = createSignal(false);
   let content!: HTMLElement;
   let pageLoad = 0;
+
+  // ---------- Récap de l'année ----------
+  /** Année du récap affiché en plein écran (aucun : fermé). */
+  const [recapYear, setRecapYear] = createSignal<number | null>(null);
+  const thisYear = new Date().getFullYear();
+  const seenKey = `yato.recapSeen.${thisYear}`;
+  const readSeen = () => {
+    try {
+      return localStorage.getItem(seenKey) === "1";
+    } catch {
+      return false;
+    }
+  };
+  /** En décembre, le récap est mis en avant (Découvrir, barre latérale) jusqu'à sa première ouverture. */
+  const [recapSeen, setRecapSeen] = createSignal(readSeen());
+  const [recapWorthy, setRecapWorthy] = createSignal(false);
+  const markRecapSeen = () => {
+    setRecapSeen(true);
+    try {
+      localStorage.setItem(seenKey, "1");
+    } catch {
+      // Mis en avant à nouveau au prochain lancement, tant pis.
+    }
+  };
+  const openRecap = (year: number) => {
+    if (year === thisYear) markRecapSeen();
+    if (expanded()) setNowPlaying(false);
+    setRecapYear(year);
+  };
+  const recapHighlighted = () => recapSeason() && !recapSeen() && recapWorthy();
 
   /** Change de vue avec une transition ; la page repart du haut. */
   const switchTo = (update: () => void, kind: "page" | "back" = "page") =>
@@ -110,6 +143,8 @@ export default function App() {
     on(pageRequest, (req) => {
       if (!req) return;
       if (expanded()) setNowPlaying(false);
+      // Fiche ouverte depuis les résultats : la recherche a abouti.
+      if (view() === "search") rememberSearch(query());
       const onPage = view() === "artist" || view() === "album";
       if (!(onPage && samePage(page(), req.page))) {
         setHistory((h) => [...h, { view: view(), page: onPage ? page() : null }]);
@@ -206,9 +241,13 @@ export default function App() {
     try {
       setSources(await api.sources());
       applySnap(await api.state());
-      await Promise.all([reloadLibrary(), loadCollection()]);
+      await Promise.all([reloadLibrary(), loadCollection(), loadRecentSearches()]);
     } catch (e) {
       fail(e);
+    }
+    // Récap mis en avant en décembre, s'il y a de quoi le remplir.
+    if (recapSeason() && !recapSeen()) {
+      api.stats({ kind: "year", year: thisYear }).then((s) => setRecapWorthy(s.plays >= 5)).catch(() => {});
     }
     api
       .featured("deezer")
@@ -222,6 +261,33 @@ export default function App() {
         fail(e);
       });
   });
+
+  // ---------- Recherches récentes ----------
+  const [searchFocus, setSearchFocus] = createSignal(false);
+  /** Recherche récente surlignée au clavier (-1 : aucune). */
+  const [recentActive, setRecentActive] = createSignal(-1);
+  const showRecent = () => searchFocus() && !query().trim() && recent().length > 0;
+  const pickRecent = (q: string) => {
+    setRecentActive(-1);
+    onSearch(q);
+    rememberSearch(q);
+  };
+  const onSearchKey = (e: KeyboardEvent) => {
+    if (showRecent() && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      e.preventDefault();
+      const n = recent().length;
+      setRecentActive((i) => (e.key === "ArrowDown" ? (i + 1) % n : (i <= 0 ? n : i) - 1));
+    } else if (e.key === "Enter") {
+      const picked = showRecent() ? recent()[recentActive()] : undefined;
+      if (picked) pickRecent(picked);
+      else rememberSearch(query());
+    }
+  };
+  /** Lecture depuis les résultats : la recherche a abouti, on la garde. */
+  const playFromSearch = (tracks: Track[], index: number) => {
+    rememberSearch(query());
+    play(tracks, index);
+  };
 
   // ---------- Recherche (anti-rebond, sans course entre requêtes) ----------
   let searchTimer: number | undefined;
@@ -339,6 +405,7 @@ export default function App() {
             { id: "library", label: t.library, icon: <IconLibrary />, count: library().length },
             { id: "liked", label: t.liked, icon: <IconHeart />, count: collection().liked.length },
             { id: "history", label: t.history, icon: <IconClock /> },
+            { id: "stats", label: t.stats, icon: <IconChart />, dot: recapHighlighted() },
             ...collection().playlists.map((p, i) => ({
               id: `pl:${p.id}`,
               label: p.name,
@@ -369,18 +436,33 @@ export default function App() {
 
       <main class="main">
         <header class="topbar">
-          <label class="search">
-            <IconSearch />
-            <input
-              ref={searchInput}
-              type="search"
-              placeholder={t.searchPlaceholder}
-              value={query()}
-              onInput={(e) => onSearch(e.currentTarget.value)}
-              spellcheck={false}
-            />
-            <kbd>⌘K</kbd>
-          </label>
+          <div class="search-wrap">
+            <label class="search">
+              <IconSearch />
+              <input
+                ref={searchInput}
+                type="search"
+                placeholder={t.searchPlaceholder}
+                value={query()}
+                onInput={(e) => {
+                  setRecentActive(-1);
+                  onSearch(e.currentTarget.value);
+                }}
+                onFocus={() => setSearchFocus(true)}
+                onBlur={() => {
+                  setSearchFocus(false);
+                  setRecentActive(-1);
+                }}
+                onKeyDown={onSearchKey}
+                spellcheck={false}
+                aria-expanded={showRecent()}
+              />
+              <kbd>⌘K</kbd>
+            </label>
+            <Show when={showRecent()}>
+              <RecentSearches active={recentActive()} onPick={pickRecent} onHover={setRecentActive} />
+            </Show>
+          </div>
         </header>
         <section class="content" ref={content}>
           <div class="page">
@@ -393,7 +475,7 @@ export default function App() {
                       <div class="search-top">
                         <div>
                           <h2 class="section-title">{t.topResult}</h2>
-                          <Hero track={g().tracks[0]} playing={isCurrent(g().tracks[0])} onPlay={() => play(g().tracks, 0)} compact />
+                          <Hero track={g().tracks[0]} playing={isCurrent(g().tracks[0])} onPlay={() => playFromSearch(g().tracks, 0)} compact />
                         </div>
                         <div class="search-top-list">
                           <h2 class="section-title">{t.songs}</h2>
@@ -401,7 +483,7 @@ export default function App() {
                             tracks={g().tracks.slice(0, 5)}
                             current={snap().track?.id}
                             status={snap().status}
-                            onPlay={(i) => play(g().tracks, i)}
+                            onPlay={(i) => playFromSearch(g().tracks, i)}
                           />
                         </div>
                       </div>
@@ -423,7 +505,7 @@ export default function App() {
                               tracks={rest()}
                               current={snap().track?.id}
                               status={snap().status}
-                              onPlay={(i) => play(g.tracks, i + skip())}
+                              onPlay={(i) => playFromSearch(g.tracks, i + skip())}
                               showAlbum
                             />
                           </section>
@@ -517,6 +599,10 @@ export default function App() {
               <HistoryView snap={snap()} onPlay={play} />
             </Match>
 
+            <Match when={view() === "stats"}>
+              <StatsView snap={snap()} onPlay={play} onRecap={openRecap} />
+            </Match>
+
             <Match when={view() === "playlist" && playlistId()}>
               {(id) => <PlaylistView id={id()} editing={naming()} snap={snap()} onPlay={play} onDeleted={() => goTo("library")} />}
             </Match>
@@ -529,6 +615,11 @@ export default function App() {
               <Show when={featured()} fallback={<Loader />}>
                 {(list) => (
                   <Show when={list().length > 0} fallback={<Empty text={t.featuredError} />}>
+                    <Show when={recapHighlighted()}>
+                      <div class="discover-recap">
+                        <RecapCard year={thisYear} title={t.recapReady(thisYear)} onOpen={() => openRecap(thisYear)} onDismiss={markRecapSeen} />
+                      </div>
+                    </Show>
                     <Show when={recentTracks().length > 0}>
                       <section class="section">
                         <h2 class="section-title">
@@ -570,6 +661,19 @@ export default function App() {
       </Show>
 
       <TrackMenuHost onOpenPlaylist={(id) => openPlaylist(id)} />
+
+      <Show when={recapYear()}>
+        {(y) => (
+          <Recap
+            year={y()}
+            onClose={() => setRecapYear(null)}
+            onPlay={(tracks, i) => {
+              setRecapYear(null);
+              play(tracks, i);
+            }}
+          />
+        )}
+      </Show>
 
       <Show when={importing()}>
         <ImportDialog
@@ -634,7 +738,7 @@ function Hero(props: { track: Track; playing: boolean; onPlay: () => void; label
  */
 function SideNav<T extends string>(props: {
   active: string;
-  items: { id: T; label: string; icon: JSX.Element; count?: number; before?: JSX.Element }[];
+  items: { id: T; label: string; icon: JSX.Element; count?: number; dot?: boolean; before?: JSX.Element }[];
   onSelect: (id: T) => void;
 }) {
   const buttons = new Map<string, HTMLButtonElement>();
@@ -669,6 +773,9 @@ function SideNav<T extends string>(props: {
               <span>{item.label}</span>
               <Show when={item.count}>
                 <span class="nav-count">{item.count}</span>
+              </Show>
+              <Show when={item.dot}>
+                <span class="nav-dot" aria-hidden="true" />
               </Show>
             </button>
           </>

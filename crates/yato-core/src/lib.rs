@@ -2,6 +2,8 @@
 //!
 //! - [`model`]   : les types partagés (morceau, emplacement du son)
 //! - [`collection`] : titres likés, playlists et historique
+//! - [`stats`]   : journal des écoutes et statistiques (page Stats, récap de l'année)
+//! - [`searches`] : recherches récentes
 //! - [`import`]  : import de playlists (Spotify, Deezer, YouTube Music)
 //! - [`source`]  : le trait [`source::MusicSource`] que chaque source de musique implémente
 //! - [`sources`] : les sources fournies (bibliothèque locale, Deezer pour les infos, YouTube Music pour le son)
@@ -16,14 +18,18 @@ pub mod import;
 pub mod lyrics;
 pub mod model;
 pub mod player;
+pub mod searches;
 pub mod source;
 pub mod sources;
+pub mod stats;
 pub mod stream;
 pub mod timing;
 pub mod ytdlp;
 
 pub use collection::{Collection, CollectionData, Played, Playlist};
 pub use error::{Error, Result};
+pub use searches::RecentSearches;
+pub use stats::{ListenLog, ListenTracker, Period, Stats};
 /// Le client HTTP partagé (même version pour l'interface que pour le cœur).
 pub use reqwest;
 pub use model::{ArtistRef, Location, Track};

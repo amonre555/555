@@ -85,7 +85,7 @@ impl Collection {
         let mut data = self.data.lock();
         let mut next = data.clone();
         f(&mut next)?;
-        save(&self.path, &next)?;
+        save_json(&self.path, &next)?;
         *data = next;
         Ok(data.clone())
     }
@@ -195,7 +195,8 @@ fn push_unique(list: &mut Vec<Track>, tracks: Vec<Track>) {
     }
 }
 
-fn save(path: &Path, data: &CollectionData) -> Result<()> {
+/// Écrit un fichier JSON d'un coup (fichier temporaire puis renommage : jamais à moitié écrit).
+pub(crate) fn save_json<T: Serialize>(path: &Path, data: &T) -> Result<()> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir)?;
     }

@@ -11,7 +11,8 @@ use std::{
 };
 
 use yato_core::{
-    ArtistRef, Collection, CollectionData, Controller, Error, Repeat, Session, Snapshot, SourceInfo, SourceRegistry, Track,
+    ArtistRef, Collection, CollectionData, Controller, Error, ListenLog, ListenTracker, Period, RecentSearches, Repeat, Session,
+    Snapshot, SourceInfo, SourceRegistry, Stats, Track,
     lyrics::{Lyrics, LyricsClient},
     sources::{
         DeezerSource, LocalLibrary, YouTubeMusicSource,
@@ -35,6 +36,11 @@ struct AppState {
     /// Source d'infos : fiches d'artistes et albums.
     deezer: Arc<DeezerSource>,
     collection: Collection,
+    /// Journal des écoutes (page Stats, récap de l'année).
+    listens: ListenLog,
+    /// Suivi de l'écoute en cours, pour noter sa durée réelle.
+    tracker: Mutex<ListenTracker>,
+    searches: RecentSearches,
     youtube: Arc<YouTubeMusicSource>,
     client: yato_core::reqwest::Client,
     cache_path: PathBuf,
@@ -170,6 +176,41 @@ async fn import_playlist(app: tauri::AppHandle, state: State<'_, AppState>, url:
     let collection = state.collection.create_playlist(found.name, found.tracks)?;
     let id = collection.playlists.last().map(|p| p.id.clone());
     Ok(ImportResult { collection, id, added, missing: found.missing })
+}
+
+// ---------- Statistiques d'écoute ----------
+
+/// Statistiques d'une période. `offset` : décalage de l'heure locale sur UTC, en minutes.
+#[tauri::command]
+fn listening_stats(state: State<'_, AppState>, period: Period, offset: i32) -> Stats {
+    state.listens.stats(period, offset)
+}
+
+#[tauri::command]
+fn clear_stats(state: State<'_, AppState>) -> Res<()> {
+    state.listens.clear()
+}
+
+// ---------- Recherches récentes ----------
+
+#[tauri::command]
+fn recent_searches(state: State<'_, AppState>) -> Vec<String> {
+    state.searches.get()
+}
+
+#[tauri::command]
+fn add_recent_search(state: State<'_, AppState>, query: String) -> Res<Vec<String>> {
+    state.searches.add(&query)
+}
+
+#[tauri::command]
+fn remove_recent_search(state: State<'_, AppState>, query: String) -> Res<Vec<String>> {
+    state.searches.remove(&query)
+}
+
+#[tauri::command]
+fn clear_recent_searches(state: State<'_, AppState>) -> Res<Vec<String>> {
+    state.searches.clear()
 }
 
 // ---------- Réglages ----------
@@ -373,6 +414,12 @@ pub fn run() {
             let cache_path = app.path().app_data_dir()?.join("library.json");
             let library = Arc::new(LocalLibrary::load(&cache_path));
             let collection = Collection::load(&app.path().app_data_dir()?.join("collection.json"));
+            // Stats : au tout premier lancement, l'historique existant sert de point de départ.
+            let listens = ListenLog::load(&app.path().app_data_dir()?.join("listens.jsonl"));
+            if let Err(e) = listens.import_history(&collection.get().history) {
+                eprintln!("stats : reprise de l'historique impossible : {e}");
+            }
+            let searches = RecentSearches::load(&app.path().app_data_dir()?.join("searches.json"));
             let settings_path = app.path().app_data_dir()?.join("settings.json");
             let session_path = app.path().app_data_dir()?.join("session.json");
             let prefs: Settings = settings::load(&settings_path);
@@ -403,6 +450,9 @@ pub fn run() {
                 library,
                 deezer,
                 collection,
+                listens,
+                tracker: Mutex::new(ListenTracker::new()),
+                searches,
                 youtube: youtube.clone(),
                 client: client.clone(),
                 cache_path,
@@ -493,13 +543,25 @@ pub fn run() {
                         }
                     }
 
+                    // Stats : durée réellement écoutée de chaque passage ; l'écoute est notée quand
+                    // le morceau change, s'il a été écouté 30 s (ou la moitié s'il est court).
+                    let playing = snap.status == yato_core::Status::Playing;
+                    let now = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map_or(0, |d| d.as_millis() as u64);
+                    let done = state.tracker.lock().observe(snap.track.as_ref(), playing, snap.position, snap.duration, now);
+                    if let Some((track, listen)) = done {
+                        if let Err(e) = state.listens.record(&track, listen) {
+                            eprintln!("stats : écoute non notée : {e}");
+                        }
+                    }
+
                     // Session : enregistrée quand elle change, et toutes les 10 s pendant la lecture.
                     let session = controller.session();
                     let changed = saved.as_ref().is_none_or(|s| {
                         s.index != session.index || s.queue.len() != session.queue.len() || s.shuffle != session.shuffle
                             || s.repeat != session.repeat || s.volume != session.volume
                     });
-                    let playing = snap.status == yato_core::Status::Playing;
                     if changed || (playing && saved_at.elapsed() >= Duration::from_secs(10)) {
                         if saved.as_ref() != Some(&session) {
                             state.save_session();
@@ -545,6 +607,12 @@ pub fn run() {
             remove_from_playlist,
             move_in_playlist,
             clear_history,
+            listening_stats,
+            clear_stats,
+            recent_searches,
+            add_recent_search,
+            remove_recent_search,
+            clear_recent_searches,
             import_playlist,
             get_settings,
             set_settings,
@@ -556,7 +624,13 @@ pub fn run() {
     app.run(|handle, event| {
         // En quittant : la position exacte, pour reprendre pile au même endroit.
         if let RunEvent::Exit = event {
-            handle.state::<AppState>().save_session();
+            let state = handle.state::<AppState>();
+            state.save_session();
+            // L'écoute en cours compte aussi.
+            let done = state.tracker.lock().finish();
+            if let Some((track, listen)) = done {
+                let _ = state.listens.record(&track, listen);
+            }
         }
     });
 }

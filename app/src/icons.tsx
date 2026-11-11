@@ -197,3 +197,15 @@ export const IconGlobe = (p: { size?: number }) => (
     <path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z" />
   </Svg>
 );
+export const IconChart = (p: { size?: number }) => (
+  <Svg size={p.size}>
+    <path d="M5 20V11M10 20V5M15 20v-7M20 20V9" />
+  </Svg>
+);
+/** Ondes concentriques : le récap de l'année. */
+export const IconWaves = (p: { size?: number }) => (
+  <Svg size={p.size}>
+    <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+    <path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2" />
+  </Svg>
+);

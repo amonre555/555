@@ -162,6 +162,68 @@ export interface Settings {
   discord: boolean;
 }
 
+/** Période résumée par les statistiques. */
+export type Period = { kind: "year"; year: number } | { kind: "month"; year: number; month: number } | { kind: "all" };
+
+export interface TopTrack {
+  track: Track;
+  plays: number;
+  seconds: number;
+}
+
+export interface TopArtist {
+  name: string;
+  id: string | null;
+  plays: number;
+  seconds: number;
+  /** Son morceau le plus écouté (pochette, lecture). */
+  track: Track;
+}
+
+export interface TopAlbum {
+  title: string;
+  artist: string;
+  id: string | null;
+  plays: number;
+  seconds: number;
+  track: Track;
+}
+
+/** Statistiques d'écoute d'une période (voir `yato-core/src/stats.rs`). */
+export interface Stats {
+  period: Period;
+  plays: number;
+  /** Temps d'écoute total, en secondes. */
+  seconds: number;
+  tracks: number;
+  artists: number;
+  albums: number;
+  newArtists: number;
+  /** Il y a des écoutes avant la période. */
+  hasEarlier: boolean;
+  topTracks: TopTrack[];
+  topArtists: TopArtist[];
+  topAlbums: TopAlbum[];
+  /** Secondes par mois (janvier d'abord), par heure (0 h d'abord), par jour (lundi d'abord). */
+  byMonth: number[];
+  byHour: number[];
+  byWeekday: number[];
+  bySource: { source: string; seconds: number }[];
+  busiestDay: { year: number; month: number; day: number; seconds: number; plays: number } | null;
+  /** 1 à 12. */
+  busiestMonth: number | null;
+  /** 0 à 23. */
+  favoriteHour: number | null;
+  activeDays: number;
+  longestStreak: number;
+  first: { track: Track; at: number } | null;
+  /** Années qui ont des écoutes, la plus récente d'abord. */
+  years: number[];
+}
+
+/** Décalage de l'heure locale sur UTC, en minutes (Paris en hiver : 60). */
+const utcOffset = () => -new Date().getTimezoneOffset();
+
 export const api = {
   sources: () => invoke<SourceInfo[]>("list_sources"),
   libraryTracks: () => invoke<Track[]>("library_tracks"),
@@ -196,6 +258,12 @@ export const api = {
   removeFromPlaylist: (id: string, trackId: string) => invoke<Collection>("remove_from_playlist", { id, trackId }),
   moveInPlaylist: (id: string, from: number, to: number) => invoke<Collection>("move_in_playlist", { id, from, to }),
   clearHistory: () => invoke<Collection>("clear_history"),
+  stats: (period: Period) => invoke<Stats>("listening_stats", { period, offset: utcOffset() }),
+  clearStats: () => invoke<void>("clear_stats"),
+  recentSearches: () => invoke<string[]>("recent_searches"),
+  addRecentSearch: (query: string) => invoke<string[]>("add_recent_search", { query }),
+  removeRecentSearch: (query: string) => invoke<string[]>("remove_recent_search", { query }),
+  clearRecentSearches: () => invoke<string[]>("clear_recent_searches"),
   importPlaylist: (url: string) => invoke<ImportResult>("import_playlist", { url }),
   onImportProgress: (cb: (done: number, total: number) => void): Promise<UnlistenFn> =>
     listen<[number, number]>("import-progress", (e) => cb(e.payload[0], e.payload[1])),
