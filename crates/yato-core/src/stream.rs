@@ -195,6 +195,14 @@ impl Download {
         Ok(dl)
     }
 
+    /// Adresse HTTP directe d'un fichier de `len` octets, seule source (Android : pas de
+    /// yt-dlp). Téléchargée par plages de 1 Mo, comme [`Download::add_http`].
+    pub fn direct(client: &reqwest::Client, url: &str, len: u64) -> Self {
+        let (dl, _) = Self::new(Some(len));
+        dl.add_http(client, url, len);
+        dl
+    }
+
     /// Sortie standard d'un programme (ex. `yt-dlp -o -`). Le programme est tué si le
     /// téléchargement est abandonné.
     ///

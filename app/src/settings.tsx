@@ -5,6 +5,7 @@ import { api, type Settings } from "./api";
 import { clearHistory, collection, importPlaylist, notify } from "./collection";
 import { IconClose, IconLink } from "./icons";
 import { checkForUpdates } from "./update";
+import { isAndroid } from "./mobile";
 import { lang, LANGUAGES, setLang, t, type Lang } from "./i18n";
 
 /** Une ligne de réglage : intitulé, explication, et la commande à droite. */
@@ -141,19 +142,24 @@ export function SettingsView(props: { onImport: () => void; onLibrary: () => voi
               </Row>
             </section>
 
-            <section class="settings-group">
-              <h2 class="section-title">Discord</h2>
-              <Row title={t.showListening} hint={t.discordHint}>
-                <Toggle on={s().discord} label={t.discordStatus} onChange={(on) => change({ discord: on })} />
-              </Row>
-            </section>
+            {/* Android : ni Discord ni mises à jour intégrées (l'APK s'installe à la main). */}
+            <Show when={!isAndroid}>
+              <section class="settings-group">
+                <h2 class="section-title">Discord</h2>
+                <Row title={t.showListening} hint={t.discordHint}>
+                  <Toggle on={s().discord} label={t.discordStatus} onChange={(on) => change({ discord: on })} />
+                </Row>
+              </section>
+            </Show>
 
             <section class="settings-group">
               <h2 class="section-title">555</h2>
-              <Row title={t.version(version() || "-")} hint={t.updatesHint}>
-                <button class="ghost" onClick={lookForUpdate} disabled={checking()}>
-                  {checking() ? t.checking : t.checkUpdates}
-                </button>
+              <Row title={t.version(version() || "-")} hint={isAndroid ? "" : t.updatesHint}>
+                <Show when={!isAndroid}>
+                  <button class="ghost" onClick={lookForUpdate} disabled={checking()}>
+                    {checking() ? t.checking : t.checkUpdates}
+                  </button>
+                </Show>
               </Row>
             </section>
           </>

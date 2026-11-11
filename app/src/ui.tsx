@@ -2,8 +2,9 @@
 import { createEffect, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js";
 import { albumRefOf, api, artistsOf, coverUrl, formatTime, type ArtistRef, type Snapshot, type Track, type YtDlpStatus } from "./api";
 import { openAlbum, openArtist } from "./nav";
-import { IconHeart, IconMore, IconNote, IconPlay, IconPlaylist, IconPlus } from "./icons";
+import { IconGrip, IconHeart, IconMore, IconNote, IconPlay, IconPlaylist, IconPlus } from "./icons";
 import { t as tr } from "./i18n";
+import { isMobile } from "./mobile";
 import {
   addToPlaylist, closeTrackMenu, collection, createPlaylist, isLiked, openTrackMenu, playlistById, playlistCovers,
   removeFromPlaylist, toggleLike, trackMenu, type TrackMenu,
@@ -152,6 +153,47 @@ export function TrackList(props: {
     setDragFrom(null);
     setDragOver(null);
   };
+  /**
+   * Téléphone : le glisser-déposer du navigateur ne marche pas au doigt. On réordonne avec la
+   * poignée de la ligne : la ligne visée est celle sous le doigt, et la page défile toute seule
+   * près des bords.
+   */
+  const touchDrag = (e: PointerEvent, from: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const list = (e.currentTarget as HTMLElement).closest(".tracklist");
+    const scroller = (e.currentTarget as HTMLElement).closest(".content");
+    setDragFrom(from);
+    setDragOver(from);
+    let y = e.clientY;
+    let raf = 0;
+    const edgeScroll = () => {
+      if (scroller) {
+        const r = scroller.getBoundingClientRect();
+        const step = y < r.top + 70 ? -8 : y > r.bottom - 70 ? 8 : 0;
+        if (step) scroller.scrollTop += step;
+      }
+      raf = requestAnimationFrame(edgeScroll);
+    };
+    raf = requestAnimationFrame(edgeScroll);
+    const move = (ev: PointerEvent) => {
+      y = ev.clientY;
+      const row = document.elementFromPoint(ev.clientX, ev.clientY)?.closest<HTMLElement>(".row");
+      if (row && list?.contains(row) && row.dataset.index) setDragOver(Number(row.dataset.index));
+    };
+    const stop = (ev: PointerEvent) => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
+      const to = dragOver();
+      if (ev.type === "pointerup" && to !== null && to !== from) props.onMove?.(from, to);
+      endDrag();
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
+  };
   return (
     <div classList={{ tracklist: true, "with-album": !!props.showAlbum || !!props.aside }} role="list">
       <For each={props.tracks}>
@@ -168,7 +210,8 @@ export function TrackList(props: {
                 "drop-after": dragOver() === i() && dragFrom() !== null && dragFrom()! < i(),
               }}
               style={{ "--i": Math.min(i(), 16) }}
-              draggable={!!props.onMove}
+              data-index={i()}
+              draggable={!!props.onMove && !isMobile()}
               onDragStart={(e) => {
                 setDragFrom(i());
                 e.dataTransfer!.effectAllowed = "move";
@@ -187,6 +230,8 @@ export function TrackList(props: {
               onDragEnd={endDrag}
               onContextMenu={(e) => openTrackMenu(e, [t], props.playlist)}
               onDblClick={() => props.onPlay(i())}
+              // Téléphone : un simple toucher lance le morceau (pas de double-clic au doigt).
+              onClick={() => isMobile() && props.onPlay(i())}
               onKeyDown={(e) => e.key === "Enter" && props.onPlay(i())}
               onMouseEnter={() => hoverPrefetch(t)}
               onMouseLeave={cancelHover}
@@ -198,7 +243,14 @@ export function TrackList(props: {
                     <span class="eq"><i /><i /><i /></span>
                   </Show>
                 </span>
-                <button class="row-play" title={tr.play} onClick={() => props.onPlay(i())}>
+                <button
+                  class="row-play"
+                  title={tr.play}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    props.onPlay(i());
+                  }}
+                >
                   <IconPlay size={14} />
                 </button>
               </div>
@@ -225,6 +277,11 @@ export function TrackList(props: {
               <button class="row-more" title={tr.moreOptions} onClick={(e) => openTrackMenu(e, [t], props.playlist)} onDblClick={(e) => e.stopPropagation()}>
                 <IconMore />
               </button>
+              <Show when={props.onMove && isMobile()}>
+                <span class="row-handle" title={tr.dragToReorder} onPointerDown={(e) => touchDrag(e, i())} onClick={(e) => e.stopPropagation()}>
+                  <IconGrip />
+                </span>
+              </Show>
             </div>
           );
         }}

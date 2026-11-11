@@ -470,7 +470,7 @@ html[data-vt] .content { view-transition-name: page; }
   content: ""; position: absolute; inset: 0;
   background: radial-gradient(110% 90% at 35% 40%, transparent, color-mix(in srgb, var(--bg) 60%, transparent) 80%), color-mix(in srgb, var(--bg) 22%, transparent);
 }
-.np-close { position: absolute; top: 16px; left: 50%; translate: -50% 0; z-index: 1; width: 56px; height: 34px; border-radius: var(--r-pill); color: var(--text); background: var(--surface); box-shadow: var(--hairline); backdrop-filter: blur(20px); }
+.np-close { position: absolute; top: 16px; left: 50%; translate: -50% 0; z-index: 1; width: 44px; height: 44px; border-radius: 50%; color: var(--text); background: var(--surface); box-shadow: var(--hairline); backdrop-filter: blur(20px); }
 .np-close:hover:not(:disabled) { background: var(--surface-2); }
 .np-grid { height: 100%; display: grid; grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.1fr); gap: 72px; align-items: center; }
 .np-left { display: flex; flex-direction: column; align-items: stretch; gap: 22px; max-width: 500px; max-height: 100%; min-width: 0; justify-self: end; width: 100%; }
@@ -916,7 +916,7 @@ html[data-vt="back"]::view-transition-new(page) { animation: blur-in-back 0.55s 
 .volume .slider { width: 96px; }
 
 /* The progress line: hugs the top edge, inside the rounded corners. */
-.progress-line { position: absolute; left: 18px; right: 18px; top: -9px; max-width: none; height: 20px; gap: 0; }
+.progress-line { position: absolute; left: 18px; right: 18px; top: -9px; width: auto; max-width: none; height: 20px; gap: 0; }
 .progress-line .seek .slider { height: 20px; }
 .progress-line .seek .slider::-webkit-slider-runnable-track { height: 2px; background: rgba(255, 255, 255, 0.1); transition: height 0.25s var(--soft); }
 .progress-line .seek-played { height: 2px; transition: height 0.25s var(--soft); }
@@ -964,3 +964,232 @@ html[data-vt="back"]::view-transition-new(page) { animation: blur-in-back 0.55s 
 /* Pastille « nouveau » de la barre latérale (récap de l'année prêt, en décembre). */
 .nav-dot { width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--blue-light); box-shadow: 0 0 12px var(--blue-light); animation: breathe 2.4s ease-in-out infinite; }
 .nav-count + .nav-dot { margin-left: 8px; }
+
+/* =========================================================================
+   Téléphone (moins de 760 px : jamais sur ordinateur, la fenêtre fait 880 px au moins)
+   Onglets en bas, mini-lecteur juste au-dessus, pages sur toute la largeur. Les marges suivent
+   les zones système d'Android (barre d'état, barre de navigation) : `--sat` / `--sab`.
+   ========================================================================= */
+.m-brand, .tabbar, .np-actions, .row-handle { display: none; }
+
+@media (max-width: 760px) {
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --tabbar-h: 62px;
+    --mini-h: 60px;
+    /* Hauteur occupée en bas par les onglets (et le mini-lecteur s'il y a un morceau). */
+    --bottom: calc(var(--tabbar-h) + var(--sab));
+  }
+  .app.has-track { --bottom: calc(var(--tabbar-h) + var(--mini-h) + var(--sab) + 8px); }
+  body { font-size: 15px; -webkit-tap-highlight-color: transparent; }
+
+  .app { display: block; padding: 0; }
+  .sidebar { display: none; }
+  .main, .app .main { position: absolute; inset: 0; padding: 0; }
+
+  /* En haut : le logo, ou le champ de recherche dans l'onglet Recherche. */
+  .topbar { justify-content: space-between; align-items: center; gap: 12px; padding: calc(var(--sat) + 10px) 16px 2px; }
+  .m-brand { display: flex; padding: 8px 4px; }
+  .search-wrap { display: none; flex: 1; }
+  .app.view-search .search-wrap { display: block; }
+  .app.view-search .m-brand { display: none; }
+  .search, .search:focus-within { width: 100%; height: 48px; }
+  .search input { font-size: 16px; }
+  .search kbd, .search-wrap .recent-searches { display: none; }
+
+  .content {
+    padding: 8px 16px calc(var(--bottom) + 28px);
+    mask-image: linear-gradient(to bottom, transparent, #000 14px);
+  }
+  .nav-progress { top: var(--sat); left: 0; right: 0; }
+
+  h1 { font-size: 30px; }
+  .section { margin-top: 30px; }
+  .section-title { font-size: 17px; }
+  .page-head { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .actions { flex-wrap: wrap; }
+  .back { margin-bottom: 10px; }
+
+  /* Fiches : image au centre, texte dessous. */
+  .hero, .artist-head { flex-direction: column; align-items: center; text-align: center; gap: 18px; padding-top: 4px; }
+  .hero-body, .artist-body { align-items: center; width: 100%; }
+  .hero-play, .actions.hero-play { align-self: center; justify-content: center; }
+  .cover.xl, .album-cover, .pl-art.xl { width: min(62vw, 250px); height: min(62vw, 250px); }
+  .artist-photo { width: min(52vw, 200px); height: min(52vw, 200px); }
+  .hero-title, .album-title { font-size: 27px; }
+  .artist-name { font-size: 36px; }
+  .hero-sub, .album-artists { font-size: 15px; }
+  /* Meilleur résultat de recherche : en ligne, plus compact. */
+  .search-top { gap: 22px; }
+  .hero.compact { flex-direction: row; align-items: center; text-align: left; gap: 16px; }
+  .hero.compact .cover.xl { width: 104px; height: 104px; }
+  .hero.compact .hero-body { align-items: flex-start; }
+  .hero.compact .hero-title { font-size: 22px; }
+  .hero.compact .hero-play { align-self: flex-start; height: 40px; padding: 0 18px; margin-top: 4px; }
+
+  /* Cartes : deux colonnes. */
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; }
+  .card { padding: 6px 2px 10px; }
+  .card-play { display: none; }
+  /* Découvrir : les rangées de cartes défilent de côté. */
+  .grid.carousel {
+    grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 42%; gap: 12px;
+    overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; scroll-padding: 0 16px;
+  }
+  .grid.carousel::-webkit-scrollbar { display: none; }
+  .grid.carousel .card { scroll-snap-align: start; }
+
+  /* Lignes : pochette, titre, « ⋯ » (le cœur et la durée sont dans le menu et la vue En lecture). */
+  .row, .with-album .row { grid-template-columns: 48px minmax(0, 1fr) 40px; gap: 12px; padding: 6px 2px 6px 4px; }
+  .row:has(.row-handle), .with-album .row:has(.row-handle) { grid-template-columns: 48px minmax(0, 1fr) 40px 36px; }
+  .row-num, .row-like, .row-time, .row-album { display: none; }
+  .row .cover.sm { width: 48px; height: 48px; }
+  .row-more { opacity: 1; width: 40px; height: 40px; }
+  .row-handle { display: grid; place-items: center; width: 36px; height: 44px; color: var(--text-3); touch-action: none; cursor: grab; }
+
+  /* Mini-lecteur : pochette et titre (toucher = vue En lecture), lecture et suivant. */
+  .app:not(.has-track) .player { display: none; }
+  .player {
+    left: 8px; right: 8px; bottom: calc(var(--tabbar-h) + var(--sab) + 6px); height: var(--mini-h);
+    grid-template-columns: minmax(0, 1fr) auto; gap: 4px; padding: 0 6px 0 6px; border-radius: 16px;
+  }
+  .player .side-controls, .now-like, .player .buttons .mode, .player .buttons > :nth-child(2) { display: none; }
+  .player .now-btn { flex: 1; padding: 4px 8px 4px 2px; }
+  /* Toucher le mini-lecteur ouvre la vue En lecture, même sur le nom de l'artiste. */
+  .player .artist-link { pointer-events: none; }
+  .now-btn .cover.md { width: 46px; height: 46px; }
+  .player .buttons { gap: 2px; }
+  .player .play-btn { width: 42px; height: 42px; }
+  .player .icon-btn { width: 42px; height: 42px; }
+  /* La progression reste un simple fil (pas de recherche au doigt sur une ligne si fine). */
+  .progress-line { left: 16px; right: 16px; pointer-events: none; }
+  .progress-line .slider::-webkit-slider-thumb { display: none; }
+
+  /* Onglets. */
+  .tabbar {
+    position: fixed; z-index: 61; left: 0; right: 0; bottom: 0; height: calc(var(--tabbar-h) + var(--sab)); padding-bottom: var(--sab);
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+    background: linear-gradient(to top, rgba(2, 2, 10, 0.94) 55%, rgba(2, 2, 10, 0.72));
+    backdrop-filter: blur(24px) saturate(1.3); box-shadow: inset 0 1px 0 var(--line);
+  }
+  .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--text-3); font-size: 11px; font-weight: 600; transition: color 0.25s; }
+  .tab-icon { position: relative; display: grid; place-items: center; width: 58px; height: 30px; border-radius: var(--r-pill); transition: background 0.35s var(--soft), box-shadow 0.35s var(--soft); }
+  .tab svg { width: 22px; height: 22px; }
+  .tab.active { color: #fff; }
+  .tab.active .tab-icon { background: linear-gradient(100deg, rgba(36, 51, 255, 0.6), rgba(36, 51, 255, 0.2)); box-shadow: inset 0 0 0 1px rgba(111, 123, 255, 0.35); }
+  .tab:active .tab-icon { transform: scale(0.92); }
+  .tab-icon .nav-dot { position: absolute; top: 2px; right: 13px; margin: 0; }
+  .tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px; }
+  .app.expanded .tabbar { visibility: hidden; }
+
+  /* Vue « En lecture » : une colonne ; les paroles peuvent remplacer la pochette. */
+  /* `clip` : la vue ne défile jamais, même quand le navigateur veut montrer un bouton touché. */
+  .nowplaying { padding: calc(var(--sat) + 58px) 22px calc(var(--sab) + 16px); overflow: clip; }
+  .np-close { top: calc(var(--sat) + 8px); }
+  .np-grid { display: flex; flex-direction: column; gap: 0; }
+  .np-left { flex: 1; min-height: 0; max-width: none; width: 100%; justify-self: stretch; justify-content: center; gap: 18px; }
+  .np-art { width: min(100%, max(160px, 100dvh - 470px)); }
+  .np-title { font-size: 24px; }
+  .np-sub { font-size: 15px; }
+  .np-right { display: none; }
+  .nowplaying.lyrics-mode .np-right { display: block; flex: 1; min-height: 0; order: -1; margin: 0 -22px 12px; }
+  .nowplaying.lyrics-mode .np-left { flex: none; }
+  .nowplaying.lyrics-mode .np-art { display: none; }
+  .np-left .progress { gap: 10px; }
+  .np-left .slider::-webkit-slider-thumb { transform: scale(1); }
+  .buttons.big { gap: 0; justify-content: space-between; }
+  .buttons.big .play-btn { width: 70px; height: 70px; }
+  .np-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+  .np-toggle {
+    display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 12px; border-radius: var(--r-pill);
+    background: var(--surface); box-shadow: var(--hairline); font-size: 13px; font-weight: 700; color: var(--text-2); transition: background 0.25s, color 0.25s;
+  }
+  .np-toggle svg { width: 18px; height: 18px; }
+  .np-toggle.on { background: var(--blue); color: #fff; box-shadow: 0 0 24px -6px rgba(36, 51, 255, 0.9); }
+  .np-actions .volume { flex: 0 1 200px; min-width: 0; }
+  .np-actions .volume .slider { display: block; width: auto; min-width: 0; flex: 1; }
+  .np-actions .slider::-webkit-slider-thumb { transform: scale(1); }
+  .lyric { font-size: 25px; padding: 8px 14px; }
+  .lyrics { padding: 0 10px; }
+  .lyrics.plain { font-size: 17px; }
+  .lyrics-sync { opacity: 1; transform: none; right: 18px; bottom: 4px; }
+
+  /* Menu d'un morceau : une feuille qui monte du bas. */
+  .menu-layer { background: rgba(0, 0, 0, 0.45); animation: fade-in 0.25s var(--soft) both; }
+  .menu {
+    left: 8px !important; right: 8px; top: auto !important; bottom: calc(var(--sab) + 8px); width: auto; max-height: 72dvh;
+    visibility: visible !important; padding: 8px; border-radius: 24px; animation: sheet-in 0.4s var(--soft) both;
+  }
+  .menu-item { min-height: 50px; font-size: 15px; }
+
+  /* Recherches récentes : la page de l'onglet Recherche, champ vide. */
+  .search-recent-page .recent-searches {
+    position: static; width: auto; min-width: 0; padding: 0; background: none; box-shadow: none; backdrop-filter: none; animation: none;
+  }
+  .search-recent-page .recent-head { padding: 4px 0 8px 4px; }
+  .search-recent-page .recent-item { height: 50px; padding-left: 6px; }
+  .search-recent-page .recent-x { opacity: 1; width: 36px; height: 36px; }
+  .search-hint { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 90px 20px; color: var(--text-3); text-align: center; }
+  .search-hint svg { width: 34px; height: 34px; }
+
+  /* Réglages : le réglage passe sous son titre. */
+  .setting { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; }
+  .setting-control { justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+  .setting-range { width: 100%; }
+  .setting-range .slider { width: auto; flex: 1; }
+
+  .toast { bottom: calc(var(--bottom) + 14px); max-width: calc(100% - 32px); width: max-content; border-radius: 18px; text-align: center; }
+  .dialog-layer { align-items: end; padding: 8px 8px calc(var(--sab) + 8px); }
+  .dialog { border-radius: 24px; }
+}
+@keyframes sheet-in { from { opacity: 0; transform: translateY(40px); } }
+
+/* Écrans tactiles : pas de survol qui reste « collé » après un toucher. */
+@media (hover: none) {
+  .card:hover .card-art .cover { transform: none; box-shadow: 0 16px 30px -16px rgba(0, 0, 0, 0.7); }
+  .row:not(.current):hover { background: transparent; }
+  .primary:hover:not(:disabled) { transform: none; }
+  .lyric:hover { background: transparent; }
+}
+
+/* Page « Ta musique » (téléphone). */
+.hub h1 { margin-bottom: 18px; }
+.hub-list { display: flex; flex-direction: column; gap: 2px; }
+.hub-row {
+  display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 8px 10px 8px 6px; border-radius: var(--r-md);
+  text-align: left; font-weight: 600; font-size: 16px; transition: background 0.2s;
+  animation: rise 0.5s var(--soft) both; animation-delay: calc(var(--i, 0) * 30ms);
+}
+.hub-row:active { background: var(--surface); }
+.hub-art.pl-art { width: 52px; height: 52px; border-radius: 12px; }
+.hub-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 12px; background: var(--surface); box-shadow: var(--hairline); color: var(--text); flex: none; }
+.hub-icon svg { width: 22px; height: 22px; }
+.hub-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-count { font-size: 13px; color: var(--text-3); font-weight: 600; }
+.hub-new { color: var(--text-2); }
+.hub-new .hub-icon { background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--text-2); }
+.hub-head { display: flex; align-items: center; justify-content: space-between; margin: 30px 0 8px; }
+@media (max-width: 760px) {
+  .kb-open .tabbar, .kb-open .player { display: none; }
+  .kb-open .app { --bottom: 0px; }
+}
+
+/*
+ * Téléphone : effets allégés. Les flous d'arrière-plan (verre), le grain en mélange de calques,
+ * le masque de fondu sur la zone qui défile et le flou des lignes de paroles sont recalculés à
+ * chaque image : sur un petit processeur, c'est ce qui fait saccader le défilement.
+ */
+@media (max-width: 760px) {
+  .content { mask-image: none; }
+  .player, .tabbar, .menu, .dialog, .dialog-layer, .np-close, .lyrics-sync, .toast, .np-toggle { backdrop-filter: none; }
+  .player { background: linear-gradient(100deg, rgb(20, 24, 78), rgb(10, 10, 24) 60%); }
+  .tabbar { background: rgb(3, 3, 12); }
+  .menu, .dialog { background: linear-gradient(160deg, rgb(22, 26, 76), rgb(10, 10, 20)); }
+  .backdrop::after, .np-bg::before { display: none; }
+  .backdrop-layer { mix-blend-mode: normal; opacity: 0.35; will-change: auto; }
+  .np-bg-art { will-change: auto; }
+  .row, .hub-row { animation: none; }
+  .lyric { filter: none; transition: opacity 0.6s var(--soft), transform 0.7s cubic-bezier(0.2, 0.85, 0.25, 1); }
+  .play-btn.playing, .np-toggle.on { box-shadow: none; }
+}

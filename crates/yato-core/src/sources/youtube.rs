@@ -37,11 +37,24 @@ const DIRECT_MAX: usize = 200;
 type DirectUrls = Arc<Mutex<std::collections::HashMap<String, (Instant, String, u64)>>>;
 
 /// Demande à YouTube l'adresse directe du m4a (itag 140) et la garde.
-async fn fetch_direct(rp: &RustyPipe, direct: &DirectUrls, id: &str) -> Option<(String, u64)> {
+///
+/// Sur Android (pas de yt-dlp), on demande d'abord au client « visionOS » : ses adresses se
+/// téléchargent en entier par plages de 1 Mo. Celles du client iOS de rustypipe sont refusées
+/// après le premier Mo.
+async fn fetch_direct(rp: &RustyPipe, http: &reqwest::Client, direct: &DirectUrls, id: &str) -> Option<(String, u64)> {
     let t0 = Instant::now();
-    let player = rp.query().player(id).await;
-    crate::timing::step("flux direct : adresse obtenue (rustypipe player)", t0);
-    let a = player.ok()?.audio_streams.into_iter().find(|a| a.itag == 140)?;
+    let mut found = None;
+    if cfg!(target_os = "android") {
+        found = visionos_direct(rp, http, id).await;
+        crate::timing::step("flux direct : adresse obtenue (visionOS)", t0);
+    }
+    if found.is_none() {
+        let player = rp.query().player(id).await;
+        crate::timing::step("flux direct : adresse obtenue (rustypipe player)", t0);
+        let a = player.ok()?.audio_streams.into_iter().find(|a| a.itag == 140)?;
+        found = Some((a.url, a.size));
+    }
+    let (url, size) = found?;
     let mut direct = direct.lock();
     if direct.len() >= DIRECT_MAX {
         direct.retain(|_, (at, _, _)| at.elapsed() < DIRECT_TTL);
@@ -49,8 +62,43 @@ async fn fetch_direct(rp: &RustyPipe, direct: &DirectUrls, id: &str) -> Option<(
             direct.clear();
         }
     }
-    direct.insert(id.to_owned(), (Instant::now(), a.url.clone(), a.size));
-    Some((a.url, a.size))
+    direct.insert(id.to_owned(), (Instant::now(), url.clone(), size));
+    Some((url, size))
+}
+
+const VISIONOS_UA: &str =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15";
+
+/// Le client « visionOS » de YouTube (celui qu'utilise yt-dlp sans moteur JavaScript) : ses
+/// adresses sont déjà signées, rien à déchiffrer. Il exige un identifiant de visiteur.
+async fn visionos_direct(rp: &RustyPipe, http: &reqwest::Client, id: &str) -> Option<(String, u64)> {
+    let visitor = rp.query().get_visitor_data(false).await.ok()?;
+    let body = serde_json::json!({
+        "context": {"client": {
+            "clientName": "VISIONOS", "clientVersion": "1.02", "deviceMake": "Apple",
+            "deviceModel": "RealityDevice17,1", "userAgent": VISIONOS_UA, "osName": "visionOS",
+            "osVersion": "26.5.23O471", "hl": "en", "timeZone": "UTC", "utcOffsetMinutes": 0
+        }},
+        "videoId": id,
+        "contentCheckOk": true,
+        "racyCheckOk": true
+    });
+    let v: serde_json::Value = http
+        .post("https://www.youtube.com/youtubei/v1/player?prettyPrint=false")
+        .header("User-Agent", VISIONOS_UA)
+        .header("X-Youtube-Client-Name", "101")
+        .header("X-Youtube-Client-Version", "1.02")
+        .header("Origin", "https://www.youtube.com")
+        .header("X-Goog-Visitor-Id", visitor)
+        .json(&body)
+        .send()
+        .await
+        .ok()?
+        .json()
+        .await
+        .ok()?;
+    let f = v["streamingData"]["adaptiveFormats"].as_array()?.iter().find(|f| f["itag"] == 140)?;
+    Some((f["url"].as_str()?.to_owned(), f["contentLength"].as_str()?.parse().ok()?))
 }
 
 pub struct YouTubeMusicSource {
@@ -105,6 +153,9 @@ impl YouTubeMusicSource {
             crate::timing::step("youtube : déjà dans le cache (anticipé)", Instant::now());
             return Ok(d);
         }
+        if cfg!(target_os = "android") {
+            return self.download_direct_only(id).await;
+        }
         let ytdlp = self.ytdlp.clone();
         let url = format!("https://music.youtube.com/watch?v={id}");
         let download = Download::process_when_ready(async move {
@@ -138,13 +189,32 @@ impl YouTubeMusicSource {
                     crate::timing::step("flux direct : adresse déjà connue", Instant::now());
                     Some(d)
                 }
-                None => fetch_direct(&rp, &direct, &vid).await,
+                None => fetch_direct(&rp, &client, &direct, &vid).await,
             };
             if let Some((url, size)) = found {
                 dl.add_http(&client, &url, size);
             }
         });
 
+        self.remember(id, download.clone());
+        Ok(download)
+    }
+
+    /// Android : l'adresse directe seule, sans yt-dlp (voir [`fetch_direct`]).
+    async fn download_direct_only(&self, id: &str) -> Result<Download> {
+        let client = self.ytdlp.client();
+        let (url, size) = match self.direct_known(id) {
+            Some(d) => d,
+            None => fetch_direct(&self.rp, client, &self.direct, id)
+                .await
+                .ok_or_else(|| Error::Other(format!("YouTube: no audio stream for {id}")))?,
+        };
+        let download = Download::direct(client, &url, size);
+        self.remember(id, download.clone());
+        Ok(download)
+    }
+
+    fn remember(&self, id: &str, download: Download) {
         let mut cache = self.cache.lock();
         cache.retain(|(k, _, d)| k != id && !d.failed());
         if cache.len() >= CACHE_TRACKS
@@ -152,8 +222,7 @@ impl YouTubeMusicSource {
         {
             cache.remove(oldest);
         }
-        cache.push((id.to_owned(), Instant::now(), download.clone()));
-        Ok(download)
+        cache.push((id.to_owned(), Instant::now(), download));
     }
 
     /// Adresse directe déjà connue et encore valable.
@@ -166,7 +235,7 @@ impl YouTubeMusicSource {
     /// reste qu'à lire les premiers Ko.
     pub async fn warm_id(&self, id: &str) {
         if self.cached(id).is_none() && self.direct_known(id).is_none() {
-            fetch_direct(&self.rp, &self.direct, id).await;
+            fetch_direct(&self.rp, self.ytdlp.client(), &self.direct, id).await;
         }
     }
 

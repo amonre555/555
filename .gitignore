@@ -2,7 +2,7 @@
 target/
 dist/
 node_modules/
-app/src-tauri/gen/
+app/src-tauri/gen/schemas/
 
 # Configuration locale (chemin de compilation propre à chaque machine)
 .cargo/

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icône de la notification du lecteur : le logo 555 (blanc, la barre d'état le teinte). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="762"
+    android:viewportHeight="762">
+    <group android:translateX="-131" android:translateY="-125">
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="70" android:strokeLineJoin="round"
+            android:pathData="M 209,389 H 816" />
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="70" android:strokeLineJoin="round"
+            android:pathData="M 238,389 V 488 H 298 A 82,82 0 0 1 298,652 H 208" />
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="70" android:strokeLineJoin="round"
+            android:pathData="M 456,389 V 488 H 516 A 82,82 0 0 1 516,652 H 426" />
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="70" android:strokeLineJoin="round"
+            android:pathData="M 674,389 V 488 H 734 A 82,82 0 0 1 734,652 H 644" />
+    </group>
+</vector>

@@ -21,3 +21,9 @@ thiserror = "2.0.21"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "io-util"] }
 walkdir = "2.5.0"
 zip = { version = "9.5.0", default-features = false, features = ["deflate"] }
+
+# Android : OpenSSL compilé avec l'appli (pas d'OpenSSL système utilisable).
+[target.'cfg(target_os = "android")'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+# Android : QuickJS (utilisé par rustypipe) n'a pas de liaisons toutes prêtes, on les génère.
+rquickjs = { version = "0.9", features = ["bindgen"] }

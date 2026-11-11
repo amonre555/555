@@ -2,10 +2,52 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#000000" />
     <title>555</title>
+    <style>
+      /*
+       * Écran de lancement : le logo 555 se trace trait par trait dans une lueur bleue, puis
+       * s'efface quand l'accueil est prêt (voir src/splash.ts). En ligne dans la page : il
+       * s'affiche avant même le chargement du JavaScript.
+       */
+      html, body { background: #000; }
+      #splash {
+        position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; pointer-events: none;
+        background: radial-gradient(circle at 50% 50%, rgba(36, 51, 255, 0.3), transparent 62vmin), #000;
+        transition: opacity 0.55s cubic-bezier(0.5, 0, 0.75, 0.25), filter 0.55s cubic-bezier(0.5, 0, 0.75, 0.25);
+      }
+      #splash svg { width: min(46vw, 230px); height: auto; overflow: visible; animation: splash-glow 1.6s ease-out 0.75s both; }
+      #splash path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: splash-draw 0.6s cubic-bezier(0.65, 0, 0.35, 1) both; }
+      #splash path:nth-child(1) { animation-delay: 0.05s; }
+      #splash path:nth-child(2) { animation-delay: 0.22s; }
+      #splash path:nth-child(3) { animation-delay: 0.34s; }
+      #splash path:nth-child(4) { animation-delay: 0.46s; }
+      #splash.out { opacity: 0; filter: blur(14px); }
+      #splash.out svg { transform: scale(1.08); transition: transform 0.55s cubic-bezier(0.5, 0, 0.75, 0.25); }
+      @keyframes splash-draw { to { stroke-dashoffset: 0; } }
+      @keyframes splash-glow {
+        0% { filter: drop-shadow(0 0 0 rgba(111, 123, 255, 0)); }
+        40% { filter: drop-shadow(0 0 28px rgba(111, 123, 255, 0.95)); }
+        100% { filter: drop-shadow(0 0 14px rgba(36, 51, 255, 0.6)); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #splash path { animation: none; stroke-dashoffset: 0; }
+        #splash svg { animation: none; }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="131 327 762 358">
+        <g transform="translate(512 506) skewX(-10) translate(-512 -506)" fill="none" stroke="#fff" stroke-width="58" stroke-linejoin="round">
+          <path pathLength="1" d="M 209 389 H 816" />
+          <path pathLength="1" d="M 238 389 V 488 H 298 A 82 82 0 0 1 298 652 H 208" />
+          <path pathLength="1" d="M 456 389 V 488 H 516 A 82 82 0 0 1 516 652 H 426" />
+          <path pathLength="1" d="M 674 389 V 488 H 734 A 82 82 0 0 1 734 652 H 644" />
+        </g>
+      </svg>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
   </body>

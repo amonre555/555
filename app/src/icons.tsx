@@ -126,6 +126,11 @@ export const IconMore = () => (
     <circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none" />
   </Svg>
 );
+export const IconGrip = () => (
+  <Svg size={18}>
+    <path d="M5 9h14M5 15h14" />
+  </Svg>
+);
 export const IconPlus = (p: { size?: number }) => (
   <Svg size={p.size ?? 18}>
     <path d="M12 5v14M5 12h14" />
