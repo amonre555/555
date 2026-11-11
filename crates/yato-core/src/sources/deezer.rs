@@ -291,11 +291,13 @@ impl DeezerSource {
         Ok(data.into_iter().filter(|t| t.readable).map(|t| to_track(t, None)).collect())
     }
 
-    /// Nom et morceaux d'une playlist publique Deezer (toutes les pages).
-    pub async fn playlist(&self, id: &str) -> Result<(String, Vec<Track>)> {
+    /// Nom, image et morceaux d'une playlist publique Deezer (toutes les pages).
+    pub async fn playlist(&self, id: &str) -> Result<(String, Option<String>, Vec<Track>)> {
         #[derive(Deserialize)]
         struct Info {
             title: String,
+            #[serde(default)]
+            picture_xl: Option<String>,
         }
         let info: Info = self.get(&format!("/playlist/{id}"), &[]).await?;
         const PAGE: usize = 400;
@@ -309,12 +311,14 @@ impl DeezerSource {
                 break;
             }
         }
-        Ok((info.title, tracks))
+        Ok((info.title, info.picture_xl, tracks))
     }
 
     /// Le morceau Deezer qui correspond à un titre, un artiste et une durée venus d'ailleurs
     /// (import d'une playlist Spotify) : recherche précise, puis large ; durée à ±5 s.
     pub async fn find_track(&self, title: &str, artist: &str, duration: Option<f64>) -> Result<Option<Track>> {
+        let title = crate::import::clean_title(title);
+        let title = title.as_str();
         let norm = |s: &str| s.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect::<String>();
         let (t, a) = (norm(title), norm(artist));
         let fits = |x: &Track| {
@@ -326,8 +330,10 @@ impl DeezerSource {
             let xa = norm(&x.artist);
             close && (xt.contains(&t) || t.contains(&xt)) && (xa.contains(&a) || a.contains(&xa) || a.is_empty())
         };
+        // La recherche précise de Deezer rate parfois un morceau pourtant là (« Circle » d'Esoteric) :
+        // on essaie aussi « titre artiste », qui ne classe pas pareil que « artiste titre ».
         let precise = format!("track:\"{title}\" artist:\"{artist}\"");
-        for q in [precise, format!("{artist} {title}")] {
+        for q in [precise, format!("{artist} {title}"), format!("{title} {artist}")] {
             let found = self.tracks("/search", &[("q", q), ("limit", "10".into())]).await?;
             if let Some(hit) = found.into_iter().find(|x| fits(x)) {
                 return Ok(Some(hit));

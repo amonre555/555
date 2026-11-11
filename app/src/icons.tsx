@@ -154,6 +154,13 @@ export const IconEdit = () => (
     <path d="M13.5 6.5l4 4" />
   </Svg>
 );
+export const IconImage = () => (
+  <Svg size={18}>
+    <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+    <circle cx="9" cy="10" r="1.6" />
+    <path d="M20.5 16l-5-5-9 8.5" />
+  </Svg>
+);
 export const IconMinus = (p: { size?: number }) => (
   <Svg size={p.size ?? 18}>
     <path d="M5 12h14" />

@@ -94,6 +94,9 @@ const en = {
   playlist: "Playlist",
   playlistGone: "This playlist no longer exists.",
   rename: "Rename",
+  changeCover: "Change image",
+  removeCover: "Remove image",
+  coverError: "Couldn't read this image.",
   playlistName: "Playlist name",
   addWholePlaylist: "Add the whole playlist to another one",
   deletePlaylist: "Delete playlist",
@@ -172,7 +175,11 @@ const en = {
   languageHint: "Language of the interface.",
 
   // Import dialog
-  importText: "Paste the link of a public Spotify, Deezer or YouTube Music playlist (or a Spotify album).",
+  importText:
+    "Paste the link of a public Spotify, Deezer or YouTube Music playlist (or a Spotify album). To import your Spotify liked songs: open them in Spotify on a computer, Cmd+A then Cmd+C, and paste here.",
+  songLinks: (n: number) => `${plural(n, "Spotify song", "Spotify songs")}: they will be added to your liked songs.`,
+  importedLiked: (added: number, missing: number) =>
+    `${plural(added, "song", "songs")} added to liked songs${missing ? `, ${missing} not found` : ""}`,
   closeLabel: "Close",
   findingTracks: (done: number, total: number) => `Finding songs… ${done} / ${total}`,
   readingPlaylist: "Reading the playlist…",
@@ -354,6 +361,9 @@ const fr: Dict = {
   playlist: "Playlist",
   playlistGone: "Cette playlist n'existe plus.",
   rename: "Renommer",
+  changeCover: "Changer l'image",
+  removeCover: "Retirer l'image",
+  coverError: "Impossible de lire cette image.",
   playlistName: "Nom de la playlist",
   addWholePlaylist: "Ajouter toute la playlist à une autre",
   deletePlaylist: "Supprimer la playlist",
@@ -428,7 +438,11 @@ const fr: Dict = {
   language: "Langue",
   languageHint: "Langue de l'interface.",
 
-  importText: "Colle le lien d'une playlist publique Spotify, Deezer ou YouTube Music (ou d'un album Spotify).",
+  importText:
+    "Colle le lien d'une playlist publique Spotify, Deezer ou YouTube Music (ou d'un album Spotify). Pour tes titres likés Spotify : ouvre-les dans Spotify sur ordinateur, Cmd+A puis Cmd+C, et colle ici.",
+  songLinks: (n) => `${pluralFr(n, "titre Spotify", "titres Spotify")} : ils iront dans tes titres likés.`,
+  importedLiked: (added, missing) =>
+    `${pluralFr(added, "titre ajouté", "titres ajoutés")} aux titres likés${missing ? `, ${pluralFr(missing, "introuvable", "introuvables")}` : ""}`,
   closeLabel: "Fermer",
   findingTracks: (done, total) => `Recherche des morceaux… ${done} / ${total}`,
   readingPlaylist: "Lecture de la playlist…",

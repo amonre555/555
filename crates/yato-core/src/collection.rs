@@ -26,7 +26,13 @@ pub struct Playlist {
     /// Création, en millisecondes depuis 1970.
     #[serde(default)]
     pub created: u64,
+    /// Image choisie (adresse https ou image `data:`) ; sinon, mosaïque des pochettes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover: Option<String>,
 }
+
+/// Taille maximale d'une image de playlist enregistrée (l'interface la réduit avant).
+const COVER_MAX: usize = 2_000_000;
 
 /// Un morceau écouté, et quand (millisecondes depuis 1970).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -102,11 +108,27 @@ impl Collection {
         })
     }
 
+    /// Like d'un coup plusieurs morceaux (import), placés en tête dans l'ordre donné ; ceux déjà
+    /// likés ne bougent pas.
+    pub fn like_all(&self, tracks: Vec<Track>) -> Result<CollectionData> {
+        self.update(|d| {
+            let mut new: Vec<Track> = Vec::new();
+            for t in tracks {
+                if !d.liked.iter().any(|x| x.id == t.id) && !new.iter().any(|x| x.id == t.id) {
+                    new.push(t);
+                }
+            }
+            new.append(&mut d.liked);
+            d.liked = new;
+            Ok(())
+        })
+    }
+
     /// Nouvelle playlist, éventuellement déjà remplie. Son identifiant est celui de la dernière.
     pub fn create_playlist(&self, name: String, tracks: Vec<Track>) -> Result<CollectionData> {
         self.update(|d| {
             let name = clean_name(&name, d.playlists.len());
-            let mut p = Playlist { id: new_id(), name, tracks: Vec::new(), created: now_ms() };
+            let mut p = Playlist { id: new_id(), name, tracks: Vec::new(), created: now_ms(), cover: None };
             push_unique(&mut p.tracks, tracks);
             d.playlists.push(p);
             Ok(())
@@ -117,6 +139,24 @@ impl Collection {
         self.update(|d| {
             let i = index_of(d, id)?;
             d.playlists[i].name = clean_name(&name, i);
+            Ok(())
+        })
+    }
+
+    /// Change l'image d'une playlist (`None` : revenir à la mosaïque des pochettes).
+    pub fn set_playlist_cover(&self, id: &str, cover: Option<String>) -> Result<CollectionData> {
+        let cover = cover.filter(|c| !c.trim().is_empty());
+        if let Some(c) = &cover {
+            if !(c.starts_with("https://") || c.starts_with("data:image/")) {
+                return Err(Error::Other("Unsupported image.".into()));
+            }
+            if c.len() > COVER_MAX {
+                return Err(Error::Other("Image too large.".into()));
+            }
+        }
+        self.update(|d| {
+            let i = index_of(d, id)?;
+            d.playlists[i].cover = cover;
             Ok(())
         })
     }
@@ -229,6 +269,10 @@ mod tests {
         let d = c.toggle_like(track("a")).unwrap();
         assert_eq!(d.liked.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(), ["b"]);
 
+        let d = c.like_all(vec![track("a"), track("b")]).unwrap();
+        assert_eq!(d.liked.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(), ["a", "b"]);
+        let d = c.like_all(vec![track("c"), track("a"), track("c")]).unwrap();
+        assert_eq!(d.liked.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(), ["c", "a", "b"]);
         let d = c.create_playlist("  ".into(), vec![track("x"), track("x"), track("y")]).unwrap();
         let id = d.playlists[0].id.clone();
         assert_eq!(d.playlists[0].name, "My playlist #1");
@@ -239,7 +283,7 @@ mod tests {
         c.rename_playlist(&id, "Été".into()).unwrap();
 
         let d = Collection::load(&path).get();
-        assert_eq!(d.liked.len(), 1);
+        assert_eq!(d.liked.len(), 3);
         assert_eq!(d.playlists[0].name, "Été");
         assert_eq!(d.playlists[0].tracks.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(), ["z", "y"]);
         c.record_play(track("h1")).unwrap();

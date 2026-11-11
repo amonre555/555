@@ -364,6 +364,7 @@ export function PlaylistArt(props: { id?: string; liked?: boolean; class?: strin
   const covers = () => {
     if (props.liked) return [];
     const p = playlistById(props.id);
+    if (p?.cover) return [p.cover];
     return p ? playlistCovers(p, coverUrl) : [];
   };
   return (

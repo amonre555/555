@@ -111,11 +111,12 @@ pub struct YouTubeMusicSource {
 }
 
 impl YouTubeMusicSource {
-    /// Nom et morceaux d'une playlist YouTube / YouTube Music (jusqu'à 5000 morceaux).
-    pub async fn playlist(&self, id: &str) -> Result<(String, Vec<Track>)> {
+    /// Nom, image et morceaux d'une playlist YouTube / YouTube Music (jusqu'à 5000 morceaux).
+    pub async fn playlist(&self, id: &str) -> Result<(String, Option<String>, Vec<Track>)> {
         let mut pl = self.rp.query().music_playlist(id).await.map_err(yt_err)?;
         pl.tracks.extend_limit(self.rp.query(), 5000).await.map_err(yt_err)?;
-        Ok((pl.name, pl.tracks.items.into_iter().map(Track::from).collect()))
+        let cover = pl.thumbnail.iter().max_by_key(|t| t.width).map(|t| t.url.clone());
+        Ok((pl.name, cover, pl.tracks.items.into_iter().map(Track::from).collect()))
     }
 
     /// `storage_dir` : dossier où rustypipe garde ses jetons en cache.
@@ -264,19 +265,31 @@ impl YouTubeMusicSource {
     /// ressemblants, durée proche, et pas de version live / remix / accélérée… si l'original
     /// n'en est pas une.
     pub async fn find_match(&self, title: &str, artist: &str, duration: Option<f64>) -> Result<String> {
+        self.find_track(title, artist, duration)
+            .await?
+            .and_then(|t| match t.location {
+                Location::Remote { remote_id } => Some(remote_id),
+                Location::File { .. } => None,
+            })
+            .ok_or_else(|| Error::Other(format!("\"{title}\" by {artist} not found on YouTube Music")))
+    }
+
+    /// Comme [`Self::find_match`], mais renvoie le morceau entier (ou rien s'il ne ressemble
+    /// pas assez) : sert aussi de repli à l'import Spotify pour ce que Deezer n'a pas.
+    pub async fn find_track(&self, title: &str, artist: &str, duration: Option<f64>) -> Result<Option<Track>> {
         let query = format!("{artist} {title}");
         let t0 = Instant::now();
         let res = self.rp.query().music_search_tracks(&query).await.map_err(yt_err)?;
         crate::timing::step("deezer → youtube : recherche de la correspondance", t0);
-        res.items
+        Ok(res
             .items
-            .iter()
+            .items
+            .into_iter()
             .take(10)
-            .map(|c| (match_score(c, title, artist, duration), c))
+            .map(|c| (match_score(&c, title, artist, duration), c))
             .filter(|(s, _)| *s >= MATCH_MIN_SCORE)
             .max_by(|a, b| a.0.total_cmp(&b.0))
-            .map(|(_, c)| c.id.clone())
-            .ok_or_else(|| Error::Other(format!("\"{title}\" by {artist} not found on YouTube Music")))
+            .map(|(_, c)| Track::from(c)))
     }
 }
 

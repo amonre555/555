@@ -137,6 +137,11 @@ fn rename_playlist(state: State<'_, AppState>, id: String, name: String) -> Res<
 }
 
 #[tauri::command]
+fn set_playlist_cover(state: State<'_, AppState>, id: String, cover: Option<String>) -> Res<CollectionData> {
+    state.collection.set_playlist_cover(&id, cover)
+}
+
+#[tauri::command]
 fn delete_playlist(state: State<'_, AppState>, id: String) -> Res<CollectionData> {
     state.collection.delete_playlist(&id)
 }
@@ -164,6 +169,8 @@ struct ImportResult {
     id: Option<String>,
     added: usize,
     missing: usize,
+    /// Les morceaux sont allés dans les titres likés (liens de morceaux Spotify).
+    liked: bool,
 }
 
 /// Importe une playlist depuis un lien (Spotify, Deezer, YouTube Music) et la crée ici.
@@ -177,10 +184,22 @@ async fn import_playlist(app: tauri::AppHandle, state: State<'_, AppState>, url:
     if found.tracks.is_empty() {
         return Err(Error::Other("None of the songs in this playlist could be found.".into()));
     }
+    if found.liked {
+        let before = state.collection.get().liked.len();
+        let collection = state.collection.like_all(found.tracks)?;
+        let added = collection.liked.len() - before;
+        return Ok(ImportResult { collection, id: None, added, missing: found.missing, liked: true });
+    }
     let added = found.tracks.len();
-    let collection = state.collection.create_playlist(found.name, found.tracks)?;
+    let mut collection = state.collection.create_playlist(found.name, found.tracks)?;
     let id = collection.playlists.last().map(|p| p.id.clone());
-    Ok(ImportResult { collection, id, added, missing: found.missing })
+    if let (Some(id), Some(cover)) = (&id, found.cover) {
+        // Une image refusée n'empêche pas l'import : la mosaïque reste.
+        if let Ok(c) = state.collection.set_playlist_cover(id, Some(cover)) {
+            collection = c;
+        }
+    }
+    Ok(ImportResult { collection, id, added, missing: found.missing, liked: false })
 }
 
 // ---------- Statistiques d'écoute ----------
@@ -619,6 +638,7 @@ pub fn run() {
             toggle_like,
             create_playlist,
             rename_playlist,
+            set_playlist_cover,
             delete_playlist,
             add_to_playlist,
             remove_from_playlist,

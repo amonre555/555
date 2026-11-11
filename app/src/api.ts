@@ -129,6 +129,8 @@ export interface Playlist {
   name: string;
   tracks: Track[];
   created: number;
+  /** Image choisie (https ou data:) ; sinon, mosaïque des pochettes. */
+  cover?: string | null;
 }
 
 /** Un morceau écouté, et quand (millisecondes depuis 1970). */
@@ -150,6 +152,8 @@ export interface ImportResult {
   id: string | null;
   added: number;
   missing: number;
+  /** Les morceaux sont allés dans les titres likés (liens de morceaux Spotify). */
+  liked: boolean;
 }
 
 /** Réglages de l'app (page Réglages). */
@@ -253,6 +257,7 @@ export const api = {
   toggleLike: (track: Track) => invoke<Collection>("toggle_like", { track }),
   createPlaylist: (name: string, tracks?: Track[]) => invoke<Collection>("create_playlist", { name, tracks: tracks ?? null }),
   renamePlaylist: (id: string, name: string) => invoke<Collection>("rename_playlist", { id, name }),
+  setPlaylistCover: (id: string, cover: string | null) => invoke<Collection>("set_playlist_cover", { id, cover }),
   deletePlaylist: (id: string) => invoke<Collection>("delete_playlist", { id }),
   addToPlaylist: (id: string, tracks: Track[]) => invoke<Collection>("add_to_playlist", { id, tracks }),
   removeFromPlaylist: (id: string, trackId: string) => invoke<Collection>("remove_from_playlist", { id, trackId }),

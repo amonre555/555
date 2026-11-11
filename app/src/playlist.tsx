@@ -1,8 +1,10 @@
 // Pages de la collection : titres likés et playlists.
 import { createEffect, createSignal, on, Show } from "solid-js";
 import { formatTime, type Snapshot, type Track } from "./api";
-import { collection, deletePlaylist, moveInPlaylist, openTrackMenu, playlistById, renamePlaylist } from "./collection";
-import { IconEdit, IconHeart, IconMore, IconPlay, IconPlaylist, IconTrash } from "./icons";
+import {
+  collection, deletePlaylist, imageToCover, moveInPlaylist, notify, openTrackMenu, playlistById, renamePlaylist, setPlaylistCover,
+} from "./collection";
+import { IconClose, IconEdit, IconHeart, IconImage, IconMore, IconPlay, IconPlaylist, IconTrash } from "./icons";
 import { PlaylistArt, TrackList } from "./ui";
 import { t } from "./i18n";
 
@@ -69,6 +71,15 @@ export function PlaylistView(props: Common & { id: string; editing: boolean; onD
     const p = playlist();
     if (p && name.trim() && name.trim() !== p.name) renamePlaylist(p.id, name);
   };
+  let picker: HTMLInputElement | undefined;
+  const pickCover = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      await setPlaylistCover(props.id, await imageToCover(file));
+    } catch {
+      notify(t.coverError, "error");
+    }
+  };
   const remove = async () => {
     if (!confirmDelete()) {
       setConfirmDelete(true);
@@ -83,7 +94,20 @@ export function PlaylistView(props: Common & { id: string; editing: boolean; onD
       {(p) => (
         <div class="album-page">
           <header class="artist-head album-head">
-            <PlaylistArt id={p().id} class="xl" />
+            <button class="pl-art-btn" title={t.changeCover} aria-label={t.changeCover} onClick={() => picker?.click()}>
+              <PlaylistArt id={p().id} class="xl" />
+              <span class="pl-art-edit"><IconImage /></span>
+            </button>
+            <input
+              ref={picker}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                void pickCover(e.currentTarget.files?.[0]);
+                e.currentTarget.value = "";
+              }}
+            />
             <div class="artist-body">
               <div class="eyebrow">{t.playlist}</div>
               <Show
@@ -125,6 +149,14 @@ export function PlaylistView(props: Common & { id: string; editing: boolean; onD
                 <button class="icon-btn" title={t.rename} onClick={() => setEditing(true)}>
                   <IconEdit />
                 </button>
+                <button class="icon-btn" title={t.changeCover} onClick={() => picker?.click()}>
+                  <IconImage />
+                </button>
+                <Show when={p().cover}>
+                  <button class="icon-btn" title={t.removeCover} onClick={() => setPlaylistCover(p().id, null)}>
+                    <IconClose />
+                  </button>
+                </Show>
                 <Show when={p().tracks.length > 0}>
                   <button class="icon-btn" title={t.addWholePlaylist} onClick={(e) => openTrackMenu(e, p().tracks, p().id)}>
                     <IconMore />

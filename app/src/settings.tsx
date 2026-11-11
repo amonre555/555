@@ -174,8 +174,10 @@ export function ImportDialog(props: { onClose: () => void; onDone: (id: string) 
   const [url, setUrl] = createSignal("");
   const [busy, setBusy] = createSignal(false);
   const [progress, setProgress] = createSignal<[number, number] | null>(null);
-  let input: HTMLInputElement | undefined;
+  let input: HTMLTextAreaElement | undefined;
   onMount(() => requestAnimationFrame(() => input?.focus()));
+  /** Plusieurs liens collés (morceaux Spotify) : le champ s'agrandit et dit combien. */
+  const songLinks = () => (url().match(/(\/track\/|spotify:track:)[A-Za-z0-9]{22}/g) ?? []).length;
 
   const submit = async (e: Event) => {
     e.preventDefault();
@@ -197,17 +199,28 @@ export function ImportDialog(props: { onClose: () => void; onDone: (id: string) 
           </button>
         </div>
         <p class="muted small">{t.importText}</p>
-        <input
+        <textarea
           ref={input}
           class="dialog-input"
-          type="text"
+          classList={{ multi: songLinks() > 1 }}
+          rows={1}
           inputMode="url"
           placeholder="https://open.spotify.com/playlist/…"
           value={url()}
           onInput={(e) => setUrl(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            // Entrée valide, comme dans un champ d'une ligne.
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              e.currentTarget.form?.requestSubmit();
+            }
+          }}
           disabled={busy()}
           spellcheck={false}
         />
+        <Show when={songLinks() > 0 && !busy()}>
+          <span class="muted small">{t.songLinks(songLinks())}</span>
+        </Show>
         <Show when={busy()}>
           <div class="dialog-progress">
             <div class="engine-bar">

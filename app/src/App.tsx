@@ -766,7 +766,8 @@ export default function App() {
           onClose={() => setImporting(false)}
           onDone={(id) => {
             setImporting(false);
-            openPlaylist(id);
+            if (id === "liked") goTo("liked");
+            else openPlaylist(id);
           }}
         />
       </Show>

@@ -676,6 +676,11 @@ html[data-vt="back"]::view-transition-new(page) { animation: blur-in-back 0.55s 
 .pl-art.liked { color: var(--light); background: radial-gradient(90% 90% at 25% 20%, color-mix(in srgb, var(--md-primary) 55%, transparent), transparent 70%), radial-gradient(90% 90% at 80% 85%, color-mix(in srgb, var(--md-tertiary) 45%, transparent), transparent 70%), var(--surface-2); }
 .pl-art.xl { width: 210px; height: 210px; border-radius: var(--r-lg); box-shadow: 0 24px 50px -18px rgba(0, 0, 0, 0.7); }
 .pl-art.xl svg { width: 64px; height: 64px; }
+.pl-art-btn { position: relative; flex: none; padding: 0; border: 0; background: none; border-radius: var(--r-lg); cursor: pointer; color: inherit; }
+.pl-art-btn:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 3px; }
+.pl-art-edit { position: absolute; inset: 0; display: grid; place-items: center; border-radius: inherit; background: rgba(0, 0, 0, 0.45); color: #fff; opacity: 0; transition: opacity 0.15s; }
+.pl-art-edit svg { width: 34px; height: 34px; }
+.pl-art-btn:hover .pl-art-edit, .pl-art-btn:focus-visible .pl-art-edit { opacity: 1; }
 .pl-art.xs { width: 28px; height: 28px; border-radius: 7px; }
 .pl-art.xs svg { width: 16px; height: 16px; }
 .pl-art.nav-art { width: 26px; height: 26px; border-radius: 7px; margin: 0 -3px; }
@@ -766,6 +771,8 @@ html[data-vt="back"]::view-transition-new(page) { animation: blur-in-back 0.55s 
 .dialog-head h2 { margin: 0; }
 .dialog-input { height: 46px; padding: 0 16px; border-radius: var(--r-sm); border: 0; outline: 0; background: var(--surface-2); color: var(--text); font: inherit; box-shadow: 0 0 0 2px transparent; transition: box-shadow 0.2s; }
 .dialog-input:focus { box-shadow: 0 0 0 2px var(--accent); }
+textarea.dialog-input { display: block; width: 100%; box-sizing: border-box; resize: none; padding: 13px 16px; line-height: 20px; white-space: nowrap; overflow: hidden; }
+textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; font-size: 0.82em; }
 .dialog-progress { display: flex; flex-direction: column; gap: 6px; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 

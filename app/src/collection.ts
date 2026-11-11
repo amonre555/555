@@ -81,14 +81,19 @@ export const recentTracks = createMemo(() => {
 });
 
 /**
- * Importe une playlist depuis un lien. `onProgress` suit la recherche des morceaux (Spotify).
- * Renvoie l'identifiant de la nouvelle playlist, ou `null` en cas d'échec (déjà signalé).
+ * Importe une playlist depuis un lien, ou des morceaux Spotify (liens collés) dans les titres
+ * likés. `onProgress` suit la recherche des morceaux (Spotify).
+ * Renvoie l'identifiant de la nouvelle playlist, `"liked"`, ou `null` en cas d'échec (déjà signalé).
  */
 export async function importPlaylist(url: string, onProgress: (done: number, total: number) => void): Promise<string | null> {
   const stop = await api.onImportProgress(onProgress).catch(() => null);
   try {
     const r = await api.importPlaylist(url);
     setCollection(r.collection);
+    if (r.liked) {
+      notify(t.importedLiked(r.added, r.missing));
+      return "liked";
+    }
     const name = r.collection.playlists.find((p) => p.id === r.id)?.name ?? t.thePlaylist;
     notify(t.imported(name, r.added, r.missing));
     return r.id;
@@ -115,6 +120,32 @@ export async function createPlaylist(name = "", tracks: Track[] = []): Promise<s
 
 export const renamePlaylist = (id: string, name: string) => apply(api.renamePlaylist(id, name));
 export const deletePlaylist = (id: string) => apply(api.deletePlaylist(id));
+export const setPlaylistCover = (id: string, cover: string | null) => apply(api.setPlaylistCover(id, cover));
+
+/** Lit une image choisie par l'utilisateur, recadrée au carré et réduite (600 px, JPEG) :
+ *  elle est enregistrée telle quelle dans la collection. */
+export function imageToCover(file: File, size = 600): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const side = Math.min(img.naturalWidth, img.naturalHeight);
+      const out = Math.min(size, side);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = out;
+      const ctx = canvas.getContext("2d");
+      URL.revokeObjectURL(url);
+      if (!ctx || !side) return reject(new Error("image"));
+      ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, out, out);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("image"));
+    };
+    img.src = url;
+  });
+}
 export const removeFromPlaylist = (id: string, trackId: string) => apply(api.removeFromPlaylist(id, trackId));
 export const moveInPlaylist = (id: string, from: number, to: number) => apply(api.moveInPlaylist(id, from, to));
 
