@@ -34,9 +34,16 @@ const clock = (ms: number) => new Intl.DateTimeFormat(locale(), { hour: "numeric
 export function HistoryView(props: Props) {
   const history = () => collection().history;
 
+  /**
+   * Chaque morceau une seule fois, à sa dernière écoute (l'historique va du plus récent au plus
+   * ancien). Le nombre d'écoutes reste compté dans « Les plus écoutés » et les stats.
+   */
   const days = createMemo(() => {
     const out: { key: string; at: number; plays: Played[] }[] = [];
+    const seen = new Set<string>();
     for (const p of history()) {
+      if (seen.has(p.track.id)) continue;
+      seen.add(p.track.id);
       const key = dayKey(p.at);
       const last = out[out.length - 1];
       if (last?.key === key) last.plays.push(p);

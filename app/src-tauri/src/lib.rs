@@ -1,6 +1,11 @@
 //! Couche Tauri : expose le cœur (`yato-core`) à l'interface. Aucune logique métier ici.
 
+#[cfg(target_os = "android")]
+mod android_media;
+mod cover;
+#[cfg(desktop)]
 mod discord;
+#[cfg(desktop)]
 mod media;
 mod settings;
 
@@ -400,11 +405,14 @@ fn cover_response(uri_path: &str) -> http::Response<Vec<u8>> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     yato_core::timing::start();
-    let app = tauri::Builder::default()
-        .plugin(tauri_plugin_dialog::init())
-        // Mises à jour automatiques, publiées dans les Releases GitHub (voir .github/workflows).
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
+    let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
+    // Mises à jour automatiques, publiées dans les Releases GitHub (voir .github/workflows).
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init());
+    // Android : lecture écran éteint, notification et écran verrouillé.
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(android_media::plugin());
+    let app = builder
         .register_asynchronous_uri_scheme_protocol("cover", |_ctx, request, responder| {
             let path = request.uri().path().to_owned();
             tauri::async_runtime::spawn_blocking(move || responder.respond(cover_response(&path)));
@@ -467,11 +475,20 @@ pub fn run() {
                 .get_webview_window("main")
                 .and_then(|w| w.hwnd().ok())
                 .map(|h| h.0 as *mut std::ffi::c_void);
-            #[cfg(not(windows))]
+            #[cfg(all(desktop, not(windows)))]
             let hwnd = None;
+            #[cfg(desktop)]
             let media = media::spawn(hwnd, app.path().app_cache_dir()?.join("now-playing"), controller.clone());
             // Statut Discord (« Écoute … »), s'il est configuré.
+            #[cfg(desktop)]
             let discord = discord::spawn();
+            // Android : notification du lecteur et lecture écran éteint ; pas de Discord.
+            #[cfg(target_os = "android")]
+            let media = android_media::spawn(app.handle(), app.path().app_cache_dir()?.join("now-playing"), controller.clone());
+            #[cfg(target_os = "ios")]
+            let media: Option<std::sync::mpsc::Sender<Snapshot>> = None;
+            #[cfg(mobile)]
+            let discord: Option<std::sync::mpsc::Sender<Snapshot>> = None;
 
             // Installation / mise à jour de yt-dlp en arrière-plan, état relayé à l'interface.
             let handle = app.handle().clone();

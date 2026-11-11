@@ -80,7 +80,10 @@ export function StatsView(props: { snap: Snapshot; onPlay: (tracks: Track[], ind
   );
   const [stats, { refetch }] = createResource(period, (p) => api.stats(p));
   // Une écoute est notée quand le morceau change : on met la page à jour à ce moment-là.
-  createEffect(on(() => props.snap.track?.id, () => refetch(), { defer: true }));
+  // Mémo obligatoire : l'état du lecteur arrive 4 fois par seconde, et `on` relance l'effet à
+  // chaque fois même si le morceau est le même (la page se rechargeait sans arrêt).
+  const trackId = createMemo(() => props.snap.track?.id);
+  createEffect(on(trackId, () => refetch(), { defer: true }));
 
   /** Dernières données reçues : la page ne clignote pas quand on change de période. */
   const [shown, setShown] = createSignal<Stats | null>(null);

@@ -18,6 +18,11 @@ const en = {
   importPlaylistHint: "Import a playlist (Spotify, Deezer, YouTube Music)",
   searchPlaceholder: "Songs, artists, albums…",
   back: "Back",
+  search: "Search",
+  collection: "Your music",
+  lyrics: "Lyrics",
+  cover: "Cover",
+  dragToReorder: "Drag to reorder",
 
   // Search
   noResults: (q: string) => `No results for “${q}”.`,
@@ -279,6 +284,11 @@ const fr: Dict = {
   importPlaylistHint: "Importer une playlist (Spotify, Deezer, YouTube Music)",
   searchPlaceholder: "Titres, artistes, albums…",
   back: "Retour",
+  search: "Recherche",
+  collection: "Ta musique",
+  lyrics: "Paroles",
+  cover: "Pochette",
+  dragToReorder: "Glisser pour réordonner",
 
   noResults: (q) => `Aucun résultat pour « ${q} ».`,
   topResult: "Meilleur résultat",

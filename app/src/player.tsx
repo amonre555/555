@@ -297,6 +297,33 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
   const leaving = createMemo(() => props.leaving);
   createEffect(on(leaving, (l) => art && flyCover(art, l ? "out" : "in", l ? 440 : 650), { defer: true }));
   const [lyrics, setLyrics] = createSignal<Lyrics | null | undefined>(undefined); // undefined = chargement
+  /** Téléphone : les paroles prennent la place de la pochette (bouton « Paroles »). */
+  const [lyricsMode, setLyricsMode] = createSignal(false);
+
+  /**
+   * Téléphone : glisser vers le bas ferme la vue (la vue suit le doigt). Pas depuis les paroles
+   * (elles défilent) ni depuis un curseur.
+   */
+  let root: HTMLDivElement | undefined;
+  let swipe: { y: number; dy: number } | null = null;
+  const onTouchStart = (e: TouchEvent) => {
+    if ((e.target as HTMLElement).closest(".lyrics, .slider, .np-actions")) return;
+    swipe = { y: e.touches[0].clientY, dy: 0 };
+  };
+  const onTouchMove = (e: TouchEvent) => {
+    if (!swipe || !root) return;
+    swipe.dy = Math.max(0, e.touches[0].clientY - swipe.y);
+    root.style.transition = "none";
+    root.style.transform = `translateY(${swipe.dy}px)`;
+  };
+  const onTouchEnd = () => {
+    if (!swipe || !root) return;
+    const close = swipe.dy > 110;
+    swipe = null;
+    root.style.transition = "transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)";
+    if (close) props.onClose();
+    else root.style.transform = "";
+  };
   const track = () => props.snap.track;
   // Mémo obligatoire : l'état arrive 4 fois par seconde avec un nouvel objet `track`, et `on`
   // relance l'effet à chaque notification même si l'identifiant n'a pas changé. Sans ce mémo,
@@ -327,7 +354,16 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
   );
 
   return (
-    <div classList={{ nowplaying: true, leaving: props.leaving }} role="dialog" aria-label={tr.nowPlaying}>
+    <div
+      ref={root}
+      classList={{ nowplaying: true, leaving: props.leaving, "lyrics-mode": lyricsMode() }}
+      role="dialog"
+      aria-label={tr.nowPlaying}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
+    >
       {/* Fond propre à la vue (pochette floutée sur une base opaque) : il apparaît avec elle. */}
       <div class="np-bg" aria-hidden="true">
         <Show when={bigCoverUrl(track())}>{(u) => <div class="np-bg-art" style={{ "background-image": `url("${u()}")` }} />}</Show>
@@ -357,6 +393,17 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
               </div>
               <Progress snap={props.snap} position={props.position} run={props.run} />
               <Transport snap={props.snap} run={props.run} playing={props.snap.status === "playing"} big />
+              {/* Téléphone seulement (caché sur ordinateur) : paroles et volume. */}
+              <div class="np-actions">
+                <button
+                  classList={{ "np-toggle": true, on: lyricsMode() }}
+                  aria-pressed={lyricsMode()}
+                  onClick={() => setLyricsMode((v) => !v)}
+                >
+                  <IconLyrics /> {lyricsMode() ? tr.cover : tr.lyrics}
+                </button>
+                <Volume snap={props.snap} run={props.run} />
+              </div>
             </div>
             <div class="np-right">
               <LyricsView lyrics={lyrics()} trackId={trackId()} position={props.position} run={props.run} />
@@ -483,6 +530,20 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; trackId: string 
     }
   };
 
+  /**
+   * Zone des paroles qui change de taille (téléphone : elle était cachée derrière la pochette et
+   * apparaît, rotation…) : la ligne en cours est replacée aussitôt, sans animation.
+   */
+  const resized = new ResizeObserver(() => {
+    if (box?.clientHeight && performance.now() >= userScrollUntil) follow(active(), false);
+  });
+  onCleanup(() => resized.disconnect());
+  const attach = (el: HTMLDivElement) => {
+    box = el;
+    resized.disconnect();
+    resized.observe(el);
+  };
+
   createEffect(
     on([active, lines], ([i, l], prev) => {
       const newLyrics = !prev || prev[1] !== l;
@@ -512,7 +573,7 @@ function LyricsView(props: { lyrics: Lyrics | null | undefined; trackId: string 
           </Show>
         }
       >
-        <div classList={{ lyrics: true, browsing: browsing() }} ref={box} onWheel={onUserScroll} onTouchMove={onUserScroll}>
+        <div classList={{ lyrics: true, browsing: browsing() }} ref={attach} onWheel={onUserScroll} onTouchMove={onUserScroll}>
           <div class="lyrics-pad" />
           <For each={lines()}>
             {(line, i) => (

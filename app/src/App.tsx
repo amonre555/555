@@ -11,14 +11,19 @@ import { HistoryView } from "./history";
 import { RecapCard, recapSeason, StatsView } from "./stats";
 import { Recap } from "./recap";
 import { loadRecentSearches, recent, RecentSearches, rememberSearch } from "./recent";
-import { collection, createPlaylist, dismissToast, loadCollection, notify, recentTracks, toast } from "./collection";
+import { closeTrackMenu, collection, createPlaylist, dismissToast, loadCollection, notify, recentTracks, toast, trackMenu } from "./collection";
+import { handleBackButton, isMobile } from "./mobile";
+import { dismissSplash } from "./splash";
 import { ImportDialog, SettingsView } from "./settings";
 import { LikedView, PlaylistView } from "./playlist";
 import { UpdateCard } from "./update";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
 import { AlbumLink, ArtistLinks, cancelHover, Cover, Empty, hoverPrefetch, Loader, PlaylistArt, SourceTag, TrackCard, TrackList, TrackMenuHost, YtDlpBadge } from "./ui";
 
-type View = "discover" | "library" | "liked" | "history" | "stats" | "playlist" | "settings" | "search" | "artist" | "album";
+/** `hub` : page « Ta musique » du téléphone (bibliothèque, likes, playlists, historique, stats). */
+type View = "discover" | "library" | "liked" | "history" | "stats" | "playlist" | "settings" | "search" | "artist" | "album" | "hub";
+/** Onglets de la barre du bas (téléphone). */
+type Tab = "discover" | "search" | "hub" | "settings";
 
 const EMPTY: Snapshot = {
   track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off",
@@ -167,6 +172,37 @@ export default function App() {
     setHistory([]);
     if (view() !== v) switchTo(() => setView(v));
   };
+  /**
+   * Onglet allumé dans la barre du bas. Les fiches (artiste, album) gardent l'onglet d'où l'on
+   * vient ; les pages de « Ta musique » allument son onglet.
+   */
+  const [tab, setTab] = createSignal<Tab>("discover");
+  createEffect(
+    on(view, (v) => {
+      if (v === "discover" || v === "search" || v === "settings") setTab(v);
+      else if (v !== "artist" && v !== "album") setTab("hub");
+    }),
+  );
+  const selectTab = (next: Tab) => {
+    if (expanded()) setNowPlaying(false);
+    if (next === "search") {
+      if (view() !== "search") {
+        pageLoad++;
+        setNavigating(false);
+        setHistory([]);
+        switchTo(() => setView("search"));
+      }
+      requestAnimationFrame(() => searchInput.focus());
+      return;
+    }
+    // Onglet déjà actif : retour à sa page de départ (et en haut).
+    if (next === tab() && view() === next) {
+      content.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    goTo(next);
+  };
+
   const openPlaylist = (id: string, name = false) => {
     if (expanded()) setNowPlaying(false);
     pageLoad++;
@@ -213,8 +249,16 @@ export default function App() {
     return s.duration ? Math.min(p, s.duration) : p;
   });
   let raf = 0;
-  const frame = () => {
-    if (snap().status === "playing") setNow(performance.now());
+  let lastFrame = 0;
+  const frame = (t: number) => {
+    // Téléphone, vue « En lecture » fermée : seul le fil du mini-lecteur bouge, 4 fois par
+    // seconde suffisent (redessiner 60 fois par seconde fait ramer les petits téléphones).
+    // Ouverte, les paroles karaoké ont besoin de chaque image.
+    const smooth = !isMobile() || np() !== "closed" || t - lastFrame >= 250;
+    if (snap().status === "playing" && smooth) {
+      lastFrame = t;
+      setNow(performance.now());
+    }
     raf = requestAnimationFrame(frame);
   };
 
@@ -232,7 +276,9 @@ export default function App() {
     const unlistenYt = api.onYtdlp(setYtdlp);
     api.ytdlpStatus().then(setYtdlp).catch(() => {});
     window.addEventListener("keydown", onKey);
+    const stopBack = handleBackButton(onBack);
     onCleanup(() => {
+      stopBack();
       unlisten.then((u) => u());
       unlistenYt.then((u) => u());
       window.removeEventListener("keydown", onKey);
@@ -253,11 +299,14 @@ export default function App() {
       .featured("deezer")
       .then((list) => {
         setFeatured(list);
+        // Accueil rempli : l'écran de lancement peut partir.
+        requestAnimationFrame(dismissSplash);
         // Les premiers morceaux du top sont les plus cliqués au lancement : un clic doit démarrer aussitôt.
         api.warm(list.slice(0, 8)).catch(() => {});
       })
       .catch((e) => {
         setFeatured([]);
+        dismissSplash();
         fail(e);
       });
   });
@@ -297,7 +346,8 @@ export default function App() {
     clearTimeout(searchTimer);
     if (!q.trim()) {
       setResults(null);
-      if (view() === "search") switchTo(() => setView("discover"), "back");
+      // Téléphone : l'onglet Recherche reste ouvert (recherches récentes).
+      if (view() === "search" && !isMobile()) switchTo(() => setView("discover"), "back");
       return;
     }
     setResults(null);
@@ -348,6 +398,18 @@ export default function App() {
     }
   };
 
+  /** Bouton retour d'Android : ferme ce qui est ouvert, sinon recule d'une page. */
+  function onBack(): boolean {
+    if (trackMenu()) closeTrackMenu();
+    else if (importing()) setImporting(false);
+    else if (recapYear()) setRecapYear(null);
+    else if (expanded()) setNowPlaying(false);
+    else if (history().length > 0) goBack();
+    else if (view() !== "discover") goTo("discover");
+    else return false;
+    return true;
+  }
+
   function onKey(e: KeyboardEvent) {
     const typing = (e.target as HTMLElement)?.tagName === "INPUT";
     if ((e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "k")) {
@@ -391,7 +453,7 @@ export default function App() {
   const isCurrent = (t: Track) => snap().track?.id === t.id;
 
   return (
-    <div classList={{ app: true, "has-track": !!snap().track, "playing-on": snap().status === "playing", expanded: np() === "open", "np-moving": np() === "opening" || np() === "closing" }}>
+    <div classList={{ app: true, [`view-${view()}`]: true, "has-track": !!snap().track, "playing-on": snap().status === "playing", expanded: np() === "open", "np-moving": np() === "opening" || np() === "closing" }}>
       <Backdrop snap={snap()} />
 
       <aside class="sidebar">
@@ -436,6 +498,9 @@ export default function App() {
 
       <main class="main">
         <header class="topbar">
+          <button class="brand m-brand" onClick={() => selectTab("discover")} title={t.home}>
+            <img src="/wordmark.svg" alt="555" height="22" />
+          </button>
           <div class="search-wrap">
             <label class="search">
               <IconSearch />
@@ -467,6 +532,25 @@ export default function App() {
         <section class="content" ref={content}>
           <div class="page">
           <Switch>
+            <Match when={view() === "search" && !query().trim()}>
+              <div class="search-recent-page">
+                <Show when={recent().length > 0} fallback={<div class="search-hint"><IconSearch /><p class="muted">{t.searchPlaceholder}</p></div>}>
+                  <RecentSearches active={-1} onPick={pickRecent} onHover={() => {}} />
+                </Show>
+              </div>
+            </Match>
+
+            <Match when={view() === "hub"}>
+              <CollectionHub
+                libraryCount={library().length}
+                recapDot={recapHighlighted()}
+                onOpen={(v) => goTo(v)}
+                onPlaylist={(id) => openPlaylist(id)}
+                onNew={newPlaylist}
+                onImport={() => setImporting(true)}
+              />
+            </Match>
+
             <Match when={view() === "search"}>
               <Show when={results()} fallback={<Loader />}>
                 <Show when={grouped().length > 0} fallback={<Empty text={t.noResults(query())} />}>
@@ -626,7 +710,7 @@ export default function App() {
                           {t.recentlyPlayed}
                           <button class="link-btn section-link" onClick={() => goTo("history")}>{t.seeAll}</button>
                         </h2>
-                        <div class="grid recent">
+                        <div class="grid recent carousel">
                           <For each={recentTracks().slice(0, 6)}>
                             {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(recentTracks(), i())} />}
                           </For>
@@ -635,7 +719,7 @@ export default function App() {
                     </Show>
                     <section class="section">
                       <h2 class="section-title">{t.rightNow}</h2>
-                      <div class="grid">
+                      <div class="grid carousel">
                         <For each={list().slice(0, 12)}>
                           {(t, i) => <TrackCard track={t} index={i()} playing={isCurrent(t)} onPlay={() => play(list(), i())} />}
                         </For>
@@ -655,6 +739,8 @@ export default function App() {
       </main>
 
       <PlayerBar snap={snap()} position={position()} run={run} onExpand={() => setNowPlaying(!expanded())} expanded={expanded()} />
+
+      <TabBar active={tab()} dot={recapHighlighted()} onSelect={selectTab} />
 
       <Show when={np() !== "closed" && snap().track}>
         <NowPlaying snap={snap()} position={position()} run={run} leaving={np() === "closing"} onClose={() => setNowPlaying(false)} />
@@ -796,6 +882,97 @@ function PlaylistsHeading(props: { onNew: () => void; onImport: () => void }) {
         </button>
         <button class="icon-btn" title={t.newPlaylist} onClick={props.onNew}>
           <IconPlus />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Barre d'onglets du téléphone (cachée sur ordinateur). */
+function TabBar(props: { active: Tab; dot: boolean; onSelect: (t: Tab) => void }) {
+  const tabs = (): { id: Tab; label: string; icon: JSX.Element }[] => [
+    { id: "discover", label: t.discover, icon: <IconCompass /> },
+    { id: "search", label: t.search, icon: <IconSearch /> },
+    { id: "hub", label: t.collection, icon: <IconLibrary /> },
+    { id: "settings", label: t.settings, icon: <IconSettings /> },
+  ];
+  return (
+    <nav class="tabbar" aria-label={t.home}>
+      <For each={tabs()}>
+        {(item) => (
+          <button classList={{ tab: true, active: props.active === item.id }} onClick={() => props.onSelect(item.id)} aria-current={props.active === item.id ? "page" : undefined}>
+            <span class="tab-icon">
+              {item.icon}
+              <Show when={item.id === "hub" && props.dot}>
+                <span class="nav-dot" aria-hidden="true" />
+              </Show>
+            </span>
+            <span class="tab-label">{item.label}</span>
+          </button>
+        )}
+      </For>
+    </nav>
+  );
+}
+
+/** Page « Ta musique » du téléphone : tout ce que la barre latérale montre sur ordinateur. */
+function CollectionHub(props: {
+  libraryCount: number;
+  recapDot: boolean;
+  onOpen: (v: View) => void;
+  onPlaylist: (id: string) => void;
+  onNew: () => void;
+  onImport: () => void;
+}) {
+  const entries = (): { id: View; label: string; icon: JSX.Element; count?: number; dot?: boolean }[] => [
+    { id: "liked", label: t.liked, icon: <PlaylistArt liked class="hub-art" />, count: collection().liked.length },
+    { id: "library", label: t.library, icon: <span class="hub-icon"><IconLibrary /></span>, count: props.libraryCount },
+    { id: "history", label: t.history, icon: <span class="hub-icon"><IconClock /></span> },
+    { id: "stats", label: t.stats, icon: <span class="hub-icon"><IconChart /></span>, dot: props.recapDot },
+  ];
+  return (
+    <div class="hub">
+      <h1>{t.collection}</h1>
+      <div class="hub-list">
+        <For each={entries()}>
+          {(e, i) => (
+            <button class="hub-row" style={{ "--i": i() }} onClick={() => props.onOpen(e.id)}>
+              {e.icon}
+              <span class="hub-label">{e.label}</span>
+              <Show when={e.dot}>
+                <span class="nav-dot" aria-hidden="true" />
+              </Show>
+              <Show when={e.count}>
+                <span class="hub-count">{e.count}</span>
+              </Show>
+            </button>
+          )}
+        </For>
+      </div>
+      <div class="hub-head">
+        <h2>{t.playlists}</h2>
+        <div class="nav-heading-actions">
+          <button class="icon-btn" title={t.importPlaylistHint} onClick={props.onImport}>
+            <IconLink />
+          </button>
+          <button class="icon-btn" title={t.newPlaylist} onClick={props.onNew}>
+            <IconPlus />
+          </button>
+        </div>
+      </div>
+      <div class="hub-list">
+        <For each={collection().playlists}>
+          {(p, i) => (
+            <button class="hub-row" style={{ "--i": i() + 4 }} onClick={() => props.onPlaylist(p.id)}>
+              <PlaylistArt id={p.id} class="hub-art" />
+              <span class="hub-label">{p.name}</span>
+              <span class="hub-count">{p.tracks.length}</span>
+            </button>
+          )}
+        </For>
+        <button class="hub-row hub-new" onClick={props.onNew}>
+          <span class="hub-icon"><IconPlus size={20} /></span>
+          <span class="hub-label">{t.newPlaylist}</span>
         </button>
       </div>
     </div>

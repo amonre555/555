@@ -24,6 +24,15 @@ const PAGE_IN: Record<TransitionKind, Keyframe[]> = {
     { opacity: 1, filter: "blur(0px)", transform: "none" },
   ],
 };
+/**
+ * Téléphone : même arrivée, sans flou. Flouter toute la page à chaque image coûte cher aux
+ * petits processeurs (saccades au changement d'onglet).
+ */
+const PAGE_IN_LIGHT: Record<TransitionKind, Keyframe[]> = {
+  page: [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }],
+  back: [{ opacity: 0, transform: "translateY(-10px)" }, { opacity: 1, transform: "none" }],
+};
+const light = window.matchMedia("(max-width: 760px)");
 let pageAnim: Animation | null = null;
 
 /**
@@ -42,7 +51,8 @@ export function transition(update: () => void, kind: TransitionKind = "page") {
     update();
     return;
   }
-  const morph = document.querySelector("[data-vt-temp]") !== null;
+  // Téléphone : pas de morphing d'image (captures de toute la page, trop lourdes).
+  const morph = !light.matches && document.querySelector("[data-vt-temp]") !== null;
   if (morph && doc.startViewTransition) {
     const root = document.documentElement;
     root.dataset.vt = kind;
@@ -66,7 +76,9 @@ export function transition(update: () => void, kind: TransitionKind = "page") {
   const page = document.querySelector<HTMLElement>(".content > .page");
   if (!page) return;
   pageAnim?.cancel();
-  pageAnim = page.animate(PAGE_IN[kind], { duration: 450, easing: "cubic-bezier(0.25, 1, 0.3, 1)" });
+  pageAnim = light.matches
+    ? page.animate(PAGE_IN_LIGHT[kind], { duration: 280, easing: "cubic-bezier(0.25, 1, 0.3, 1)" })
+    : page.animate(PAGE_IN[kind], { duration: 450, easing: "cubic-bezier(0.25, 1, 0.3, 1)" });
 }
 
 /** Donne à `el` le nom partagé avec l'élément d'arrivée, le temps d'une transition. */

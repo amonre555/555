@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">"555"</string>
+    <string name="main_activity_title">"555"</string>
+    <string name="playback_channel">Lecture</string>
+    <string name="play">Lecture</string>
+    <string name="pause">Pause</string>
+    <string name="next">Suivant</string>
+    <string name="previous">Précédent</string>
+</resources>

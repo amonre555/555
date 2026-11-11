@@ -94,3 +94,10 @@
 @media (prefers-reduced-motion: reduce) {
   .recap-card-rings i, .bar { animation: none; }
 }
+
+/* Téléphone : la carte du récap passe en colonne (texte, puis boutons). */
+@media (max-width: 760px) {
+  .recap-card { flex-direction: column; align-items: stretch; gap: 16px; padding: 22px 20px; }
+  .recap-card-body h2 { font-size: 22px; }
+  .recap-card .actions { justify-content: flex-start; }
+}

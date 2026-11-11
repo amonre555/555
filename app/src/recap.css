@@ -203,3 +203,11 @@
   .recap, .rv, .recap-art-bg, .recap-ripples i, .recap-waves path, .recap-cover.spin-in, .recap-bars .bar, .recap-outro-actions { animation: none; }
   .clock-bar { animation: none; stroke-dashoffset: 0; }
 }
+
+/* Téléphone : chiffres géants à la largeur de l'écran, commandes sous la barre d'état. */
+@media (max-width: 760px) {
+  .recap-huge { font-size: min(26vw, 140px); }
+  .recap-number { font-size: min(22vw, 120px); }
+  .recap-number.mid { font-size: min(19vw, 104px); }
+  .recap-chrome { padding-top: calc(var(--sat, 0px) + 12px); }
+}

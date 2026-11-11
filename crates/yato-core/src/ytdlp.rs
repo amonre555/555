@@ -91,6 +91,9 @@ impl YtDlp {
 
     /// Chemin de yt-dlp, en l'installant si besoin.
     pub async fn path(&self) -> Result<PathBuf> {
+        if cfg!(target_os = "android") {
+            return Err(Error::Other("yt-dlp is not available on Android".into()));
+        }
         if let Some(p) = self.managed() {
             if *self.status.borrow() == YtDlpStatus::Unknown {
                 self.set(YtDlpStatus::Ready);
@@ -110,6 +113,10 @@ impl YtDlp {
     /// À appeler au démarrage, en arrière-plan : installe yt-dlp s'il manque, sinon vérifie
     /// les mises à jour (au plus toutes les 12 h).
     pub async fn maintain(&self) {
+        // Android : pas de yt-dlp (rien à télécharger, surtout pas en 4G).
+        if cfg!(target_os = "android") {
+            return;
+        }
         if self.managed().is_none() {
             if let Ok(p) = self.path().await {
                 warm_exe(&p).await;
