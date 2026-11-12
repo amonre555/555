@@ -28,7 +28,7 @@ pub mod stream;
 pub mod timing;
 pub mod ytdlp;
 
-pub use collection::{Collection, CollectionData, Played, Playlist};
+pub use collection::{Collection, CollectionData, Played, Playlist, load_json};
 pub use error::{Error, Result};
 pub use searches::RecentSearches;
 pub use stats::{ListenLog, ListenTracker, Period, Stats};
@@ -43,6 +43,9 @@ pub fn http_client() -> reqwest::Client {
     reqwest::Client::builder()
         .user_agent(concat!("yato/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(std::time::Duration::from_secs(10))
+        // Délai entre deux lectures, pas sur la requête entière : un long flux audio continue
+        // tant que les données arrivent, une connexion figée est coupée au bout de 30 s.
+        .read_timeout(std::time::Duration::from_secs(30))
         .pool_idle_timeout(std::time::Duration::from_secs(90))
         .build()
         .expect("client HTTP")

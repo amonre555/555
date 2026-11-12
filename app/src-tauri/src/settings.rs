@@ -22,9 +22,9 @@ impl Default for Settings {
     }
 }
 
-/// Lit un fichier JSON ; valeur par défaut s'il n'existe pas ou est illisible.
+/// Lit un fichier JSON ; valeur par défaut s'il n'existe pas (mis de côté s'il est illisible).
 pub fn load<T: DeserializeOwned + Default>(path: &Path) -> T {
-    fs::read(path).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+    yato_core::load_json(path)
 }
 
 /// Écrit un fichier JSON d'un coup (fichier temporaire puis renommage : jamais à moitié écrit).

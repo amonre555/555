@@ -380,6 +380,9 @@ export default function App() {
         // Les suivants : préparation légère seulement.
         api.warm(online.slice(1, 6)).catch(() => {});
       } catch (e) {
+        if (id !== searchId) return;
+        // Sinon `results` reste à null et le chargement tourne sans fin.
+        setResults([]);
         fail(e);
       }
     }, 220);
@@ -423,7 +426,9 @@ export default function App() {
   }
 
   function onKey(e: KeyboardEvent) {
-    const typing = (e.target as HTMLElement)?.tagName === "INPUT";
+    // Frappe dans un champ (recherche, import, renommage…) : pas de raccourci.
+    const el = e.target as HTMLElement | null;
+    const typing = !!el && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable);
     if ((e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "k")) {
       e.preventDefault();
       setNowPlaying(false);

@@ -12,7 +12,7 @@ use std::{
 };
 
 use parking_lot::Mutex;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use crate::{Error, Result, Track};
 
@@ -73,13 +73,10 @@ fn new_id() -> String {
 }
 
 impl Collection {
-    /// Charge la collection (vide si le fichier n'existe pas ou est illisible).
+    /// Charge la collection (vide si le fichier n'existe pas ; s'il est illisible, il est
+    /// d'abord mis de côté, voir [`load_json`]).
     pub fn load(path: &Path) -> Self {
-        let data = fs::read(path)
-            .ok()
-            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-            .unwrap_or_default();
-        Self { path: path.to_owned(), data: Mutex::new(data) }
+        Self { path: path.to_owned(), data: Mutex::new(load_json(path)) }
     }
 
     pub fn get(&self) -> CollectionData {
@@ -235,6 +232,28 @@ fn push_unique(list: &mut Vec<Track>, tracks: Vec<Track>) {
     }
 }
 
+/// Lit un fichier JSON ; valeur par défaut s'il n'existe pas. S'il est illisible ou invalide,
+/// il est copié à côté (`<nom>.corrompu-<millisecondes>`) avant de repartir de zéro : la
+/// prochaine écriture ne fait alors rien perdre.
+pub fn load_json<T: DeserializeOwned + Default>(path: &Path) -> T {
+    let err = match fs::read(path) {
+        Ok(bytes) => match serde_json::from_slice(&bytes) {
+            Ok(v) => return v,
+            Err(e) => e.to_string(),
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return T::default(),
+        Err(e) => e.to_string(),
+    };
+    let mut name = path.file_name().unwrap_or_default().to_owned();
+    name.push(format!(".corrompu-{}", now_ms()));
+    let backup = path.with_file_name(name);
+    match fs::copy(path, &backup) {
+        Ok(_) => eprintln!("{} illisible ({err}) : copie gardée dans {}", path.display(), backup.display()),
+        Err(e) => eprintln!("{} illisible ({err}), copie impossible : {e}", path.display()),
+    }
+    T::default()
+}
+
 /// Écrit un fichier JSON d'un coup (fichier temporaire puis renommage : jamais à moitié écrit).
 pub(crate) fn save_json<T: Serialize>(path: &Path, data: &T) -> Result<()> {
     if let Some(dir) = path.parent() {
@@ -293,6 +312,25 @@ mod tests {
         assert!(c.clear_history().unwrap().history.is_empty());
         c.delete_playlist(&id).unwrap();
         assert!(Collection::load(&path).get().playlists.is_empty());
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_broken_file_is_kept_aside() {
+        let dir = std::env::temp_dir().join(format!("yato-collection-{}", new_id()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("collection.json");
+        fs::write(&path, b"{ pas du json").unwrap();
+        let c = Collection::load(&path);
+        assert!(c.get().liked.is_empty());
+        c.toggle_like(track("a")).unwrap();
+        let backups: Vec<_> = fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().starts_with("collection.json.corrompu-"))
+            .collect();
+        assert_eq!(backups.len(), 1);
+        assert_eq!(fs::read(backups[0].path()).unwrap(), b"{ pas du json");
         let _ = fs::remove_dir_all(dir);
     }
 }
