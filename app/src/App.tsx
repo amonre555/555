@@ -16,7 +16,7 @@ import { handleBackButton, isMobile } from "./mobile";
 import { dismissSplash } from "./splash";
 import { ImportDialog, SettingsView } from "./settings";
 import { LikedView, PlaylistView } from "./playlist";
-import { UpdateCard } from "./update";
+import { ApkUpdateDialog, UpdateCard } from "./update";
 import { Backdrop, NowPlaying, PlayerBar } from "./player";
 import { DiscoverView, discoverSections, listenDiscover, loadDiscover, refreshDiscover } from "./discover";
 import { AlbumLink, ArtistLinks, Carousel, cancelHover, Cover, Empty, hoverPrefetch, Loader, PlaylistArt, SourceTag, TrackCard, TrackList, TrackMenuHost, YtDlpBadge } from "./ui";
@@ -759,6 +759,7 @@ export default function App() {
         )}
       </Show>
 
+      <ApkUpdateDialog />
       <Show when={importing()}>
         <ImportDialog
           onClose={() => setImporting(false)}

@@ -2,6 +2,8 @@
 
 #[cfg(target_os = "android")]
 mod android_media;
+#[cfg(target_os = "android")]
+mod android_update;
 mod cover;
 #[cfg(desktop)]
 mod discord;
@@ -459,7 +461,7 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init());
     // Android : lecture écran éteint, notification et écran verrouillé.
     #[cfg(target_os = "android")]
-    let builder = builder.plugin(android_media::plugin());
+    let builder = builder.plugin(android_media::plugin()).plugin(android_update::plugin());
     let app = builder
         .register_asynchronous_uri_scheme_protocol("cover", |_ctx, request, responder| {
             let path = request.uri().path().to_owned();
@@ -646,6 +648,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            #[cfg(target_os = "android")]
+            android_update::apk_update_check,
+            #[cfg(target_os = "android")]
+            android_update::apk_update_install,
             list_sources,
             library_tracks,
             library_folders,

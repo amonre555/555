@@ -65,7 +65,7 @@ export function SettingsView(props: { onImport: () => void; onLibrary: () => voi
     setChecking(false);
     if (r === "none") notify(t.upToDate);
     else if (r === "error") notify(t.updateCheckFailed, "error");
-    else notify(t.updateFound);
+    else if (!isAndroid) notify(t.updateFound);
   };
 
   const crossfadeLabel = (s: number) => (s === 0 ? t.off : `${s} s`);
@@ -154,12 +154,10 @@ export function SettingsView(props: { onImport: () => void; onLibrary: () => voi
 
             <section class="settings-group">
               <h2 class="section-title">555</h2>
-              <Row title={t.version(version() || "-")} hint={isAndroid ? "" : t.updatesHint}>
-                <Show when={!isAndroid}>
-                  <button class="ghost" onClick={lookForUpdate} disabled={checking()}>
-                    {checking() ? t.checking : t.checkUpdates}
-                  </button>
-                </Show>
+              <Row title={t.version(version() || "-")} hint={t.updatesHint}>
+                <button class="ghost" onClick={lookForUpdate} disabled={checking()}>
+                  {checking() ? t.checking : t.checkUpdates}
+                </button>
               </Row>
             </section>
           </>

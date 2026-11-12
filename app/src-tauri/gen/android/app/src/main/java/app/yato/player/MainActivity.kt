@@ -1,5 +1,7 @@
 package app.yato.player
 
+import android.app.NotificationManager
+import android.content.Intent
 import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -30,6 +32,7 @@ class MainActivity : TauriActivity() {
       isAppearanceLightStatusBars = false
       isAppearanceLightNavigationBars = false
     }
+    UpdatePlugin.onStatus(this, intent)
     val density = resources.displayMetrics.density
     ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
       val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
@@ -39,8 +42,32 @@ class MainActivity : TauriActivity() {
     }
   }
 
+  override fun onResume() {
+    super.onResume()
+    visible = true
+    // 555 est ouvert : la notification « 555 est à jour, touchez pour rouvrir » ne sert plus.
+    getSystemService(NotificationManager::class.java).cancel(UpdatedReceiver.NOTIFICATION_ID)
+  }
+
+  override fun onPause() {
+    visible = false
+    super.onPause()
+  }
+
+  // Résultat d'une mise à jour intégrée (voir UpdatePlugin) : confirmation, échec ou relance.
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    UpdatePlugin.onStatus(this, intent)
+  }
+
   override fun onWebViewCreate(webView: WebView) {
     webView.setBackgroundColor(android.graphics.Color.BLACK)
     webView.addJavascriptInterface(Insets(), "AndroidInsets")
+  }
+
+  companion object {
+    /** Au premier plan (voir UpdatedReceiver). */
+    @Volatile
+    var visible = false
   }
 }

@@ -6,4 +6,7 @@
     <string name="pause">Pause</string>
     <string name="next">Suivant</string>
     <string name="previous">Précédent</string>
+    <string name="updates_channel">Mises à jour</string>
+    <string name="updated_title">555 %1$s est installé</string>
+    <string name="updated_text">Touchez pour rouvrir 555.</string>
 </resources>

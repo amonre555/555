@@ -1239,3 +1239,7 @@ textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; f
   .lyric { filter: none; transition: opacity 0.6s var(--soft), transform 0.7s cubic-bezier(0.2, 0.85, 0.25, 1); }
   .play-btn.playing, .np-toggle.on { box-shadow: none; }
 }
+
+/* Mise à jour Android : bloquante, au-dessus de tout (lecteur plein écran compris). */
+.update-layer { z-index: 200; }
+.update-layer .dialog-actions .primary { display: inline-flex; align-items: center; gap: 8px; }
