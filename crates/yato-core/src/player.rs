@@ -86,8 +86,12 @@ struct State {
     repeat: Repeat,
     /// Ordre de lecture : indices de `queue`, mélangés en mode aléatoire.
     order: Vec<usize>,
-    /// Session reprise : position où repartir au premier « lecture ».
+    /// Session reprise : position où repartir au premier « lecture ». Pendant un chargement,
+    /// position où le morceau démarrera.
     resume_at: Option<f64>,
+    /// Position où le morceau en cours a démarré, en secondes : un morceau repris est ouvert
+    /// déjà avancé, ce que `get_pos` de rodio ignore (il compte depuis l'ouverture).
+    offset: f64,
     /// Durée du fondu enchaîné, en secondes (0 : pas de fondu).
     crossfade: f64,
     /// Un fondu enchaîné est en cours (ou en préparation).
@@ -172,6 +176,7 @@ impl Controller {
                 repeat: Repeat::Off,
                 order: Vec::new(),
                 resume_at: None,
+                offset: 0.0,
                 crossfade: 0.0,
                 fading: false,
                 no_fade_for: None,
@@ -194,11 +199,16 @@ impl Controller {
         &self.players[self.active()]
     }
 
+    /// Position dans le morceau en cours, en secondes.
+    fn position(&self, st: &State) -> f64 {
+        st.offset + self.player().get_pos().as_secs_f64()
+    }
+
     pub fn snapshot(&self) -> Snapshot {
         let st = self.state.lock();
         let track = st.index.and_then(|i| st.queue.get(i)).cloned();
         let position = match st.status {
-            Status::Playing | Status::Paused => self.player().get_pos().as_secs_f64(),
+            Status::Playing | Status::Paused => self.position(&st),
             _ => st.resume_at.unwrap_or(0.0),
         };
         Snapshot {
@@ -305,6 +315,11 @@ impl Controller {
     }
 
     async fn load(&self, index: usize) -> Result<()> {
+        self.load_from(index, None).await
+    }
+
+    /// Charge le morceau `index` et le lance à `start` secondes (au début si `None`).
+    async fn load_from(&self, index: usize, start: Option<f64>) -> Result<()> {
         self.cancel_fade();
         let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
         let track = {
@@ -316,19 +331,22 @@ impl Controller {
             st.status = Status::Loading;
             st.duration = track.duration;
             st.error = None;
-            st.resume_at = None;
+            st.resume_at = start;
+            st.offset = 0.0;
             st.no_fade_for = None;
             track
         };
         self.player().stop();
 
         let slot = self.active();
-        match self.open(&track, generation, slot).await {
-            Ok(duration) => {
+        match self.open(&track, generation, slot, true).await {
+            Ok(opened) => {
                 if self.generation.load(Ordering::SeqCst) == generation {
                     let mut st = self.state.lock();
                     st.status = Status::Playing;
-                    if let Some(d) = duration {
+                    st.resume_at = None;
+                    st.offset = opened.start;
+                    if let Some(d) = opened.duration {
                         st.duration = Some(d.as_secs_f64());
                     }
                     self.prefetch_next(&st);
@@ -346,27 +364,34 @@ impl Controller {
         }
     }
 
-    /// Charge `track` dans le lecteur `slot` et le lance. Renvoie la durée lue dans le fichier.
+    /// Charge `track` dans le lecteur `slot` et le lance. `resume` : démarrer à la position
+    /// `resume_at` de l'état (relue au dernier moment : l'utilisateur a pu la changer).
     /// Ne touche pas à l'état : c'est à l'appelant de dire ce qui joue.
-    async fn open(&self, track: &Track, generation: u64, slot: usize) -> Result<Option<Duration>> {
+    ///
+    /// L'avance se fait sur le décodeur, avant de le confier au lecteur : un saut demandé au
+    /// lecteur s'exécute dans le fil audio, qui attendrait (tout le son figé, les deux lecteurs
+    /// compris) que le téléchargement atteigne ce point.
+    async fn open(&self, track: &Track, generation: u64, slot: usize, resume: bool) -> Result<Opened> {
         let t0 = std::time::Instant::now();
         let data = self.sources.get(&track.source)?.resolve(track).await?;
         crate::timing::step("lecteur : source résolue", t0);
         let is_current = || self.generation.load(Ordering::SeqCst) == generation;
         let player = &self.players[slot];
+        let stale = Opened { duration: None, start: 0.0 };
+        let start = if resume { self.state.lock().resume_at.filter(|&p| p > 1.0) } else { None };
 
         // Construire le décodeur peut lire le début du fichier : on le fait hors du thread async.
-        let duration = match data {
+        let (duration, start) = match data {
             StreamData::File(path) => {
-                let decoder = tokio::task::spawn_blocking(move || decode_file(&path))
+                let (decoder, started) = tokio::task::spawn_blocking(move || decode_file(&path).map(|d| seek_to(d, start)))
                     .await
                     .map_err(|e| Error::Other(e.to_string()))??;
                 if !is_current() {
-                    return Ok(None);
+                    return Ok(stale);
                 }
                 let d = decoder.total_duration();
                 player.append(decoder);
-                d
+                (d, started)
             }
             StreamData::Http { .. } | StreamData::Buffered { .. } => {
                 let (download, hint) = match data {
@@ -378,40 +403,45 @@ impl Controller {
                 };
                 let reader = download.reader().await?;
                 if !is_current() {
-                    return Ok(None);
+                    return Ok(stale);
                 }
-                let decoder = tokio::task::spawn_blocking(move || {
+                let (decoder, started) = tokio::task::spawn_blocking(move || {
                     let mut reader = reader;
                     let len = reader.total_len();
-                    // m4a de YouTube : ouvrir sans attendre la fin du téléchargement.
-                    let _quick = reader.quick_open_mp4();
-                    let mut b = Decoder::builder().with_data(reader).with_seekable(true);
-                    if let Some(len) = len {
-                        b = b.with_byte_len(len);
-                    }
-                    if let Some(hint) = hint {
-                        b = b.with_hint(hint);
-                    }
-                    b.build().map_err(|e| Error::Decode(e.to_string()))
+                    let decoder = {
+                        // m4a de YouTube : ouvrir sans attendre la fin du téléchargement.
+                        let _quick = reader.quick_open_mp4();
+                        let mut b = Decoder::builder().with_data(reader).with_seekable(true);
+                        if let Some(len) = len {
+                            b = b.with_byte_len(len);
+                        }
+                        if let Some(hint) = hint {
+                            b = b.with_hint(hint);
+                        }
+                        b.build().map_err(|e| Error::Decode(e.to_string()))?
+                    };
+                    // Ouverture rapide terminée : l'avance lit le vrai fichier (et attend, ici,
+                    // que le téléchargement y arrive).
+                    Ok::<_, Error>(seek_to(decoder, start))
                 })
                 .await
                 .map_err(|e| Error::Other(e.to_string()))??;
                 crate::timing::step("lecteur : décodeur prêt (depuis le clic)", t0);
                 if !is_current() {
-                    return Ok(None);
+                    return Ok(stale);
                 }
                 let d = decoder.total_duration();
                 player.append(decoder);
-                d
+                (d, started)
             }
         };
         if !is_current() {
             player.stop();
-            return Ok(None);
+            return Ok(stale);
         }
         player.play();
         crate::timing::step(&format!("lecteur : « {} » lancé (total depuis le clic)", track.title), t0);
-        Ok(duration)
+        Ok(Opened { duration, start })
     }
 
     pub async fn toggle(&self) -> Result<()> {
@@ -434,10 +464,7 @@ impl Controller {
                 let resume = self.state.lock().resume_at.take();
                 let start = index.or_else(|| self.state.lock().order.first().copied());
                 if let Some(i) = start {
-                    self.load(i).await?;
-                    if let Some(p) = resume.filter(|&p| p > 1.0) {
-                        let _ = self.seek(p);
-                    }
+                    self.load_from(i, resume).await?;
                 }
             }
             Status::Loading => {}
@@ -480,7 +507,7 @@ impl Controller {
 
     pub async fn previous(&self) -> Result<()> {
         // Comme sur tous les lecteurs : au-delà de 3 s, « précédent » revient au début du morceau.
-        if self.player().get_pos() > Duration::from_secs(3) {
+        if self.position(&self.state.lock()) > 3.0 {
             return self.seek(0.0);
         }
         let prev = {
@@ -503,7 +530,10 @@ impl Controller {
     pub fn seek(&self, seconds: f64) -> Result<()> {
         {
             let mut st = self.state.lock();
-            if matches!(st.status, Status::Idle | Status::Error) && st.resume_at.is_some() {
+            // Rien ne joue encore : le morceau démarrera à cette position.
+            if st.status == Status::Loading
+                || (matches!(st.status, Status::Idle | Status::Error) && st.resume_at.is_some())
+            {
                 st.resume_at = Some(seconds.max(0.0));
                 return Ok(());
             }
@@ -511,7 +541,10 @@ impl Controller {
         self.cancel_fade();
         self.player()
             .try_seek(Duration::from_secs_f64(seconds.max(0.0)))
-            .map_err(|e| Error::Decode(e.to_string()))
+            .map_err(|e| Error::Decode(e.to_string()))?;
+        // Après un saut, rodio compte depuis le début du morceau.
+        self.state.lock().offset = 0.0;
+        Ok(())
     }
 
     pub fn set_volume(&self, volume: f32) {
@@ -539,7 +572,7 @@ impl Controller {
                 st.status = Status::Idle;
                 Some(Action::Ended)
             } else if st.crossfade > 0.0 && st.repeat != Repeat::One {
-                let remaining = st.duration.map(|d| d - self.player().get_pos().as_secs_f64());
+                let remaining = st.duration.map(|d| d - self.position(&st));
                 let long_enough = st.duration.is_some_and(|d| d > st.crossfade * 3.0);
                 match (remaining, st.next_index(st.repeat == Repeat::All)) {
                     (Some(r), Some(n)) if long_enough && r <= st.crossfade && st.no_fade_for != Some(n) => {
@@ -571,12 +604,12 @@ impl Controller {
         self.players[to].stop();
         self.players[to].set_volume(0.0);
 
-        let opened = self.open(&track, generation, to).await;
+        let opened = self.open(&track, generation, to, false).await;
         if self.generation.load(Ordering::SeqCst) != generation {
             return; // l'utilisateur a changé de morceau entre-temps
         }
         let duration = match opened {
-            Ok(d) => d,
+            Ok(o) => o.duration,
             Err(_) => {
                 let mut st = self.state.lock();
                 st.fading = false;
@@ -588,6 +621,7 @@ impl Controller {
             let mut st = self.state.lock();
             self.active.store(to, Ordering::SeqCst);
             st.index = Some(next);
+            st.offset = 0.0;
             st.duration = duration.map(|d| d.as_secs_f64()).or(track.duration);
             st.status = Status::Playing;
             st.error = None;
@@ -672,6 +706,28 @@ fn shuffle(v: &mut [usize]) {
 /// L'oreille perçoit le volume de façon logarithmique : une courbe au carré rend le curseur naturel.
 fn perceptual(v: f32) -> f32 {
     v * v
+}
+
+/// Ce que [`Controller::open`] a lancé.
+struct Opened {
+    /// Durée lue dans le fichier.
+    duration: Option<Duration>,
+    /// Position de départ, en secondes.
+    start: f64,
+}
+
+/// Avance le décodeur à `start` secondes. Renvoie la position de départ (0 si l'avance échoue :
+/// le morceau part du début plutôt que pas du tout).
+fn seek_to<S: Source>(mut decoder: S, start: Option<f64>) -> (S, f64) {
+    let started = match start {
+        Some(p) if decoder.try_seek(Duration::from_secs_f64(p)).is_ok() => p,
+        Some(_) => {
+            let _ = decoder.try_seek(Duration::ZERO);
+            0.0
+        }
+        None => 0.0,
+    };
+    (decoder, started)
 }
 
 fn decode_file(path: &Path) -> Result<Decoder<BufReader<File>>> {
@@ -765,7 +821,7 @@ mod tests {
         };
         let mut st = State {
             queue: (0..len).map(track).collect(), index: Some(index), status: Status::Idle, volume: 1.0, duration: None,
-            error: None, shuffle, repeat: Repeat::Off, order: Vec::new(), resume_at: None, crossfade: 0.0, fading: false,
+            error: None, shuffle, repeat: Repeat::Off, order: Vec::new(), resume_at: None, offset: 0.0, crossfade: 0.0, fading: false,
             no_fade_for: None,
         };
         st.rebuild_order();
