@@ -45,6 +45,18 @@ jobs:
             exit 1
           fi
 
+      # The release text starts with this version's section of CHANGELOG.md (“## X.Y.Z — date”).
+      - name: Release notes from the changelog
+        id: notes
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes=$(awk -v v="$version" '/^## /{ if (f) exit; f = ($2 == v); next } f' CHANGELOG.md | sed -e '/./,$!d')
+          if [ -z "$notes" ]; then
+            echo "::warning::No section “## $version” in CHANGELOG.md: the release has no changelog."
+          fi
+          { echo "body<<__NOTES__"; echo "$notes"; echo "__NOTES__"; } >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -73,6 +85,10 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 555 ${{ github.ref_name }}
           releaseBody: |
+            ${{ steps.notes.outputs.body }}
+
+            ---
+
             **macOS**: `555_…_universal.dmg` (Apple Silicon and Intel). The app isn't signed by Apple: on first launch, right-click 555 → “Open”, or run `xattr -cr /Applications/555.app`.
             **Windows**: `555_…_x64-setup.exe`. If Windows says “Windows protected your PC”: “More info” → “Run anyway”.
             **Android** (8 or later): `555_…_android.apk`. Open it on the phone and allow your browser or file manager to install apps. 555 isn't on the Play Store, so Play Protect may warn you: “More details” → “Install anyway”. To update, install the new APK over the old one.
