@@ -10,7 +10,7 @@ Les changements de 555, version par version. La plus récente est en haut.
 - L'aperçu de l'image choisie pour une playlist s'affiche bien.
 - Une recherche qui échoue n'affiche plus un chargement sans fin.
 - Espace et Alt+flèches ne déclenchent plus la lecture ou le changement de morceau pendant que tu écris dans un champ (recherche, import…).
-- Un long morceau ne se coupe plus en cours de route quand la connexion ralentit.
+- Quand un serveur cesse de répondre, les paroles, Découvrir et les recherches ne restent plus bloquées indéfiniment : 555 abandonne au bout de 30 s.
 
 ## 0.3.6 — 2026-11-12
 
