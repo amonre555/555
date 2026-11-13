@@ -1,153 +1,153 @@
 # Changelog
 
-Les changements de 555, version par version. La plus récente est en haut.
+What's new in 555, version by version. The latest is at the top.
 
-## Non publié
+## Unreleased
 
-### Corrections
+### Fixes
 
-- Si le fichier de la collection ou des réglages est abîmé, 555 en garde une copie de côté avant de repartir de zéro : un nouveau like ne fait plus perdre les anciens.
-- L'aperçu de l'image choisie pour une playlist s'affiche bien.
-- Une recherche qui échoue n'affiche plus un chargement sans fin.
-- Espace et Alt+flèches ne déclenchent plus la lecture ou le changement de morceau pendant que tu écris dans un champ (recherche, import…).
-- Quand un serveur cesse de répondre, les paroles, Découvrir et les recherches ne restent plus bloquées indéfiniment : 555 abandonne au bout de 30 s.
+- If your collection or settings file gets damaged, 555 keeps a copy aside before starting fresh: a new like no longer wipes out the old ones.
+- The preview of the image you pick for a playlist now shows up.
+- A failed search no longer shows a loading spinner forever.
+- Space and Alt+arrows no longer play, pause or skip while you're typing in a field (search, import…).
+- When a server stops responding, lyrics, Discover and searches no longer hang forever: 555 gives up after 30 s.
 
 ## 0.3.6 — 2026-11-12
 
-### Corrections
+### Fixes
 
-- Reprendre une écoute au redémarrage ne bloque plus le lecteur : plus de son figé, et tu peux lancer un autre morceau pendant le chargement.
-- Avancer dans un morceau pendant qu'il charge le fait démarrer à cet endroit.
+- Resuming a listening session after a restart no longer freezes the player: no more stuck sound, and you can start another track while it loads.
+- Seeking in a track while it loads now starts it from that point.
 
 ## 0.3.5 — 2026-11-12
 
-### Nouveautés
+### New
 
-- Android : 555 se met à jour tout seul. Au lancement puis toutes les 6 h, il vérifie s'il existe une nouvelle version et propose de l'installer.
-- Android : « Rechercher une mise à jour » dans les réglages.
+- Android: 555 updates itself. At launch and every 6 hours, it checks for a new version and offers to install it.
+- Android: “Check for updates” in the settings.
 
 ## 0.3.4 — 2026-11-11
 
-### Améliorations
+### Improvements
 
-- Le bon morceau est trouvé plus souvent : même titre, même artiste, durée proche, et sans confondre une version live, instrumentale ou remix avec l'originale.
-- 555 ne consomme plus de processeur quand la musique est en pause.
+- The right track is found more often: same title, same artist, similar length, and no more mixing up a live, instrumental or remix version with the original.
+- 555 no longer uses any CPU while the music is paused.
 
 ## 0.3.3 — 2026-11-11
 
-### Nouveautés
+### New
 
-- Découvrir propose des recommandations faites pour toi, calculées sur ton appareil d'après tes écoutes, tes likes, tes playlists et les morceaux que tu passes : mix du jour, « Parce que tu écoutes… », nouveautés de tes artistes, artistes à découvrir, redécouvertes et tendances.
+- Discover now offers recommendations made for you, computed on your device from your listening, likes, playlists and the tracks you skip: daily mix, “Because you listen to…”, new releases from your artists, artists to discover, rediscoveries and trends.
 
-### Améliorations
+### Improvements
 
-- Pas de doublons sur la page Découvrir, et pas de titres que tu connais déjà dans les découvertes.
-- La page Découvrir s'affiche progressivement et se recharge plus vite.
-- Les carrousels tiennent sur une ligne ; sur téléphone, la page ne défile plus de travers.
-- Une fiche d'artiste retrouvée par son nom affiche le bon artiste plutôt qu'un homonyme.
+- No duplicates on the Discover page, and no tracks you already know among the discoveries.
+- The Discover page appears progressively and reloads faster.
+- Carousels fit on a single line; on phones, the page no longer scrolls sideways.
+- An artist page looked up by name shows the right artist rather than a namesake.
 
 ## 0.3.2 — 2026-11-11
 
-### Nouveautés
+### New
 
-- Les playlists importées gardent leur image d'origine, et tu peux choisir ta propre image pour une playlist ou la retirer.
-- Coller des liens de morceaux Spotify dans la fenêtre d'import les ajoute à tes titres likés.
+- Imported playlists keep their original image, and you can pick your own image for a playlist or remove it.
+- Pasting Spotify track links into the import window adds them to your liked songs.
 
-### Améliorations
+### Improvements
 
-- L'import de playlists Spotify retrouve beaucoup plus de morceaux, y compris les rééditions et ceux absents de Deezer.
+- Importing Spotify playlists finds many more tracks, including remasters and tracks missing from Deezer.
 
 ## 0.3.1 — 2026-11-11
 
-### Améliorations
+### Improvements
 
-- Android : vraie icône 555 sur l'écran d'accueil, compatible avec les icônes à thème d'Android 13, et dans la notification.
+- Android: a real 555 icon on the home screen, compatible with Android 13 themed icons, and in the notification.
 
 ## 0.3.0 — 2026-11-11
 
-### Nouveautés
+### New
 
-- 555 arrive sur Android (8 ou plus récent), avec une interface pensée pour le téléphone : onglets en bas, mini-lecteur, recherche plein écran, vue « En lecture » avec paroles.
-- Sur Android, la musique continue écran éteint, avec notification, contrôles sur l'écran verrouillé et boutons du casque. Elle se met en pause pendant un appel ou si tu débranches le casque.
-- Nouvel écran de lancement : le logo 555 se dessine en lumière bleue.
+- 555 comes to Android (8 or later), with an interface designed for phones: tabs at the bottom, mini player, full-screen search, “Now Playing” view with lyrics.
+- On Android, music keeps playing with the screen off, with a notification, lock-screen controls and headset buttons. It pauses during a call or when you unplug your headphones.
+- New launch screen: the 555 logo draws itself in blue light.
 
-### Corrections
+### Fixes
 
-- La barre de progression ne déborde plus.
-- La page Stats ne se recharge plus sans arrêt pendant la lecture.
-- Plus de doublons dans l'historique.
+- The progress bar no longer overflows.
+- The Stats page no longer keeps reloading during playback.
+- No more duplicates in the history.
 
 ## 0.2.2 — 2026-11-11
 
-### Nouveautés
+### New
 
-- Page Stats : temps d'écoute, tes morceaux, artistes et albums les plus écoutés, et ton rythme d'écoute par mois et par heure, sur le mois, l'année ou depuis toujours.
-- Récap de l'année animé, disponible en décembre et pour les années passées.
-- Recherches récentes : tes 10 dernières recherches, à relancer d'un clic ou à effacer.
+- Stats page: listening time, your most played tracks, artists and albums, and your listening rhythm by month and by hour, over the month, the year or all time.
+- Animated year in review, available in December and for past years.
+- Recent searches: your last 10 searches, to run again in one click or clear.
 
-### Améliorations
+### Improvements
 
-- Le premier morceau démarre presque instantanément, même au tout premier lancement (auparavant jusqu'à 15 secondes d'attente).
-- Les premiers morceaux du top, des résultats de recherche et de l'écoute reprise sont préparés à l'avance.
+- The first track starts almost instantly, even on the very first launch (it used to take up to 15 seconds).
+- The first tracks of the charts, search results and resumed session are prepared in advance.
 
 ## 0.2.1 — 2026-11-10
 
-### Améliorations
+### Improvements
 
-- Windows : un seul installateur, le `-setup.exe`, qui sert aussi aux mises à jour.
+- Windows: a single installer, the `-setup.exe`, which is also used for updates.
 
 ## 0.2.0 — 2026-11-10
 
-### Nouveautés
+### New
 
-- L'app s'appelle désormais 555, avec un nouveau logo et une nouvelle identité bleu électrique et noir. Tes données et les mises à jour ne changent pas.
-- L'interface est disponible en anglais (par défaut) et en français, au choix dans les réglages.
-- Page Historique : chaque écoute, regroupée par jour, avec les morceaux les plus écoutés.
-- Statut Discord au nom de 555.
+- The app is now called 555, with a new logo and a new electric blue and black look. Your data and updates stay the same.
+- The interface is available in English (default) and French, to choose in the settings.
+- History page: every listen, grouped by day, with your most played tracks.
+- Discord status under the 555 name.
 
-### Améliorations
+### Improvements
 
-- Les morceaux démarrent bien plus vite (environ 0,3 s).
-- Barre de lecture repensée : plus fine, avec la progression en haut.
-- Découvrir est plus simple, et l'Historique n'a plus de surlignage en double.
+- Tracks start much faster (about 0.3 s).
+- Redesigned playback bar: slimmer, with the progress at the top.
+- Discover is simpler, and History no longer highlights twice.
 
-### Corrections
+### Fixes
 
-- Le curseur de progression est à la bonne place quand tu reprends une écoute.
+- The progress slider is in the right place when you resume a listening session.
 
 ## 0.1.2 — 2026-11-10
 
-### Nouveautés
+### New
 
-- Lecture aléatoire et répétition (de la file ou du morceau).
-- Fondu enchaîné entre les morceaux, réglable de 1 à 12 secondes.
-- Reprise de l'écoute au lancement : file, morceau, position, volume, aléatoire et répétition.
-- « Écoutés récemment » sur Découvrir, effaçable dans les réglages.
-- Import de playlists depuis un lien Deezer, YouTube Music ou Spotify.
-- Nouveaux réglages : fondu enchaîné, reprise de l'écoute, statut Discord, historique, import et recherche de mise à jour.
+- Shuffle and repeat (the queue or the track).
+- Crossfade between tracks, adjustable from 1 to 12 seconds.
+- Resume where you left off at launch: queue, track, position, volume, shuffle and repeat.
+- “Recently played” on Discover, which you can clear in the settings.
+- Import playlists from a Deezer, YouTube Music or Spotify link.
+- New settings: crossfade, resume listening, Discord status, history, import and check for updates.
 
-### Améliorations
+### Improvements
 
-- Les listes ne clignotent plus à chaque like ou écoute.
+- Lists no longer flicker with every like or listen.
 
 ## 0.1.1 — 2026-11-10
 
-Première version publiée.
+First published version.
 
-### Nouveautés
+### New
 
-- Recherche et écoute de musique en ligne, et lecture de ta bibliothèque locale.
-- Fiches d'artistes (titres populaires, albums, singles, artistes similaires) et fiches d'albums ; chaque nom d'artiste et d'album est cliquable.
-- Titres likés et playlists, qui peuvent mélanger musique locale et en ligne ; un album entier s'ajoute en un clic.
-- Paroles synchronisées façon karaoké, au mot près quand c'est possible, avec un réglage d'avance ou de retard retenu pour chaque titre.
-- Vue « En lecture » immersive, aux couleurs de la pochette, avec animations.
-- Statut Discord : morceau écouté, artiste, pochette et progression.
-- Touches multimédia et panneau de lecture du système.
-- Installateurs pour macOS (Apple Silicon et Intel) et Windows, et mises à jour automatiques.
+- Search and stream music online, and play your local library.
+- Artist pages (popular tracks, albums, singles, similar artists) and album pages; every artist and album name is clickable.
+- Liked songs and playlists, which can mix local and online music; a whole album can be added in one click.
+- Karaoke-style synced lyrics, word by word when possible, with an earlier/later adjustment remembered for each track.
+- Immersive “Now Playing” view in the colors of the cover art, with animations.
+- Discord status: current track, artist, cover art and progress.
+- Media keys and the system's playback panel.
+- Installers for macOS (Apple Silicon and Intel) and Windows, and automatic updates.
 
-### Corrections
+### Fixes
 
-- Le son fonctionne avec des AirPods.
-- Les paroles défilent correctement, et le suivi se met en pause quand tu les fais défiler à la main.
-- Dans la vue « En lecture », les titres longs ne cachent plus les boutons.
-- Une pochette qui ne charge pas n'empêche plus l'affichage des suivantes.
+- Sound works with AirPods.
+- Lyrics scroll properly, and following pauses when you scroll them by hand.
+- In the “Now Playing” view, long titles no longer hide the buttons.
+- A cover that fails to load no longer prevents the next ones from showing.
