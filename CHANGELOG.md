@@ -2,7 +2,7 @@
 
 What's new in 555, version by version. The latest is at the top.
 
-## Unreleased
+## 0.3.7 — 2026-11-13
 
 ### Fixes
 
