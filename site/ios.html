@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>555 on iPhone and iPad</title>
+  <meta name="description" content="How to install 555 on iPhone and iPad with SideStore: a one-time setup with a computer, then everything happens on your device." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&family=Unbounded:wght@400..800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #000; --text: #f4f4f7; --text-2: #a3a5b8; --text-3: #686a7e;
+      --glass: rgba(255, 255, 255, 0.05); --glass-2: rgba(255, 255, 255, 0.09); --line: rgba(255, 255, 255, 0.09);
+      --blue: #2433ff; --blue-light: #6f7bff; --warn: #ffb547; --ok: #4ade80;
+      --display: "Unbounded", "Manrope", system-ui, sans-serif; --r: 22px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+    body { background: var(--bg); color: var(--text); font-family: "Manrope", system-ui, -apple-system, sans-serif; font-weight: 500; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    a { color: var(--blue-light); }
+    code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; padding: 1px 6px; border-radius: 6px; background: var(--glass-2); }
+    .mist { position: fixed; inset: -20%; z-index: -1; pointer-events: none; filter: blur(110px); opacity: 0.55; }
+    .mist i { position: absolute; border-radius: 50%; }
+    .mist i:nth-child(1) { width: 46vw; height: 40vw; left: 8%; top: 4%; background: #2433ff; }
+    .mist i:nth-child(2) { width: 40vw; height: 34vw; right: 6%; top: 30%; background: #0d14a8; }
+    .wrap { width: min(820px, 100% - 32px); margin-inline: auto; }
+
+    .nav { position: sticky; top: 14px; z-index: 10; margin: 14px auto 0; width: min(820px, 100% - 32px); display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; border-radius: 999px; background: rgba(14, 14, 24, 0.6); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); box-shadow: inset 0 0 0 1px var(--line); }
+    .nav .brand { margin-right: auto; display: flex; } .nav .brand img { height: 20px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 999px; font-weight: 600; font-size: 15px; color: #fff; text-decoration: none; }
+    .btn-primary { background: linear-gradient(135deg, #3a48ff, var(--blue) 60%, #0d14a8); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 8px 40px -10px rgba(36, 51, 255, 0.9); }
+    .btn-ghost { background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+    .btn-sm { height: 36px; padding: 0 14px; font-size: 14px; }
+
+    header { padding: 64px 0 8px; }
+    .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: var(--blue-light); margin-bottom: 12px; }
+    .beta { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 10px; letter-spacing: 0.1em; background: rgba(255, 181, 71, 0.15); color: var(--warn); vertical-align: 2px; }
+    h1 { font-family: var(--display); font-size: clamp(34px, 7vw, 56px); font-weight: 700; line-height: 1.02; letter-spacing: -0.04em; }
+    h2 { font-family: var(--display); font-size: clamp(22px, 4vw, 30px); font-weight: 600; letter-spacing: -0.03em; margin: 64px 0 14px; }
+    h3 { font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+    .lead { margin-top: 16px; color: var(--text-2); font-size: 18px; }
+    p + p { margin-top: 10px; }
+    .muted { color: var(--text-2); }
+
+    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 28px; }
+    .summary div { padding: 16px; border-radius: 16px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); font-size: 14px; color: var(--text-2); }
+    .summary b { display: block; font-family: var(--display); font-size: 15px; color: var(--text); margin-bottom: 4px; }
+
+    .need { list-style: none; display: grid; gap: 8px; }
+    .need li { padding: 12px 16px 12px 44px; position: relative; border-radius: 14px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+    .need li::before { content: "✓"; position: absolute; left: 16px; top: 12px; color: var(--ok); font-weight: 800; }
+
+    .callout { margin-top: 16px; padding: 14px 16px; border-radius: 14px; font-size: 15px; background: rgba(36, 51, 255, 0.12); box-shadow: inset 0 0 0 1px rgba(111, 123, 255, 0.35); }
+    .callout.warn { background: rgba(255, 181, 71, 0.08); box-shadow: inset 0 0 0 1px rgba(255, 181, 71, 0.35); }
+    .callout b { color: #fff; }
+
+    .part { display: flex; align-items: center; gap: 12px; margin: 64px 0 18px; }
+    .part span { flex: none; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; background: var(--blue); }
+    .part h2 { margin: 0; }
+
+    .steps { list-style: none; counter-reset: step; display: grid; gap: 14px; }
+    .step { counter-increment: step; display: grid; grid-template-columns: 1fr minmax(0, 300px); gap: 20px; align-items: center; padding: 22px; border-radius: var(--r); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+    .step.solo { grid-template-columns: 1fr; }
+    .step h3::before { content: counter(step); display: inline-grid; place-items: center; width: 28px; height: 28px; margin-right: 10px; border-radius: 50%; font-family: "Manrope", sans-serif; font-size: 14px; font-weight: 800; background: linear-gradient(145deg, #3a48ff, #0d14a8); vertical-align: 1px; }
+    .step .body { margin-top: 8px; color: var(--text-2); font-size: 15px; }
+    .step .body b { color: var(--text); }
+    .where { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-family: "Manrope", sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; vertical-align: 2px; background: var(--glass-2); color: var(--text-2); }
+    .path { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 10px; font-size: 13px; }
+    .path span { padding: 3px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); color: var(--text); }
+    .path i { color: var(--text-3); font-style: normal; }
+
+    /* Drawings of the screens (not real screenshots). */
+    .mock { border-radius: 18px; overflow: hidden; font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; font-size: 13px; box-shadow: 0 0 0 1px var(--line), 0 20px 50px -20px rgba(0, 0, 0, 0.9); }
+    .ios { background: #1c1c1e; color: #fff; padding: 12px; }
+    .ios .title { font-weight: 700; font-size: 17px; margin: 2px 4px 10px; }
+    .ios .group { border-radius: 10px; background: #2c2c2e; overflow: hidden; }
+    .ios .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-top: 1px solid #3a3a3c; }
+    .ios .row:first-child { border-top: 0; }
+    .ios .row .chev { color: #8e8e93; }
+    .ios .hl { background: rgba(10, 132, 255, 0.25); }
+    .ios .blue { color: #0a84ff; font-weight: 600; }
+    .ios .cap { font-size: 11px; color: #8e8e93; text-transform: uppercase; margin: 12px 4px 6px; }
+    .toggle { width: 38px; height: 22px; border-radius: 999px; background: #34c759; position: relative; flex: none; }
+    .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+    .toggle.off { background: #48484a; } .toggle.off::after { right: auto; left: 2px; }
+    .pill { padding: 4px 10px; border-radius: 999px; background: #0a84ff; color: #fff; font-weight: 700; font-size: 11px; }
+    .pill.ring { box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.45); }
+    .app-ic { width: 30px; height: 30px; border-radius: 8px; flex: none; }
+    .ss { background: linear-gradient(145deg, #9b5cff, #5b2bd9); }
+    .app555 { background: url("assets/icon.svg") center / cover; }
+    .appline { display: flex; align-items: center; gap: 10px; }
+    .appline small { display: block; color: #8e8e93; font-size: 11px; }
+    .plus { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #0a84ff; color: #fff; font-weight: 800; font-size: 18px; line-height: 1; box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.45); }
+    .vpn { text-align: center; padding: 22px 12px; }
+    .vpn .big { margin: 10px auto 6px; width: 120px; height: 40px; border-radius: 999px; display: grid; place-items: center; background: #0a84ff; font-weight: 700; }
+    .mac { background: #232327; color: #fff; }
+    .mac .bar { display: flex; gap: 6px; padding: 10px 12px; background: #2d2d32; }
+    .mac .bar i { width: 10px; height: 10px; border-radius: 50%; background: #ff5f57; } .mac .bar i:nth-child(2) { background: #febc2e; } .mac .bar i:nth-child(3) { background: #28c840; }
+    .mac .in { padding: 14px; display: grid; gap: 8px; }
+    .mac .field { padding: 8px 10px; border-radius: 8px; background: #36363c; color: #c7c7cc; }
+    .mac .dev { padding: 8px 10px; border-radius: 8px; background: rgba(10, 132, 255, 0.25); box-shadow: inset 0 0 0 1px #0a84ff; }
+    .mac .go { padding: 9px 10px; border-radius: 8px; background: #0a84ff; text-align: center; font-weight: 700; box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.4); }
+    .alert { background: #2c2c2e; color: #fff; text-align: center; border-radius: 14px; margin: 8px; overflow: hidden; }
+    .alert .t { padding: 14px 12px 4px; font-weight: 700; } .alert .m { padding: 0 14px 12px; color: #c7c7cc; font-size: 12px; }
+    .alert .b { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #3a3a3c; } .alert .b span { padding: 10px; color: #0a84ff; } .alert .b span + span { border-left: 1px solid #3a3a3c; font-weight: 700; }
+
+    .faq details { border-radius: 14px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); padding: 14px 18px; }
+    .faq details + details { margin-top: 8px; }
+    .faq summary { cursor: pointer; font-weight: 700; }
+    .faq details p { margin-top: 8px; color: var(--text-2); font-size: 15px; }
+    footer { margin: 80px 0 40px; color: var(--text-3); font-size: 14px; text-align: center; }
+
+    @media (max-width: 680px) {
+      .summary { grid-template-columns: 1fr; }
+      .step { grid-template-columns: 1fr; padding: 18px; }
+      .step .mock { max-width: 320px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mist" aria-hidden="true"><i></i><i></i></div>
+
+  <nav class="nav">
+    <a class="brand" href="./"><img src="assets/wordmark.svg" alt="555" /></a>
+    <a class="btn btn-ghost btn-sm" href="./#download">All downloads</a>
+  </nav>
+
+  <main class="wrap">
+    <header>
+      <p class="eyebrow">iPhone &amp; iPad <span class="beta">BETA</span></p>
+      <h1>Install 555 on iPhone and iPad</h1>
+      <p class="lead">555 isn't on the App Store, so you install it yourself with <b>SideStore</b>, a free app that signs apps with your own Apple Account. The first setup needs a computer once and takes about 15 minutes. After that, everything happens on your phone.</p>
+      <div class="summary">
+        <div><b>Part 1 · once</b>Install SideStore with a computer and a cable.</div>
+        <div><b>Part 2 · on the device</b>Open the 555 file in SideStore. Done.</div>
+        <div><b>Every 7 days</b>SideStore renews 555 by itself. Nothing to reinstall.</div>
+      </div>
+    </header>
+
+    <h2>What you need</h2>
+    <ul class="need">
+      <li>An iPhone or iPad on <b>iOS 15 or later</b>, with a passcode set.</li>
+      <li>A <b>computer, just once</b>: Mac, Windows or Linux.</li>
+      <li>A <b>USB cable that carries data</b> (many cables only charge). If the device shows up in Finder or iTunes when plugged in, the cable is fine.</li>
+      <li>A <b>free Apple Account</b>. It doesn't have to be the one on the phone.</li>
+      <li><b>Wi-Fi</b> on the phone (mobile data isn't enough for the setup).</li>
+    </ul>
+    <div class="callout"><b>Tip:</b> create a separate Apple Account just for this (free, at <a href="https://account.apple.com" target="_blank" rel="noopener">account.apple.com</a>). You'll type it into SideStore's tools, which aren't made by Apple, so it's better not to use your main account. It only signs apps: it gets no access to your iCloud or your data.</div>
+
+    <div class="part"><span>Part 1</span><h2>Install SideStore (once)</h2></div>
+    <ol class="steps">
+      <li class="step">
+        <div>
+          <h3>Get iloader on the computer <span class="where">COMPUTER</span></h3>
+          <p class="body">Download <b>iloader</b> from <a href="https://iloader.app" target="_blank" rel="noopener">iloader.app</a> (macOS, Windows, Linux) and install it. It's SideStore's official installer.</p>
+        </div>
+        <div class="mock mac" aria-hidden="true"><div class="bar"><i></i><i></i><i></i></div><div class="in"><div class="field">Apple Account: you@icloud.com</div><div class="dev">📱 iPhone · connected</div><div class="go">Install SideStore (Stable)</div></div></div>
+      </li>
+      <li class="step">
+        <div>
+          <h3>Get LocalDevVPN on the phone <span class="where">PHONE</span></h3>
+          <p class="body">Install <b>LocalDevVPN</b> from the <a href="https://apps.apple.com/app/localdevvpn/id6755608044" target="_blank" rel="noopener">App Store</a>, open it, tap <b>Connect</b> and allow the VPN configuration.</p>
+          <p class="body">It's not a real VPN: your traffic doesn't go anywhere. It lets SideStore talk to your phone without a computer. <b>It must be on whenever SideStore installs or renews apps.</b></p>
+        </div>
+        <div class="mock ios vpn" aria-hidden="true"><div class="title">LocalDevVPN</div><div class="big">Connect</div><div style="color:#8e8e93;font-size:12px">Status: connected</div></div>
+      </li>
+      <li class="step">
+        <div>
+          <h3>Plug the phone into the computer <span class="where">BOTH</span></h3>
+          <p class="body">Use the USB cable, unlock the phone, and tap <b>Trust</b> when it asks, then type your passcode. On a recent Mac, also click <b>Allow</b> if it asks to let the accessory connect.</p>
+          <p class="body">Not showing up? It's almost always the cable: try another one, plugged straight into the computer.</p>
+        </div>
+        <div class="mock ios" aria-hidden="true"><div class="alert"><div class="t">Trust This Computer?</div><div class="m">Your settings and data will be accessible from this computer when connected.</div><div class="b"><span>Don't Trust</span><span>Trust</span></div></div></div>
+      </li>
+      <li class="step">
+        <div>
+          <h3>Install SideStore with iloader <span class="where">COMPUTER</span></h3>
+          <p class="body">Open iloader, sign in with your Apple Account (the password is case-sensitive), select your phone, and click <b>Install SideStore (Stable)</b>. Wait until it says it's done.</p>
+        </div>
+        <div class="mock mac" aria-hidden="true"><div class="bar"><i></i><i></i><i></i></div><div class="in"><div class="dev">📱 iPhone · connected</div><div class="go">Install SideStore (Stable)</div><div style="color:#8e8e93;font-size:12px;text-align:center">Installing… done ✓</div></div></div>
+      </li>
+      <li class="step">
+        <div>
+          <h3>Trust your Apple Account <span class="where">PHONE</span></h3>
+          <p class="body">On the phone, open Settings and tap your Apple Account under “Developer App”, then <b>Trust</b>. On iOS 18 and later the button is <b>Allow &amp; Restart</b>: tap it and type your passcode.</p>
+          <div class="path"><span>Settings</span><i>›</i><span>General</span><i>›</i><span>VPN &amp; Device Management</span></div>
+        </div>
+        <div class="mock ios" aria-hidden="true"><div class="title">VPN &amp; Device Management</div><div class="cap">Developer App</div><div class="group"><div class="row hl"><span>Apple Development: you@icloud.com</span><span class="chev">›</span></div></div><div class="group" style="margin-top:10px"><div class="row"><span class="blue">Allow &amp; Restart</span></div></div></div>
+      </li>
+      <li class="step">
+        <div>
+          <h3>Turn on Developer Mode <span class="where">PHONE · iOS 16+</span></h3>
+          <p class="body">Scroll to the very bottom, turn on <b>Developer Mode</b>. The phone restarts; when it's back, tap <b>Turn On</b> and type your passcode. On iOS 15 there's no such setting: skip this step.</p>
+          <div class="path"><span>Settings</span><i>›</i><span>Privacy &amp; Security</span><i>›</i><span>Developer Mode</span></div>
+        </div>
+        <div class="mock ios" aria-hidden="true"><div class="title">Privacy &amp; Security</div><div class="cap">Security</div><div class="group"><div class="row"><span>Lockdown Mode</span><span class="chev">Off ›</span></div><div class="row hl"><span>Developer Mode</span><span class="toggle"></span></div></div></div>
+      </li>
+      <li class="step">
+        <div>
+          <h3>Finish SideStore's setup <span class="where">PHONE</span></h3>
+          <p class="body">Make sure <b>LocalDevVPN</b> is connected. Open <b>SideStore</b> and sign in with <b>the same Apple Account</b> as in iloader.</p>
+          <p class="body">Then go to <b>My Apps</b> and tap the <b>7 DAYS</b> button next to SideStore. If it asks to create or revoke a certificate, say yes. <b>Don't install anything before this first refresh.</b></p>
+        </div>
+        <div class="mock ios" aria-hidden="true"><div class="title">My Apps</div><div class="group"><div class="row"><div class="appline"><span class="app-ic ss"></span><span>SideStore<small>Expires in 7 days</small></span></div><span class="pill ring">7 DAYS</span></div></div></div>
+      </li>
+    </ol>
+    <div class="callout">That's it for the computer. You can unplug the cable: from now on, everything happens on the phone.</div>
+
+    <div class="part"><span>Part 2</span><h2>Install 555</h2></div>
+    <ol class="steps">
+      <li class="step solo">
+        <div>
+          <h3>Get the 555 file <span class="where">PHONE</span></h3>
+          <p class="body">The iPhone version is a private beta for now: you get the 555 file (<code>.ipa</code>) directly from us. Save it to the <b>Files</b> app on the phone (from AirDrop, Telegram, Mail…: open it, then Share → <b>Save to Files</b>).</p>
+        </div>
+      </li>
+      <li class="step">
+        <div>
+          <h3>Open it in SideStore <span class="where">PHONE</span></h3>
+          <p class="body">With LocalDevVPN connected, open SideStore, go to <b>My Apps</b>, tap <b>+</b> at the top left and pick the 555 file. After a few seconds, 555 is on your home screen.</p>
+        </div>
+        <div class="mock ios" aria-hidden="true"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 4px 10px"><span class="plus">+</span><span class="title" style="margin:0">My Apps</span><span></span></div><div class="group"><div class="row"><div class="appline"><span class="app-ic ss"></span><span>SideStore<small>Expires in 7 days</small></span></div><span class="pill">7 DAYS</span></div><div class="row"><div class="appline"><span class="app-ic app555"></span><span>555<small>Expires in 7 days</small></span></div><span class="pill">7 DAYS</span></div></div></div>
+      </li>
+    </ol>
+
+    <h2>Keeping 555 working</h2>
+    <p class="muted">With a free Apple Account, Apple makes installed apps expire after <b>7 days</b>. SideStore renews them by itself in the background, as long as <b>LocalDevVPN is connected</b> at that moment. You can also renew by hand: My Apps → tap <b>7 DAYS</b> next to 555.</p>
+    <div class="callout warn"><b>If 555 does expire</b>, it just won't open: your library and playlists are still there. Connect LocalDevVPN, open SideStore and tap 7 DAYS next to 555.</div>
+
+    <h2>Updating 555</h2>
+    <p class="muted">When you get a new 555 file, save it to Files and open it in SideStore the same way (My Apps → <b>+</b>). It installs over the old one and keeps your data. <b>Don't delete 555 first</b>, or you'll lose your library.</p>
+
+    <h2>Something's wrong?</h2>
+    <div class="faq">
+      <details><summary>iloader doesn't see my phone</summary><p>Try another cable (many only charge), plug it straight into the computer, unlock the phone and tap Trust. If the phone shows up in Finder (Mac) or iTunes (Windows), iloader will see it too.</p></details>
+      <details><summary>SideStore says “Anisette” or can't sign in</summary><p>It's usually SideStore's login server being down for a moment: try again later. Check the password too, it's case-sensitive.</p></details>
+      <details><summary>It stopped working after an iOS update</summary><p>An iOS update can reset the pairing between SideStore and the phone. Plug the phone into the computer, open iloader, click “Manage Pairing File”, then “Place” next to SideStore.</p></details>
+      <details><summary>“Maximum number of apps” error</summary><p>A free Apple Account can only have 3 sideloaded apps at a time, SideStore included, and 10 different apps per week. Remove another sideloaded app from My Apps.</p></details>
+      <details><summary>“Untrusted Developer” when opening 555</summary><p>Go back to Settings › General › VPN &amp; Device Management and trust your Apple Account (step 5).</p></details>
+      <details><summary>Is it safe?</summary><p>SideStore signs 555 with your own Apple Account, on your phone. The 555 file is built by GitHub from the public source code. Neither SideStore nor 555 gets access to your iCloud.</p></details>
+    </div>
+
+    <div class="callout" style="margin-top:40px"><b>Beta:</b> the iPhone version is brand new and still being tested. Controls on the lock screen aren't there yet. Found a bug? Tell us on <a href="https://github.com/amonre555/555/issues" target="_blank" rel="noopener">GitHub</a>.</div>
+
+    <footer>555 · free and open source · not affiliated with Apple</footer>
+  </main>
+</body>
+</html>
