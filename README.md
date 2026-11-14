@@ -19,6 +19,11 @@
   <img src="site/assets/shot-artist.jpg" width="425" alt="Artist page" />
 </p>
 
+> [!NOTE]
+> **Contributions:** 555 is developed by its author alone, so pull requests are turned off.
+> - **Bugs and ideas:** open an [issue](https://github.com/amonre555/555/issues), they're all read.
+> - **Your own version:** you're free to fork 555 and build it your way, under the GPL-3.0.
+
 ## Features
 
 - **Your local library**: MP3, FLAC, OGG, M4A/AAC, WAV, AIFF… scanned in parallel on every core, cached on disk, instant search.
