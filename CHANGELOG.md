@@ -2,7 +2,7 @@
 
 What's new in 555, version by version. The latest is at the top.
 
-## Unreleased
+## 0.3.9 — 2026-11-16
 
 ### New
 
@@ -14,6 +14,7 @@ What's new in 555, version by version. The latest is at the top.
 ### Improvements
 
 - Jumping far into a track, or picking up where you left off after a restart, now starts much faster: 555 downloads from the point you chose instead of waiting for the whole beginning.
+- The player bar stays tidy at every window size: nothing overlaps anymore, and lyrics and the queue have their own clear icons.
 
 ### Fixes
 
