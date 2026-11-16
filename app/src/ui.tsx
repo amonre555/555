@@ -337,6 +337,7 @@ export function TrackCard(props: { track: Track; playing: boolean; onPlay: () =>
       classList={{ card: true, playing: props.playing }}
       style={{ "--i": Math.min(props.index ?? 0, 16) }}
       onClick={props.onPlay}
+      onContextMenu={(e) => openTrackMenu(e, [props.track])}
       onMouseEnter={() => hoverPrefetch(props.track)}
       onMouseLeave={cancelHover}
     >

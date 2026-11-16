@@ -7,6 +7,7 @@ import { themeFromCover } from "./theme";
 import { Visualizer, visualizerOn } from "./visualizer";
 import { EqButton } from "./eq";
 import { QueueButton } from "./queue";
+import { openTrackMenu } from "./collection";
 import { t as tr } from "./i18n";
 import { roundedSquare } from "./shapes";
 
@@ -75,7 +76,7 @@ export function PlayerBar(props: {
       <div class="now">
         <Show when={props.snap.track} fallback={<div class="muted small">{tr.nothingPlaying}</div>}>
           {(t) => (
-            <button class="now-btn" onClick={props.onExpand} title={tr.openNowPlaying}>
+            <button class="now-btn" onClick={props.onExpand} onContextMenu={(e) => openTrackMenu(e, [t()])} title={tr.openNowPlaying}>
               <Cover track={t()} size="md" />
               <div class="now-text">
                 <div class="now-title">{t().title}</div>

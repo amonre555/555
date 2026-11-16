@@ -7,6 +7,7 @@ What's new in 555, version by version. The latest is at the top.
 ### New
 
 - Queue: "Play next" and "Add to queue" in a song's menu. Queued songs play before the rest of the list. A new button in the player bar shows the queue: drag songs to reorder them, or remove them.
+- Right-click a song anywhere (lists, search, cards, the player bar) to open the same menu as the "…" button.
 
 ### Improvements
 
