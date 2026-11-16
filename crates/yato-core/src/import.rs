@@ -81,7 +81,8 @@ fn parse(url: &str) -> Option<Link> {
         (!id.is_empty()).then_some(id)
     };
     if url.contains("link.deezer.com") || url.contains("deezer.page.link") {
-        return Some(Link::DeezerShort(url.to_owned()));
+        // Ce lien sera suivi : l'adresse doit être exactement celle d'un lien court Deezer.
+        return deezer_host(url, false).then(|| Link::DeezerShort(url.to_owned()));
     }
     if url.contains("deezer.com") {
         return after("/playlist/").map(Link::Deezer);
@@ -98,6 +99,17 @@ fn parse(url: &str) -> Option<Link> {
     None
 }
 
+/// L'adresse est-elle en HTTPS sur un domaine Deezer ? `any` : n'importe quel domaine Deezer
+/// (étapes de redirection), sinon seulement ceux des liens courts.
+fn deezer_host(url: &str, any: bool) -> bool {
+    let Ok(url) = reqwest::Url::parse(url) else { return false };
+    let host = url.host_str().unwrap_or_default();
+    url.scheme() == "https"
+        && url.port().is_none()
+        && (matches!(host, "link.deezer.com" | "deezer.page.link")
+            || (any && (host == "deezer.com" || host.ends_with(".deezer.com"))))
+}
+
 /// Lit la playlist d'un lien. `progress(fait, total)` est appelé pendant la recherche des
 /// morceaux Spotify (la seule étape longue).
 pub async fn import(
@@ -112,8 +124,17 @@ pub async fn import(
     };
     let mut link = parse(url).ok_or_else(unknown)?;
     if let Link::DeezerShort(short) = &link {
-        // Le lien court redirige vers la vraie adresse de la playlist.
-        let res = client.get(short).send().await?;
+        // Le lien court redirige vers la vraie adresse de la playlist : on ne suit que des
+        // redirections vers Deezer.
+        let follow = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::custom(|a| {
+                if a.previous().len() >= 10 || !deezer_host(a.url().as_str(), true) { a.stop() } else { a.follow() }
+            }))
+            .build()?;
+        let res = follow.get(short).send().await?;
+        if !deezer_host(res.url().as_str(), true) {
+            return Err(unknown());
+        }
         link = parse(res.url().as_str()).filter(|l| matches!(l, Link::Deezer(_))).ok_or_else(unknown)?;
     }
     match link {
@@ -381,6 +402,9 @@ mod tests {
             Some(Link::YouTube("PL4fGSI1pDJn6puJdseH2Rt9sMvt9E2M4i".into()))
         );
         assert_eq!(parse("https://link.deezer.com/s/30abc"), Some(Link::DeezerShort("https://link.deezer.com/s/30abc".into())));
+        assert_eq!(parse("http://127.0.0.1:8080/test?ref=link.deezer.com"), None);
+        assert_eq!(parse("http://link.deezer.com/s/30abc"), None);
+        assert_eq!(parse("https://link.deezer.com.evil.example/s/30abc"), None);
         assert_eq!(parse("bonjour"), None);
         // Cmd+C sur des morceaux dans Spotify : un lien par ligne, ou collés bout à bout par
         // un champ d'une seule ligne.

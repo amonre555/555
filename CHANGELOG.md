@@ -2,6 +2,14 @@
 
 What's new in 555, version by version. The latest is at the top.
 
+## Unreleased
+
+### Fixes
+
+- Importing a playlist now only follows real Deezer short links: a look-alike link can no longer send 555 to another address.
+- Seeking in a track while it loads now always starts it from the last point you picked, even late in the loading.
+- With crossfade on, pausing just as the next track gets ready no longer starts the sound again a moment later.
+
 ## 0.3.8 — 2026-11-16
 
 ### New

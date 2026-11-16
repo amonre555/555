@@ -415,17 +415,21 @@ impl Controller {
         let is_current = || self.generation.load(Ordering::SeqCst) == generation;
         let player = &self.players[slot];
         let stale = Opened { duration: None, start: 0.0 };
-        let start = if resume { self.state.lock().resume_at.filter(|&p| p > 1.0) } else { None };
+        // Relue juste avant de construire le décodeur, puis encore après : un saut demandé pendant
+        // le chargement doit l'emporter.
+        let asked = || if resume { self.state.lock().resume_at.filter(|&p| p > 1.0) } else { None };
 
         // Construire le décodeur peut lire le début du fichier : on le fait hors du thread async.
         let (duration, start) = match data {
             StreamData::File(path) => {
+                let start = asked();
                 let (decoder, started) = tokio::task::spawn_blocking(move || decode_file(&path).map(|d| seek_to(d, start)))
                     .await
                     .map_err(|e| Error::Other(e.to_string()))??;
                 if !is_current() {
                     return Ok(stale);
                 }
+                let (decoder, started) = reseek(decoder, started, start, asked()).await?;
                 let d = decoder.total_duration();
                 player.append(FxSource::new(decoder, self.fx.clone(), self.clocks[slot].clone()));
                 (d, started)
@@ -442,6 +446,7 @@ impl Controller {
                 if !is_current() {
                     return Ok(stale);
                 }
+                let start = asked();
                 let (decoder, started) = tokio::task::spawn_blocking(move || {
                     let mut reader = reader;
                     let len = reader.total_len();
@@ -467,6 +472,7 @@ impl Controller {
                 if !is_current() {
                     return Ok(stale);
                 }
+                let (decoder, started) = reseek(decoder, started, start, asked()).await?;
                 let d = decoder.total_duration();
                 player.append(FxSource::new(decoder, self.fx.clone(), self.clocks[slot].clone()));
                 (d, started)
@@ -488,6 +494,8 @@ impl Controller {
         };
         match status {
             Status::Playing => {
+                // Annule aussi un fondu en préparation : en arrivant, il relancerait le son.
+                self.generation.fetch_add(1, Ordering::SeqCst);
                 self.cancel_fade();
                 self.player().pause();
                 self.state.lock().status = Status::Paused;
@@ -645,20 +653,24 @@ impl Controller {
         self.players[to].set_volume(0.0);
 
         let opened = self.open(&track, generation, to, false).await;
+        // Vérifié sous le verrou de l'état : une pause ne peut pas se glisser avant qu'on le modifie.
+        let mut st = self.state.lock();
         if self.generation.load(Ordering::SeqCst) != generation {
-            return; // l'utilisateur a changé de morceau entre-temps
+            // L'utilisateur a changé de morceau ou mis en pause entre-temps.
+            if self.active() == from {
+                self.players[to].stop();
+            }
+            return;
         }
         let duration = match opened {
             Ok(o) => o.duration,
             Err(_) => {
-                let mut st = self.state.lock();
                 st.fading = false;
                 st.no_fade_for = Some(next);
                 return;
             }
         };
         let seconds = {
-            let mut st = self.state.lock();
             self.active.store(to, Ordering::SeqCst);
             st.index = Some(next);
             st.offset = 0.0;
@@ -667,7 +679,9 @@ impl Controller {
             st.error = None;
             st.no_fade_for = None;
             self.prefetch_next(&st);
-            st.crossfade.max(0.5)
+            let seconds = st.crossfade.max(0.5);
+            drop(st);
+            seconds
         };
 
         let fade = self.fade_generation.fetch_add(1, Ordering::SeqCst) + 1;
@@ -768,6 +782,16 @@ fn seek_to<S: Source>(mut decoder: S, start: Option<f64>) -> (S, f64) {
         None => 0.0,
     };
     (decoder, started)
+}
+
+/// Refait l'avance si la position demandée a changé pendant l'ouverture du décodeur.
+async fn reseek<S: Source + Send + 'static>(decoder: S, started: f64, start: Option<f64>, asked: Option<f64>) -> Result<(S, f64)> {
+    if asked == start {
+        return Ok((decoder, started));
+    }
+    tokio::task::spawn_blocking(move || seek_to(decoder, Some(asked.unwrap_or(0.0))))
+        .await
+        .map_err(|e| Error::Other(e.to_string()))
 }
 
 fn decode_file(path: &Path) -> Result<Decoder<BufReader<File>>> {
