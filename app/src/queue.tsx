@@ -6,7 +6,7 @@ import { api, type Snapshot, type Track } from "./api";
 import { openTrackMenu } from "./collection";
 import { IconClose, IconPlaylist } from "./icons";
 import { t as tr } from "./i18n";
-import { ArtistLinks, Cover } from "./ui";
+import { ArtistLinks, Cover, ExplicitBadge } from "./ui";
 
 type Run = (a: () => Promise<Snapshot>) => void;
 
@@ -137,7 +137,10 @@ function QueueRow(props: {
     >
       <Cover track={props.track} />
       <div class="row-main">
-        <div class="row-title">{props.track.title}</div>
+        <div class="row-title">
+          <ExplicitBadge track={props.track} />
+          {props.track.title}
+        </div>
         <div class="row-sub">
           <ArtistLinks track={props.track} />
         </div>

@@ -869,6 +869,7 @@ mod tests {
             has_cover: false,
             location: Location::Remote { remote_id: id.into() },
             artists: vec![ArtistRef { name: artist.into(), id: Some(format!("id-{artist}")) }],
+            explicit: None,
         }
     }
 

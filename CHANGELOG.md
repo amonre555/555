@@ -9,6 +9,7 @@ What's new in 555, version by version. The latest is at the top.
 - Queue: "Play next" and "Add to queue" in a song's menu. Queued songs play before the rest of the list. A new button in the player bar shows the queue: drag songs to reorder them, or remove them.
 - Right-click a song anywhere (lists, search, cards, the player bar) to open the same menu as the "…" button.
 - Output device: a new button in the player bar lists your speakers, headphones, paired Bluetooth devices and AirPlay outputs. Pick one and the music moves there without stopping. 555 remembers your choice, and falls back to the system output if the device goes away.
+- Explicit songs now show an "E" badge next to their title, when Deezer or the file's tags say so.
 
 ### Improvements
 

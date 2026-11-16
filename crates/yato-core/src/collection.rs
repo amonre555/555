@@ -274,7 +274,7 @@ mod tests {
         Track {
             id: id.into(), source: "deezer".into(), title: id.into(), artist: "A".into(), album: None, album_id: None,
             duration: None, track_number: None, disc_number: None, artwork: None, has_cover: false,
-            location: Location::Remote { remote_id: id.into() }, artists: Vec::new(),
+            location: Location::Remote { remote_id: id.into() }, artists: Vec::new(), explicit: None,
         }
     }
 

@@ -20,6 +20,8 @@ export interface Track {
   location: Location;
   /** Chaque artiste séparément. Peut être vide (anciens morceaux en cache) : voir `artistsOf`. */
   artists?: ArtistRef[];
+  /** Paroles explicites (badge « E ») ; absent quand la source ne le dit pas. */
+  explicit?: boolean | null;
 }
 
 /** Un artiste cité par un morceau. `id` : identifiant Deezer, sinon la fiche est cherchée par nom. */

@@ -31,6 +31,9 @@ pub struct Track {
     /// affiché d'un bloc ; vide pour les morceaux gardés en cache avant l'ajout de ce champ.
     #[serde(default)]
     pub artists: Vec<ArtistRef>,
+    /// Paroles explicites (badge « E ») ; `None` quand la source ne le dit pas.
+    #[serde(default)]
+    pub explicit: Option<bool>,
 }
 
 /// Un artiste cité par un morceau. `id` : identifiant Deezer quand on le connaît ; sinon, la

@@ -256,7 +256,10 @@ export function TrackList(props: {
               </div>
               <Cover track={t} />
               <div class="row-main">
-                <div class="row-title">{t.title}</div>
+                <div class="row-title">
+                  <ExplicitBadge track={t} />
+                  {t.title}
+                </div>
                 <div class="row-sub">
                   <Show when={props.showSource}>
                     <SourceTag source={t.source} />
@@ -330,6 +333,15 @@ export function Carousel(props: { children: JSX.Element; class?: string }) {
   );
 }
 
+/** Badge « E » des morceaux explicites (seulement quand la source le dit). */
+export function ExplicitBadge(props: { track: Track | null | undefined }) {
+  return (
+    <Show when={props.track?.explicit}>
+      <span class="explicit" title={tr.explicit} aria-label={tr.explicit}>E</span>
+    </Show>
+  );
+}
+
 /** Carte de morceau (grilles « Découvrir »), avec bouton lecture au survol. */
 export function TrackCard(props: { track: Track; playing: boolean; onPlay: () => void; index?: number; note?: string }) {
   return (
@@ -345,7 +357,10 @@ export function TrackCard(props: { track: Track; playing: boolean; onPlay: () =>
         <Cover track={props.track} size="lg" />
         <span class="card-play"><IconPlay size={20} /></span>
       </div>
-      <div class="card-title">{props.track.title}</div>
+      <div class="card-title">
+        <ExplicitBadge track={props.track} />
+        {props.track.title}
+      </div>
       <div class="card-sub">
         <ArtistLinks track={props.track} />
       </div>
@@ -473,7 +488,10 @@ export function TrackMenuHost(props: { onOpenPlaylist: (id: string) => void }) {
                     <div class="menu-head">
                       <Cover track={t()} />
                       <div class="menu-head-text">
-                        <div class="row-title">{t().title}</div>
+                        <div class="row-title">
+                          <ExplicitBadge track={t()} />
+                          {t().title}
+                        </div>
                         <div class="row-sub">{t().artist}</div>
                       </div>
                     </div>

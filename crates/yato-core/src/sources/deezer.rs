@@ -64,6 +64,8 @@ struct DzTrack {
     album: Option<DzAlbum>,
     /// Présent dans le top d'un artiste et le détail d'un morceau, pas dans la recherche.
     contributors: Option<Vec<DzArtist>>,
+    /// Paroles explicites.
+    explicit_lyrics: Option<bool>,
 }
 
 fn yes() -> bool {
@@ -227,6 +229,7 @@ fn to_track(t: DzTrack, album: Option<AlbumInfo>) -> Track {
         has_cover: false,
         location: Location::Remote { remote_id: id },
         artists,
+        explicit: t.explicit_lyrics,
     }
 }
 

@@ -796,6 +796,8 @@ impl From<TrackItem> for Track {
             location: Location::Remote { remote_id: t.id },
             // Identifiants YouTube inutiles pour les fiches (Deezer) : retrouvées par le nom.
             artists: t.artists.iter().map(|a| ArtistRef::named(&a.name)).collect(),
+            // YouTube Music (rustypipe) ne donne pas l'information.
+            explicit: None,
         }
     }
 }

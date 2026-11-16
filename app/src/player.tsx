@@ -2,7 +2,7 @@
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
 import { api, bigCoverUrl, coverUrl, formatTime, realTime, type ArtistRef, type LyricWord, type Lyrics, type Snapshot, type Track } from "./api";
 import { IconChevronDown, IconLyrics, IconMinus, IconNext, IconPause, IconPlay, IconPlus, IconPrev, IconRepeat, IconShuffle, IconVolume } from "./icons";
-import { AlbumLink, ArtistLinks, Cover, LikeButton } from "./ui";
+import { AlbumLink, ArtistLinks, Cover, ExplicitBadge, LikeButton } from "./ui";
 import { themeFromCover } from "./theme";
 import { Visualizer, visualizerOn } from "./visualizer";
 import { EqButton } from "./eq";
@@ -80,7 +80,10 @@ export function PlayerBar(props: {
             <button class="now-btn" onClick={props.onExpand} onContextMenu={(e) => openTrackMenu(e, [t()])} title={tr.openNowPlaying}>
               <Cover track={t()} size="md" />
               <div class="now-text">
-                <div class="now-title">{t().title}</div>
+                <div class="now-title">
+                  <ExplicitBadge track={t()} />
+                  {t().title}
+                </div>
                 <div class="now-sub">
                   <ArtistLinks track={t()} artists={artists()} />
                 </div>
@@ -391,7 +394,10 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
               </div>
               <div class="np-meta">
                 <LikeButton track={t()} class="np-like" size={26} />
-                <div class="np-title" title={t().title}>{t().title}</div>
+                <div class="np-title" title={t().title}>
+                  <ExplicitBadge track={t()} />
+                  {t().title}
+                </div>
                 <div class="np-sub" title={[t().artist, t().album].filter(Boolean).join(" · ")}>
                   <ArtistLinks track={t()} artists={artists()} />
                   <Show when={t().album !== t().title && t().album}>

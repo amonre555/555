@@ -999,7 +999,7 @@ mod tests {
         let track = |i: usize| Track {
             id: format!("t{i}"), source: "local".into(), title: String::new(), artist: String::new(), album: None, album_id: None,
             duration: None, track_number: None, disc_number: None, artwork: None, has_cover: false,
-            location: crate::Location::Remote { remote_id: String::new() }, artists: Vec::new(),
+            location: crate::Location::Remote { remote_id: String::new() }, artists: Vec::new(), explicit: None,
         };
         let mut st = State {
             queue: (0..len).map(track).collect(), index: Some(index), status: Status::Idle, volume: 1.0, duration: None,

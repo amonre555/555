@@ -32,7 +32,7 @@ fn track(path: &Path, name: &str) -> Track {
     Track {
         id: format!("local:{name}"), source: "local".into(), title: name.into(), artist: "Test".into(), album: None, album_id: None,
         duration: Some(10.0), track_number: None, disc_number: None, artwork: None, has_cover: false,
-        location: Location::File { path: path.to_owned() }, artists: Vec::new(),
+        location: Location::File { path: path.to_owned() }, artists: Vec::new(), explicit: None,
     }
 }
 

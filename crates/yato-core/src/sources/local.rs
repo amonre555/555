@@ -230,6 +230,12 @@ fn read_track(path: &Path) -> Option<Track> {
     let duration = file.properties().duration().as_secs_f64();
     let has_cover = tag.is_some_and(|t| !t.pictures().is_empty()) || folder_cover(path).is_some();
     let artists = crate::model::split_artists(&artist).into_iter().map(ArtistRef::named).collect();
+    // Mention « explicite » d'iTunes (M4A `rtng`, tag `ITUNESADVISORY`) : 1 ou 4 explicite, 2 version propre.
+    let explicit = tag.and_then(|t| t.get_string(ItemKey::ParentalAdvisory)).and_then(|v| match v.trim() {
+        "1" | "4" => Some(true),
+        "2" => Some(false),
+        _ => None,
+    });
 
     Some(Track {
         id: format!("local:{}", path.display()),
@@ -245,6 +251,7 @@ fn read_track(path: &Path) -> Option<Track> {
         has_cover,
         location: Location::File { path: path.to_owned() },
         artists,
+        explicit,
     })
 }
 

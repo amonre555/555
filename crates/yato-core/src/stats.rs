@@ -691,6 +691,7 @@ mod tests {
             has_cover: false,
             location: Location::Remote { remote_id: id.into() },
             artists: Vec::new(),
+            explicit: None,
         }
     }
 
