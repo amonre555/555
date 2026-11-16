@@ -1323,3 +1323,10 @@ textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; f
 @media (max-width: 760px) {
   .queue-popover { position: fixed; left: 12px; right: 12px; bottom: 90px; width: auto; }
 }
+
+/* ---------- Sortie audio (panneau de la barre du lecteur) ---------- */
+.device-popover { width: 340px; padding: 14px 10px 10px; }
+.device-popover .eq-head { padding: 0 8px; margin-bottom: 4px; }
+.device-popover .menu-text { display: flex; flex-direction: column; }
+.device-sub { font-size: 12px; font-weight: 400; color: var(--text-3); }
+.device-on, .device-on > svg { color: var(--md-primary); }

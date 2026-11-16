@@ -248,3 +248,10 @@ export const IconPlayNext = (p: { size?: number }) => (
     <path d="M15 12.5v7l5.5-3.5z" fill="currentColor" stroke="none" />
   </Svg>
 );
+export const IconSpeaker = (p: { size?: number }) => (
+  <Svg size={p.size ?? 20}>
+    <rect x="5" y="2.5" width="14" height="19" rx="2.5" />
+    <circle cx="12" cy="14" r="3.5" />
+    <circle cx="12" cy="6.5" r="0.8" fill="currentColor" />
+  </Svg>
+);

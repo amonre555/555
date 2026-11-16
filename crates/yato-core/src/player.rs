@@ -32,6 +32,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     Error, Result, SourceRegistry, StreamData, Track,
     fx::{Clock, Fx, FxSettings, FxSource},
+    output::Output,
     stream::Download,
 };
 
@@ -291,11 +292,13 @@ pub struct Controller {
     clocks: [Arc<Clock>; 2],
     /// Vitesse de lecture (bits d'un `f32`).
     speed: std::sync::atomic::AtomicU32,
+    /// Appareil de sortie (haut-parleurs, casque…).
+    output: Output,
 }
 
 impl Controller {
     pub fn new(sources: Arc<SourceRegistry>, client: reqwest::Client) -> Result<Arc<Self>> {
-        let players = open_output()?;
+        let (output, players) = Output::open()?;
         let volume = 0.8;
         players[0].set_volume(perceptual(volume));
         Ok(Arc::new(Self {
@@ -327,7 +330,20 @@ impl Controller {
             fx: Arc::new(Fx::default()),
             clocks: Default::default(),
             speed: std::sync::atomic::AtomicU32::new(1f32.to_bits()),
+            output,
         }))
+    }
+
+    /// Passe le son sur la sortie `id` (`None` : celle du système), sans arrêter la lecture.
+    /// Si elle disparaît, le son repasse sur la sortie par défaut. Bloquant : à appeler hors
+    /// du runtime async.
+    pub fn set_output(&self, id: Option<String>) -> Result<()> {
+        self.output.set(id)
+    }
+
+    /// Sortie qui joue en ce moment (identifiant).
+    pub fn active_output(&self) -> Option<String> {
+        self.output.active()
     }
 
     pub fn sources(&self) -> &Arc<SourceRegistry> {
@@ -973,72 +989,6 @@ fn decode_file(path: &Path) -> Result<Decoder<BufReader<File>>> {
         b = b.with_hint(ext);
     }
     b.build().map_err(|e| Error::Decode(e.to_string()))
-}
-
-/// Ouvre la sortie audio par défaut dans un thread dédié qui la garde en vie, avec deux
-/// lecteurs branchés dessus (pour le fondu enchaîné).
-fn open_output() -> Result<[rodio::Player; 2]> {
-    let (tx, rx) = std::sync::mpsc::channel();
-    std::thread::Builder::new()
-        .name("yato-audio".into())
-        .spawn(move || match open_sink() {
-            Ok(mut sink) => {
-                sink.log_on_drop(false);
-                let players = [rodio::Player::connect_new(sink.mixer()), rodio::Player::connect_new(sink.mixer())];
-                let _ = tx.send(Ok(players));
-                loop {
-                    std::thread::park();
-                }
-            }
-            Err(e) => {
-                let _ = tx.send(Err(e.to_string()));
-            }
-        })?;
-    rx.recv()
-        .map_err(|e| Error::Audio(e.to_string()))?
-        .map_err(Error::Audio)
-}
-
-/// Sortie par défaut, sinon la première autre sortie qui accepte de s'ouvrir.
-///
-/// On n'utilise pas `open_default_sink` de rodio : il impose un tampon d'environ 50 ms
-/// (2048 trames à 48 kHz), que certains périphériques refusent (AirPods : 960 au plus),
-/// et sous macOS son repli écarte toutes les sorties car elles n'annoncent pas de pilote.
-fn open_sink() -> std::result::Result<rodio::MixerDeviceSink, rodio::DeviceSinkError> {
-    use rodio::cpal::{BufferSize, SupportedBufferSize, traits::{DeviceTrait, HostTrait}};
-
-    let host = rodio::cpal::default_host();
-    let default = host.default_output_device();
-    let default_id = default.as_ref().and_then(|d| d.id().ok());
-    let others = host
-        .output_devices()
-        .into_iter()
-        .flatten()
-        .filter(|d| default_id.is_none() || d.id().ok() != default_id);
-
-    let mut first_err = None;
-    for device in default.into_iter().chain(others) {
-        let attempt = device
-            .default_output_config()
-            .map_err(rodio::DeviceSinkError::DefaultSinkConfigError)
-            .and_then(|config| {
-                // Environ 50 ms, ramenés dans ce que le périphérique accepte.
-                let mut frames = config.sample_rate() / 20;
-                if let SupportedBufferSize::Range { min, max } = *config.buffer_size() {
-                    frames = frames.clamp(min, max);
-                }
-                rodio::DeviceSinkBuilder::from_device(device)
-                    .map(|b| b.with_buffer_size(BufferSize::Fixed(frames)))
-            })
-            .and_then(|b| b.open_sink_or_fallback());
-        match attempt {
-            Ok(sink) => return Ok(sink),
-            Err(e) => {
-                first_err.get_or_insert(e);
-            }
-        }
-    }
-    Err(first_err.unwrap_or(rodio::DeviceSinkError::NoDevice))
 }
 
 #[cfg(test)]

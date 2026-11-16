@@ -22,6 +22,12 @@ let state: Snapshot = {
 };
 let startedAt = 0;
 let queueKey = 0;
+const DEVICES = [
+  { id: "coreaudio:builtin", name: "MacBook Pro Speakers", kind: "builtIn", isDefault: true },
+  { id: "coreaudio:airpods", name: "AirPods Pro", kind: "bluetooth", isDefault: false },
+  { id: "coreaudio:tv", name: "Living Room TV", kind: "network", isDefault: false },
+];
+let outputDevice: string | null = null;
 
 const snap = (): Snapshot => {
   if (state.status === "playing") state.position = (performance.now() - startedAt) / 1000;
@@ -335,6 +341,8 @@ const handlers: Record<string, (args: any) => unknown> = {
   clear_recent_searches: () => writeRecent([]),
   clear_history: () => ((coll.history = []), copy()),
   get_settings: () => ({ ...settings }),
+  output_devices: () => ({ devices: DEVICES, selected: outputDevice, active: outputDevice ?? DEVICES[0].id }),
+  set_output_device: ({ id }) => ((outputDevice = id), { devices: DEVICES, selected: id, active: id ?? DEVICES[0].id }),
   // Faux niveaux qui battent à ~120 BPM, pour voir le visualiseur sans le vrai son.
   audio_levels: () => {
     const t = performance.now() / 1000;

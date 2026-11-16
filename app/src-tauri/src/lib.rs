@@ -284,6 +284,9 @@ fn audio_levels(state: State<'_, AppState>) -> [f32; 4] {
 #[tauri::command]
 fn set_settings(state: State<'_, AppState>, mut value: Settings) -> Res<Settings> {
     value.fx = value.fx.clamped();
+    // La sortie audio se règle à part (`set_output_device`) : une page Réglages ouverte avant
+    // ne doit pas remettre l'ancien choix.
+    value.output_device = state.settings.lock().output_device.clone();
     state.controller.set_crossfade(value.crossfade);
     state.controller.set_fx(value.fx);
     *state.settings.lock() = value.clone();
@@ -292,6 +295,44 @@ fn set_settings(state: State<'_, AppState>, mut value: Settings) -> Res<Settings
         let _ = std::fs::remove_file(&state.session_path);
     }
     Ok(value)
+}
+
+/// Sorties audio du système, celle choisie et celle qui joue.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OutputDevices {
+    devices: Vec<yato_core::OutputDevice>,
+    selected: Option<String>,
+    active: Option<String>,
+}
+
+#[tauri::command]
+async fn output_devices(state: State<'_, AppState>) -> Res<OutputDevices> {
+    let devices = tauri::async_runtime::spawn_blocking(yato_core::output_devices)
+        .await
+        .map_err(|e| Error::Other(e.to_string()))?;
+    Ok(OutputDevices {
+        devices,
+        selected: state.settings.lock().output_device.clone(),
+        active: state.controller.active_output(),
+    })
+}
+
+/// Passe le son sur une autre sortie (`None` : celle du système), et retient le choix.
+#[tauri::command]
+async fn set_output_device(state: State<'_, AppState>, id: Option<String>) -> Res<OutputDevices> {
+    let c = state.controller.clone();
+    let wanted = id.clone();
+    tauri::async_runtime::spawn_blocking(move || c.set_output(wanted))
+        .await
+        .map_err(|e| Error::Other(e.to_string()))??;
+    let value = {
+        let mut s = state.settings.lock();
+        s.output_device = id;
+        s.clone()
+    };
+    settings::save(&state.settings_path, &value)?;
+    output_devices(state).await
 }
 
 #[tauri::command]
@@ -539,6 +580,15 @@ pub fn run() {
             let controller = Controller::new(Arc::new(sources), client.clone())?;
             controller.set_crossfade(prefs.crossfade);
             controller.set_fx(prefs.fx);
+            if let Some(id) = prefs.output_device.clone() {
+                // Hors du lancement : ouvrir un appareil peut prendre un moment.
+                let c = controller.clone();
+                std::thread::spawn(move || {
+                    if let Err(e) = c.set_output(Some(id)) {
+                        eprintln!("sortie audio : {e}");
+                    }
+                });
+            }
             if prefs.resume {
                 controller.restore(settings::load::<Session>(&session_path));
             }
@@ -745,6 +795,8 @@ pub fn run() {
             move_queued,
             clear_queued,
             play_queued,
+            output_devices,
+            set_output_device,
         ])
         .build(tauri::generate_context!())
         .expect("erreur au lancement de yato");

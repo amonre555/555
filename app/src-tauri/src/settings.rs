@@ -16,11 +16,13 @@ pub struct Settings {
     pub discord: bool,
     /// Égaliseur, réverbération et vitesse.
     pub fx: yato_core::fx::FxSettings,
+    /// Sortie audio choisie (identifiant) ; `None` : celle du système.
+    pub output_device: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { crossfade: 0.0, resume: true, discord: true, fx: Default::default() }
+        Self { crossfade: 0.0, resume: true, discord: true, fx: Default::default(), output_device: None }
     }
 }
 

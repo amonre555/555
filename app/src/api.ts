@@ -213,6 +213,23 @@ export interface Settings {
   discord: boolean;
   /** Égaliseur, réverbération et vitesse. */
   fx: FxSettings;
+  /** Sortie audio choisie ; `null` : celle du système. Se règle avec `setOutputDevice`. */
+  outputDevice?: string | null;
+}
+
+/** Une sortie audio du système. `kind` : builtIn, bluetooth, usb, hdmi, network ou other. */
+export interface OutputDevice {
+  id: string;
+  name: string;
+  kind: string;
+  isDefault: boolean;
+}
+
+/** Sorties audio, celle choisie (`null` : celle du système) et celle qui joue. */
+export interface OutputDevices {
+  devices: OutputDevice[];
+  selected: string | null;
+  active: string | null;
 }
 
 /** Effets appliqués au son. */
@@ -348,6 +365,8 @@ export const api = {
   onCollection: (cb: (c: Collection) => void): Promise<UnlistenFn> => listen<Collection>("collection", (e) => cb(e.payload)),
   getSettings: () => invoke<Settings>("get_settings"),
   setSettings: (value: Settings) => invoke<Settings>("set_settings", { value }),
+  outputDevices: () => invoke<OutputDevices>("output_devices"),
+  setOutputDevice: (id: string | null) => invoke<OutputDevices>("set_output_device", { id }),
   /** Basses, médiums, aigus, ensemble (0 à 1 environ), pour le visualiseur. */
   audioLevels: () => invoke<[number, number, number, number]>("audio_levels"),
   setShuffle: (on: boolean) => invoke<Snapshot>("set_shuffle", { on }),

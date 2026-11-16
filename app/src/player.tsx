@@ -7,6 +7,7 @@ import { themeFromCover } from "./theme";
 import { Visualizer, visualizerOn } from "./visualizer";
 import { EqButton } from "./eq";
 import { QueueButton } from "./queue";
+import { DeviceButton } from "./devices";
 import { openTrackMenu } from "./collection";
 import { t as tr } from "./i18n";
 import { roundedSquare } from "./shapes";
@@ -111,6 +112,7 @@ export function PlayerBar(props: {
           <IconLyrics />
         </button>
         <QueueButton snap={props.snap} run={props.run} />
+        <DeviceButton />
         <EqButton />
         <Volume snap={props.snap} run={props.run} />
       </div>

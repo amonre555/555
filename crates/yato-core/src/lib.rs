@@ -11,6 +11,7 @@
 //! - [`stream`]  : lecteur HTTP progressif (la lecture démarre avant la fin du téléchargement)
 //! - [`player`]  : moteur de lecture + file d'attente
 //! - [`fx`]      : égaliseur, réverbération et mesure du son (visualiseur)
+//! - [`output`]  : appareils de sortie audio (haut-parleurs, casque, Bluetooth, AirPlay…)
 //!
 //! L'interface (Tauri aujourd'hui, autre chose demain) ne fait qu'appeler ce crate.
 
@@ -21,6 +22,7 @@ pub mod error;
 pub mod import;
 pub mod lyrics;
 pub mod model;
+pub mod output;
 pub mod player;
 pub mod searches;
 pub mod source;
@@ -37,6 +39,7 @@ pub use stats::{ListenLog, ListenTracker, Period, Stats};
 /// Le client HTTP partagé (même version pour l'interface que pour le cœur).
 pub use reqwest;
 pub use model::{ArtistRef, Location, Track};
+pub use output::{OutputDevice, output_devices};
 pub use player::{Controller, QueueItem, Repeat, Session, Snapshot, Status};
 pub use source::{MusicSource, SourceInfo, SourceRegistry, StreamData};
 
