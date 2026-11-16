@@ -100,9 +100,8 @@ export const IconEq = () => (
 
 export const IconLyrics = () => (
   <Svg size={18}>
-    <path d="M4 6h10M4 11h16M4 16h7" />
-    <circle cx="17.5" cy="16.5" r="2.5" />
-    <path d="M20 16.5V8.5l2-1" />
+    <rect x="9" y="2.5" width="6" height="12" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21.5" />
   </Svg>
 );
 export const IconChevronDown = () => (
@@ -253,5 +252,11 @@ export const IconSpeaker = (p: { size?: number }) => (
     <rect x="5" y="2.5" width="14" height="19" rx="2.5" />
     <circle cx="12" cy="14" r="3.5" />
     <circle cx="12" cy="6.5" r="0.8" fill="currentColor" />
+  </Svg>
+);
+export const IconQueueList = () => (
+  <Svg size={19}>
+    <rect x="3" y="3.5" width="18" height="8" rx="2" />
+    <path d="M3 16h18M3 20.5h12" />
   </Svg>
 );

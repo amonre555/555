@@ -1338,3 +1338,34 @@ textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; f
   font-size: 9.5px; font-weight: 700; line-height: 1; font-style: normal; letter-spacing: 0;
 }
 .np-title .explicit { width: 20px; height: 20px; font-size: 12px; vertical-align: 0.2em; }
+
+/* ---------- Barre du lecteur : jamais de chevauchement, quelle que soit la largeur ----------
+   La colonne de droite prend au moins la place de ses boutons ; c'est le titre, à gauche, qui
+   se raccourcit. Plus la fenêtre est étroite, plus on retire de détails (durée totale, heure,
+   curseur du volume), jamais un bouton. */
+@media (min-width: 761px) {
+  .player { grid-template-columns: minmax(0, 1fr) auto minmax(max-content, 1fr); column-gap: 20px; }
+  .side-controls { gap: 4px; flex-wrap: nowrap; }
+  .side-controls > * { flex: none; }
+  .player-time { margin-right: 6px; }
+  .player .side-controls .icon-btn { width: 34px; height: 34px; }
+  .volume { margin-left: 4px; }
+}
+@media (min-width: 761px) and (max-width: 1360px) {
+  .player-time-total { display: none; }
+  .volume .slider { width: 72px; }
+}
+@media (min-width: 761px) and (max-width: 1150px) {
+  .player-time { display: none; }
+  .player .buttons { gap: 4px; }
+}
+@media (min-width: 761px) and (max-width: 980px) {
+  .volume .slider { display: none; }
+  .now-like { display: none; }
+}
+
+/* Téléphone (vue En lecture) : paroles, file d'attente et volume sur une ligne. */
+@media (max-width: 760px) {
+  .np-actions { gap: 10px; }
+  .np-actions .eq-pop { flex: none; }
+}

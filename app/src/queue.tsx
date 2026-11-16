@@ -1,10 +1,10 @@
 // File d'attente : bouton de la barre du lecteur (et de la vue « En lecture » sur téléphone)
 // qui ouvre un panneau. Les morceaux de la file passent avant la suite de la liste ; on peut
 // les retirer, les déplacer (glisser-déposer) ou les lancer tout de suite.
-import { createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
-import { api, type Snapshot, type Track } from "./api";
+import { createMemo, createSignal, For, onCleanup, onMount, Show, type JSX } from "solid-js";
+import { api, type QueueItem, type Snapshot, type Track } from "./api";
 import { openTrackMenu } from "./collection";
-import { IconClose, IconPlaylist } from "./icons";
+import { IconClose, IconQueueList } from "./icons";
 import { t as tr } from "./i18n";
 import { ArtistLinks, Cover, ExplicitBadge } from "./ui";
 
@@ -40,13 +40,21 @@ export function Popover(props: { icon: JSX.Element; title: string; active?: bool
 
 export function QueueButton(props: { snap: Snapshot; run: Run }) {
   return (
-    <Popover icon={<IconPlaylist size={20} />} title={tr.queue} active={props.snap.upNext.length > 0} class="queue-popover">
+    <Popover icon={<IconQueueList />} title={tr.queue} active={props.snap.upNext.length > 0} class="queue-popover">
       {() => <QueuePanel snap={props.snap} run={props.run} />}
     </Popover>
   );
 }
 
+/** Même contenu, dans le même ordre ? (l'état du lecteur arrive 4 fois par seconde, avec des listes neuves) */
+const sameList = <T,>(id: (x: T) => unknown) => (a: T[], b: T[]) => a.length === b.length && a.every((x, i) => id(x) === id(b[i]));
+
 function QueuePanel(props: { snap: Snapshot; run: Run }) {
+  // Listes gardées tant qu'elles ne changent pas : sinon chaque ligne (et sa pochette) serait
+  // recréée à chaque mise à jour, et clignoterait.
+  const upNext = createMemo(() => props.snap.upNext, [], { equals: sameList((q: QueueItem) => q.key) });
+  const upcoming = createMemo(() => props.snap.upcoming, [], { equals: sameList((t: Track) => t.id) });
+  const current = createMemo(() => props.snap.track, null, { equals: (a, b) => a?.id === b?.id });
   const [dragFrom, setDragFrom] = createSignal<number | null>(null);
   const [dragOver, setDragOver] = createSignal<number | null>(null);
   const endDrag = () => (setDragFrom(null), setDragOver(null));
@@ -59,7 +67,7 @@ function QueuePanel(props: { snap: Snapshot; run: Run }) {
         </button>
       </div>
       <div class="queue-scroll">
-        <Show when={props.snap.track}>
+        <Show when={current()}>
           {(t) => (
             <>
               <div class="menu-label">{tr.nowPlayingLabel}</div>
@@ -68,8 +76,8 @@ function QueuePanel(props: { snap: Snapshot; run: Run }) {
           )}
         </Show>
         <div class="menu-label">{tr.nextInQueue}</div>
-        <Show when={props.snap.upNext.length > 0} fallback={<p class="queue-empty">{tr.queueEmpty}</p>}>
-          <For each={props.snap.upNext}>
+        <Show when={upNext().length > 0} fallback={<p class="queue-empty">{tr.queueEmpty}</p>}>
+          <For each={upNext()}>
             {(q, i) => (
               <QueueRow
                 track={q.track}
@@ -102,9 +110,9 @@ function QueuePanel(props: { snap: Snapshot; run: Run }) {
             )}
           </For>
         </Show>
-        <Show when={props.snap.upcoming.length > 0}>
+        <Show when={upcoming().length > 0}>
           <div class="menu-label">{tr.nextFromList}</div>
-          <For each={props.snap.upcoming}>{(t) => <QueueRow track={t} />}</For>
+          <For each={upcoming()}>{(t) => <QueueRow track={t} />}</For>
         </Show>
       </div>
     </>
