@@ -2,11 +2,11 @@
 import { createEffect, createSignal, For, Match, onCleanup, onMount, Show, Switch, type JSX } from "solid-js";
 import { albumRefOf, api, artistsOf, coverUrl, formatTime, type ArtistRef, type Snapshot, type Track, type YtDlpStatus } from "./api";
 import { openAlbum, openArtist } from "./nav";
-import { IconBack, IconForward, IconGrip, IconHeart, IconMore, IconNote, IconPlay, IconPlaylist, IconPlus } from "./icons";
+import { IconBack, IconForward, IconGrip, IconHeart, IconMore, IconNote, IconPlay, IconPlayNext, IconPlaylist, IconPlus, IconQueue } from "./icons";
 import { t as tr } from "./i18n";
 import { isMobile } from "./mobile";
 import {
-  addToPlaylist, closeTrackMenu, collection, createPlaylist, isLiked, openTrackMenu, playlistById, playlistCovers,
+  addToPlaylist, closeTrackMenu, collection, createPlaylist, enqueue, isLiked, openTrackMenu, playlistById, playlistCovers,
   removeFromPlaylist, toggleLike, trackMenu, type TrackMenu,
 } from "./collection";
 
@@ -482,6 +482,12 @@ export function TrackMenuHost(props: { onOpenPlaylist: (id: string) => void }) {
                   </>
                 )}
               </Show>
+              <button class="menu-item" role="menuitem" onClick={act((m) => enqueue(m.tracks, true))}>
+                <IconPlayNext /> {tr.playNext}
+              </button>
+              <button class="menu-item" role="menuitem" onClick={act((m) => enqueue(m.tracks, false))}>
+                <IconQueue /> {tr.addToQueue}
+              </button>
               <Show when={m().playlist && single()}>
                 <button class="menu-item" role="menuitem" onClick={act((m) => removeFromPlaylist(m.playlist!, m.tracks[0].id))}>
                   <IconPlaylist size={18} /> {tr.removeFromThisPlaylist}

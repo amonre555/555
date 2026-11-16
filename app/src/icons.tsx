@@ -236,3 +236,15 @@ export const IconWaves = (p: { size?: number }) => (
     <path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2" />
   </Svg>
 );
+export const IconQueue = (p: { size?: number }) => (
+  <Svg size={p.size ?? 18}>
+    <path d="M4 6h12M4 12h12M4 18h8" />
+    <path d="M17 15v6M14 18h6" />
+  </Svg>
+);
+export const IconPlayNext = (p: { size?: number }) => (
+  <Svg size={p.size ?? 18}>
+    <path d="M4 6h10M4 12h7M4 18h7" />
+    <path d="M15 12.5v7l5.5-3.5z" fill="currentColor" stroke="none" />
+  </Svg>
+);

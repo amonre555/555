@@ -37,7 +37,7 @@ pub use stats::{ListenLog, ListenTracker, Period, Stats};
 /// Le client HTTP partagé (même version pour l'interface que pour le cœur).
 pub use reqwest;
 pub use model::{ArtistRef, Location, Track};
-pub use player::{Controller, Repeat, Session, Snapshot, Status};
+pub use player::{Controller, QueueItem, Repeat, Session, Snapshot, Status};
 pub use source::{MusicSource, SourceInfo, SourceRegistry, StreamData};
 
 /// Client HTTP partagé par toutes les sources (connexions réutilisées = requêtes plus rapides).

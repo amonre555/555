@@ -9,6 +9,10 @@
 //!
 //! L'ordre de lecture est une liste d'indices de la file : dans l'ordre, ou mélangée en mode
 //! aléatoire (le morceau en cours d'abord). La file elle-même ne bouge pas.
+//!
+//! La file d'attente (« Lire ensuite », « Ajouter à la file d'attente ») passe avant la suite
+//! de la liste : chaque morceau est retiré de la file quand il démarre. Pendant qu'il joue,
+//! `index` reste sur le dernier morceau de la liste, d'où la lecture reprend ensuite.
 
 use std::{
     fs::File,
@@ -67,6 +71,29 @@ pub struct Snapshot {
     pub repeat: Repeat,
     /// Vitesse de lecture : l'interface affiche les durées en temps réel.
     pub speed: f32,
+    /// File d'attente, dans l'ordre où elle sera jouée.
+    pub up_next: Vec<QueueItem>,
+    /// Suite de la liste après la file d'attente (les [`UPCOMING_MAX`] premiers).
+    pub upcoming: Vec<Track>,
+}
+
+/// Morceau de la file d'attente. `key` le désigne même si la file bouge entre-temps.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QueueItem {
+    pub key: u64,
+    pub track: Track,
+}
+
+/// Nombre de morceaux de la suite de la liste envoyés à l'interface.
+pub const UPCOMING_MAX: usize = 30;
+
+/// Morceau à lancer : un de la liste, le premier de la file d'attente, ou celui en cours.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Target {
+    List(usize),
+    Queued(u64),
+    Current,
 }
 
 /// Ce qu'il faut pour reprendre l'écoute au prochain lancement.
@@ -79,6 +106,9 @@ pub struct Session {
     pub volume: Option<f32>,
     pub shuffle: bool,
     pub repeat: Repeat,
+    pub up_next: Vec<Track>,
+    /// Morceau de la file d'attente qui jouait.
+    pub queued: Option<Track>,
 }
 
 struct State {
@@ -104,7 +134,12 @@ struct State {
     fading: bool,
     /// Morceau dont le fondu a échoué (impossible à charger à l'avance) : il sera chargé
     /// normalement à la fin du morceau en cours, sans retenter le fondu à chaque tick.
-    no_fade_for: Option<usize>,
+    no_fade_for: Option<Target>,
+    /// File d'attente : jouée avant la suite de la liste.
+    up_next: Vec<QueueItem>,
+    next_key: u64,
+    /// Morceau de la file d'attente en cours (il n'est pas dans `queue`).
+    queued: Option<Track>,
 }
 
 impl State {
@@ -141,6 +176,97 @@ impl State {
             0 if wrap => self.order.last().copied(),
             0 => None,
             p => Some(self.order[p - 1]),
+        }
+    }
+
+    fn current_track(&self) -> Option<&Track> {
+        self.queued.as_ref().or_else(|| self.index.and_then(|i| self.queue.get(i)))
+    }
+
+    /// Suivant : le premier de la file d'attente, sinon la suite de la liste.
+    fn next_target(&self, wrap: bool) -> Option<Target> {
+        match self.up_next.first() {
+            Some(q) => Some(Target::Queued(q.key)),
+            None => self.next_index(wrap).map(Target::List),
+        }
+    }
+
+    /// Précédent : depuis un morceau de la file d'attente, c'est le morceau de la liste joué
+    /// juste avant.
+    fn previous_target(&self, wrap: bool) -> Option<Target> {
+        if self.queued.is_some() {
+            return self.index.map(Target::List);
+        }
+        self.previous_index(wrap).map(Target::List)
+    }
+
+    /// Ce qui suit la fin naturelle du morceau en cours.
+    fn after_end(&self) -> Option<Target> {
+        match self.repeat {
+            Repeat::One if self.current_track().is_some() => Some(Target::Current),
+            r => self.next_target(r == Repeat::All),
+        }
+    }
+
+    fn track_of(&self, t: Target) -> Option<Track> {
+        match t {
+            Target::List(i) => self.queue.get(i).cloned(),
+            Target::Queued(k) => self.up_next.iter().find(|q| q.key == k).map(|q| q.track.clone()),
+            Target::Current => self.current_track().cloned(),
+        }
+    }
+
+    /// `track` (lu avec [`State::track_of`]) devient le morceau en cours.
+    fn commit(&mut self, t: Target, track: Track) {
+        match t {
+            Target::List(i) => {
+                self.index = Some(i);
+                self.queued = None;
+            }
+            Target::Queued(k) => {
+                self.up_next.retain(|q| q.key != k);
+                self.queued = Some(track);
+            }
+            Target::Current => {}
+        }
+    }
+
+    /// Suite de la liste après le morceau en cours (en reprenant au début en répétition).
+    fn upcoming(&self, max: usize) -> Vec<Track> {
+        let ids: Vec<usize> = match self.order_pos() {
+            Some(p) if self.repeat == Repeat::All => self.order[p + 1..].iter().chain(&self.order[..p]).copied().take(max).collect(),
+            Some(p) => self.order[p + 1..].iter().copied().take(max).collect(),
+            None => self.order.iter().copied().take(max).collect(),
+        };
+        ids.into_iter().filter_map(|i| self.queue.get(i).cloned()).collect()
+    }
+
+    /// Ajoute des morceaux à la file d'attente : au début (« Lire ensuite ») ou à la fin.
+    fn enqueue(&mut self, tracks: Vec<Track>, first: bool) {
+        let items: Vec<QueueItem> = tracks
+            .into_iter()
+            .map(|track| {
+                self.next_key += 1;
+                QueueItem { key: self.next_key, track }
+            })
+            .collect();
+        if first {
+            self.up_next.splice(0..0, items);
+        } else {
+            self.up_next.extend(items);
+        }
+    }
+
+    fn remove_queued(&mut self, key: u64) {
+        self.up_next.retain(|q| q.key != key);
+    }
+
+    /// Déplace un morceau de la file d'attente à la place `to`.
+    fn move_queued(&mut self, key: u64, to: usize) {
+        if let Some(from) = self.up_next.iter().position(|q| q.key == key) {
+            let item = self.up_next.remove(from);
+            let to = to.min(self.up_next.len());
+            self.up_next.insert(to, item);
         }
     }
 }
@@ -192,6 +318,9 @@ impl Controller {
                 crossfade: 0.0,
                 fading: false,
                 no_fade_for: None,
+                up_next: Vec::new(),
+                next_key: 0,
+                queued: None,
             }),
             generation: AtomicU64::new(0),
             fade_generation: AtomicU64::new(0),
@@ -226,7 +355,7 @@ impl Controller {
 
     pub fn snapshot(&self) -> Snapshot {
         let st = self.state.lock();
-        let track = st.index.and_then(|i| st.queue.get(i)).cloned();
+        let track = st.current_track().cloned();
         let position = match st.status {
             Status::Playing | Status::Paused => self.position(&st),
             _ => st.resume_at.unwrap_or(0.0),
@@ -243,6 +372,8 @@ impl Controller {
             shuffle: st.shuffle,
             repeat: st.repeat,
             speed: self.speed(),
+            up_next: st.up_next.clone(),
+            upcoming: st.upcoming(UPCOMING_MAX),
         }
     }
 
@@ -256,9 +387,10 @@ impl Controller {
             let mut st = self.state.lock();
             st.queue = tracks;
             st.index = Some(index);
+            st.queued = None;
             st.rebuild_order();
         }
-        self.load(index).await
+        self.load(Target::List(index)).await
     }
 
     /// Joue un morceau de la file. En mode aléatoire, la suite est remélangée à partir de lui.
@@ -270,7 +402,38 @@ impl Controller {
                 st.rebuild_order();
             }
         }
-        self.load(index).await
+        self.load(Target::List(index)).await
+    }
+
+    /// Ajoute des morceaux à la file d'attente : `first`, ils passent avant ceux déjà prévus
+    /// (« Lire ensuite ») ; sinon ils vont à la fin.
+    pub fn enqueue(&self, tracks: Vec<Track>, first: bool) {
+        let mut st = self.state.lock();
+        st.enqueue(tracks, first);
+        self.prefetch_next(&st);
+    }
+
+    pub fn remove_queued(&self, key: u64) {
+        let mut st = self.state.lock();
+        st.remove_queued(key);
+        self.prefetch_next(&st);
+    }
+
+    pub fn move_queued(&self, key: u64, to: usize) {
+        let mut st = self.state.lock();
+        st.move_queued(key, to);
+        self.prefetch_next(&st);
+    }
+
+    pub fn clear_queued(&self) {
+        let mut st = self.state.lock();
+        st.up_next.clear();
+        self.prefetch_next(&st);
+    }
+
+    /// Joue tout de suite un morceau de la file d'attente (il en sort).
+    pub async fn play_queued(&self, key: u64) -> Result<()> {
+        self.load(Target::Queued(key)).await
     }
 
     pub fn set_shuffle(&self, on: bool) {
@@ -333,8 +496,7 @@ impl Controller {
 
     /// Prépare le morceau qui suivra : enchaînement (ou fondu) instantané.
     fn prefetch_next(&self, st: &State) {
-        let next = if st.repeat == Repeat::One { st.index } else { st.next_index(st.repeat == Repeat::All) };
-        if let Some(t) = next.and_then(|i| st.queue.get(i)).cloned() {
+        if let Some(t) = st.after_end().and_then(|n| st.track_of(n)) {
             self.prefetch(t);
         }
     }
@@ -351,20 +513,20 @@ impl Controller {
         self.player().set_volume(perceptual(st.volume));
     }
 
-    async fn load(&self, index: usize) -> Result<()> {
-        self.load_from(index, None).await
+    async fn load(&self, target: Target) -> Result<()> {
+        self.load_from(target, None).await
     }
 
-    /// Charge le morceau `index` et le lance à `start` secondes (au début si `None`).
-    async fn load_from(&self, index: usize, start: Option<f64>) -> Result<()> {
+    /// Charge le morceau `target` et le lance à `start` secondes (au début si `None`).
+    async fn load_from(&self, target: Target, start: Option<f64>) -> Result<()> {
         self.cancel_fade();
         let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
         let track = {
             let mut st = self.state.lock();
-            let Some(track) = st.queue.get(index).cloned() else {
+            let Some(track) = st.track_of(target) else {
                 return Err(Error::Other("track not found in the queue".into()));
             };
-            st.index = Some(index);
+            st.commit(target, track.clone());
             st.status = Status::Loading;
             st.duration = track.duration;
             st.error = None;
@@ -488,10 +650,7 @@ impl Controller {
     }
 
     pub async fn toggle(&self) -> Result<()> {
-        let (status, index) = {
-            let st = self.state.lock();
-            (st.status, st.index)
-        };
+        let status = self.state.lock().status;
         match status {
             Status::Playing => {
                 // Annule aussi un fondu en préparation : en arrivant, il relancerait le son.
@@ -507,9 +666,16 @@ impl Controller {
             Status::Idle | Status::Error => {
                 // Session reprise : on repart où l'on s'était arrêté.
                 let resume = self.state.lock().resume_at.take();
-                let start = index.or_else(|| self.state.lock().order.first().copied());
-                if let Some(i) = start {
-                    self.load_from(i, resume).await?;
+                let start = {
+                    let st = self.state.lock();
+                    if st.current_track().is_some() {
+                        Some(Target::Current)
+                    } else {
+                        st.next_target(false)
+                    }
+                };
+                if let Some(t) = start {
+                    self.load_from(t, resume).await?;
                 }
             }
             Status::Loading => {}
@@ -521,10 +687,10 @@ impl Controller {
     pub async fn next(&self) -> Result<()> {
         let next = {
             let st = self.state.lock();
-            st.next_index(st.repeat != Repeat::Off)
+            st.next_target(st.repeat != Repeat::Off)
         };
         match next {
-            Some(i) => self.load(i).await,
+            Some(t) => self.load(t).await,
             None => {
                 self.stop();
                 Ok(())
@@ -534,15 +700,9 @@ impl Controller {
 
     /// Fin naturelle du morceau : répétition du morceau, suivant, ou fin de la file.
     async fn advance(&self) -> Result<()> {
-        let next = {
-            let st = self.state.lock();
-            match st.repeat {
-                Repeat::One => st.index,
-                r => st.next_index(r == Repeat::All),
-            }
-        };
+        let next = self.state.lock().after_end();
         match next {
-            Some(i) => self.load(i).await,
+            Some(t) => self.load(t).await,
             None => {
                 self.stop();
                 Ok(())
@@ -557,10 +717,10 @@ impl Controller {
         }
         let prev = {
             let st = self.state.lock();
-            st.previous_index(st.repeat != Repeat::Off)
+            st.previous_target(st.repeat != Repeat::Off)
         };
         match prev {
-            Some(i) => self.load(i).await,
+            Some(t) => self.load(t).await,
             None => self.seek(0.0),
         }
     }
@@ -610,7 +770,7 @@ impl Controller {
     pub async fn tick(self: &Arc<Self>) {
         enum Action {
             Ended,
-            Fade(usize),
+            Fade(Target),
         }
         let action = {
             let mut st = self.state.lock();
@@ -622,7 +782,7 @@ impl Controller {
             } else if st.crossfade > 0.0 && st.repeat != Repeat::One {
                 let remaining = st.duration.map(|d| d - self.position(&st));
                 let long_enough = st.duration.is_some_and(|d| d > st.crossfade * 3.0);
-                match (remaining, st.next_index(st.repeat == Repeat::All)) {
+                match (remaining, st.next_target(st.repeat == Repeat::All)) {
                     (Some(r), Some(n)) if long_enough && r <= st.crossfade && st.no_fade_for != Some(n) => {
                         st.fading = true;
                         Some(Action::Fade(n))
@@ -645,10 +805,13 @@ impl Controller {
     /// Fondu enchaîné : le morceau `next` démarre sur l'autre lecteur, monte pendant que
     /// l'actuel baisse (courbes à puissance constante : le volume perçu ne creuse pas), puis
     /// l'ancien s'arrête. Il devient aussitôt « le morceau en cours ».
-    async fn crossfade_to(self: &Arc<Self>, next: usize) {
+    async fn crossfade_to(self: &Arc<Self>, next: Target) {
         let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
         let (from, to) = (self.active(), 1 - self.active());
-        let Some(track) = self.state.lock().queue.get(next).cloned() else { return };
+        let Some(track) = self.state.lock().track_of(next) else {
+            self.state.lock().fading = false;
+            return;
+        };
         self.players[to].stop();
         self.players[to].set_volume(0.0);
 
@@ -672,7 +835,7 @@ impl Controller {
         };
         let seconds = {
             self.active.store(to, Ordering::SeqCst);
-            st.index = Some(next);
+            st.commit(next, track.clone());
             st.offset = 0.0;
             st.duration = duration.map(|d| d.as_secs_f64()).or(track.duration);
             st.status = Status::Playing;
@@ -720,6 +883,8 @@ impl Controller {
             volume: Some(st.volume),
             shuffle: st.shuffle,
             repeat: st.repeat,
+            up_next: st.up_next.iter().map(|q| q.track.clone()).collect(),
+            queued: st.queued.clone(),
         }
     }
 
@@ -731,11 +896,14 @@ impl Controller {
         }
         let mut st = self.state.lock();
         st.index = s.index.filter(|&i| i < s.queue.len());
-        st.duration = st.index.and_then(|i| s.queue.get(i)).and_then(|t| t.duration);
         st.queue = s.queue;
+        st.queued = s.queued;
+        st.up_next.clear();
+        st.enqueue(s.up_next, false);
+        st.duration = st.current_track().and_then(|t| t.duration);
         st.shuffle = s.shuffle;
         st.repeat = s.repeat;
-        st.resume_at = st.index.map(|_| s.position.max(0.0));
+        st.resume_at = st.current_track().map(|_| s.position.max(0.0));
         st.status = Status::Idle;
         st.rebuild_order();
     }
@@ -886,10 +1054,78 @@ mod tests {
         let mut st = State {
             queue: (0..len).map(track).collect(), index: Some(index), status: Status::Idle, volume: 1.0, duration: None,
             error: None, shuffle, repeat: Repeat::Off, order: Vec::new(), resume_at: None, offset: 0.0, crossfade: 0.0, fading: false,
-            no_fade_for: None,
+            no_fade_for: None, up_next: Vec::new(), next_key: 0, queued: None,
         };
         st.rebuild_order();
         st
+    }
+
+    fn extra(id: &str) -> Track {
+        let mut t = state(1, 0, false).queue.remove(0);
+        t.id = id.into();
+        t
+    }
+
+    /// Joue ce qui suit, comme le ferait le lecteur, et renvoie l'identifiant du morceau.
+    fn go(st: &mut State, t: Target) -> String {
+        let track = st.track_of(t).expect("morceau");
+        st.commit(t, track.clone());
+        track.id
+    }
+
+    #[test]
+    fn queue_plays_before_the_list_then_the_list_resumes() {
+        let mut st = state(4, 1, false);
+        st.enqueue(vec![extra("a"), extra("b")], false);
+        st.enqueue(vec![extra("n")], true);
+        let mut played = Vec::new();
+        while let Some(t) = st.next_target(false) {
+            played.push(go(&mut st, t));
+        }
+        assert_eq!(played, ["n", "a", "b", "t2", "t3"]);
+        assert!(st.up_next.is_empty());
+    }
+
+    #[test]
+    fn previous_from_a_queued_track_returns_to_the_list() {
+        let mut st = state(3, 1, false);
+        st.enqueue(vec![extra("a")], false);
+        let t = st.next_target(false).unwrap();
+        assert_eq!(go(&mut st, t), "a");
+        assert_eq!(st.current_track().unwrap().id, "a");
+        assert_eq!(st.previous_target(false), Some(Target::List(1)));
+        // Répéter le morceau : celui de la file d'attente rejoue.
+        st.repeat = Repeat::One;
+        assert_eq!(st.after_end(), Some(Target::Current));
+    }
+
+    #[test]
+    fn queue_can_be_edited() {
+        let mut st = state(2, 0, false);
+        st.enqueue(vec![extra("a"), extra("b"), extra("c")], false);
+        let keys: Vec<u64> = st.up_next.iter().map(|q| q.key).collect();
+        st.move_queued(keys[2], 0);
+        st.remove_queued(keys[0]);
+        let ids: Vec<&str> = st.up_next.iter().map(|q| q.track.id.as_str()).collect();
+        assert_eq!(ids, ["c", "b"]);
+        st.move_queued(keys[2], 99);
+        let ids: Vec<&str> = st.up_next.iter().map(|q| q.track.id.as_str()).collect();
+        assert_eq!(ids, ["b", "c"]);
+    }
+
+    #[test]
+    fn queue_ignores_shuffle_and_wraps_with_repeat_all() {
+        let mut st = state(20, 19, true);
+        st.enqueue(vec![extra("a")], false);
+        assert_eq!(st.next_target(true), Some(Target::Queued(st.up_next[0].key)));
+        let t = st.next_target(true).unwrap();
+        go(&mut st, t);
+        // Après la file d'attente : la suite de l'ordre mélangé.
+        let expected = st.next_index(true).map(Target::List);
+        assert_eq!(st.next_target(true), expected);
+        assert!(expected.is_some());
+        st.repeat = Repeat::All;
+        assert_eq!(st.upcoming(100).len(), 19);
     }
 
     #[test]

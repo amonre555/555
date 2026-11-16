@@ -158,6 +158,13 @@ export async function addToPlaylist(id: string, tracks: Track[]) {
   notify(added === 0 ? t.alreadyIn(p.name) : added === 1 ? t.addedTo(p.name) : t.addedManyTo(added, p.name));
 }
 
+/** Ajoute à la file d'attente (`first` : « Lire ensuite »), avec un petit message. */
+export async function enqueue(tracks: Track[], first: boolean) {
+  if (!tracks.length) return;
+  await api.enqueue(tracks, first);
+  notify(first ? t.playingNext(tracks.length) : t.addedToQueue(tracks.length));
+}
+
 // ---------- Menu d'un morceau (clic droit, bouton « ⋯ ») ----------
 /** `playlist` : la playlist affichée, pour proposer « Retirer de cette playlist ». */
 export type TrackMenu = { x: number; y: number; align: "left" | "right"; tracks: Track[]; playlist?: string };

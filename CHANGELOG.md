@@ -4,6 +4,10 @@ What's new in 555, version by version. The latest is at the top.
 
 ## Unreleased
 
+### New
+
+- Queue: "Play next" and "Add to queue" in a song's menu. Queued songs play before the rest of the list. A new button in the player bar shows the queue: drag songs to reorder them, or remove them.
+
 ### Improvements
 
 - Jumping far into a track, or picking up where you left off after a restart, now starts much faster: 555 downloads from the point you chose instead of waiting for the whole beginning.

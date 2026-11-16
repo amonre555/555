@@ -18,9 +18,10 @@ const callbacks = new Map<number, (e: unknown) => void>();
 let tracks: Track[] = [];
 let queue: Track[] = [];
 let state: Snapshot = {
-  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off", speed: 1,
+  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off", speed: 1, upNext: [], upcoming: [],
 };
 let startedAt = 0;
+let queueKey = 0;
 
 const snap = (): Snapshot => {
   if (state.status === "playing") state.position = (performance.now() - startedAt) / 1000;
@@ -438,6 +439,27 @@ const handlers: Record<string, (args: any) => unknown> = {
       startedAt = performance.now() - state.position * 1000;
       state = { ...state, status: "playing" };
     }
+    return snap();
+  },
+  enqueue: ({ tracks: t, first }) => {
+    const items = (t as Track[]).map((track) => ({ key: ++queueKey, track }));
+    state.upNext = first ? [...items, ...state.upNext] : [...state.upNext, ...items];
+    return snap();
+  },
+  remove_queued: ({ key }) => ((state.upNext = state.upNext.filter((q) => q.key !== key)), snap()),
+  move_queued: ({ key, to }) => {
+    const list = state.upNext.filter((q) => q.key !== key);
+    const item = state.upNext.find((q) => q.key === key);
+    if (item) list.splice(Math.min(to, list.length), 0, item);
+    state.upNext = list;
+    return snap();
+  },
+  clear_queued: () => ((state.upNext = []), snap()),
+  play_queued: ({ key }) => {
+    const item = state.upNext.find((q) => q.key === key);
+    state.upNext = state.upNext.filter((q) => q.key !== key);
+    if (item) state = { ...state, track: item.track, status: "playing", position: 0, duration: item.track.duration };
+    startedAt = performance.now();
     return snap();
   },
   next: () => (state.index != null && state.index + 1 < queue.length && playAt(state.index + 1), snap()),

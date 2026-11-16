@@ -373,6 +373,37 @@ async fn warm(state: State<'_, AppState>, tracks: Vec<Track>) -> Res<()> {
     Ok(())
 }
 
+/// File d'attente : `first`, les morceaux passent avant ceux déjà prévus (« Lire ensuite »).
+#[tauri::command]
+fn enqueue(state: State<'_, AppState>, tracks: Vec<Track>, first: bool) -> Snapshot {
+    state.controller.enqueue(tracks, first);
+    state.controller.snapshot()
+}
+
+#[tauri::command]
+fn remove_queued(state: State<'_, AppState>, key: u64) -> Snapshot {
+    state.controller.remove_queued(key);
+    state.controller.snapshot()
+}
+
+#[tauri::command]
+fn move_queued(state: State<'_, AppState>, key: u64, to: usize) -> Snapshot {
+    state.controller.move_queued(key, to);
+    state.controller.snapshot()
+}
+
+#[tauri::command]
+fn clear_queued(state: State<'_, AppState>) -> Snapshot {
+    state.controller.clear_queued();
+    state.controller.snapshot()
+}
+
+#[tauri::command]
+async fn play_queued(state: State<'_, AppState>, key: u64) -> Res<Snapshot> {
+    state.controller.play_queued(key).await?;
+    Ok(state.controller.snapshot())
+}
+
 #[tauri::command]
 fn set_shuffle(state: State<'_, AppState>, on: bool) -> Snapshot {
     state.controller.set_shuffle(on);
@@ -644,6 +675,7 @@ pub fn run() {
                     let changed = saved.as_ref().is_none_or(|s| {
                         s.index != session.index || s.queue.len() != session.queue.len() || s.shuffle != session.shuffle
                             || s.repeat != session.repeat || s.volume != session.volume
+                            || s.up_next.len() != session.up_next.len() || s.queued.is_some() != session.queued.is_some()
                     });
                     if changed || (playing && saved_at.elapsed() >= Duration::from_secs(10)) {
                         if saved.as_ref() != Some(&session) {
@@ -708,6 +740,11 @@ pub fn run() {
             audio_levels,
             set_shuffle,
             set_repeat,
+            enqueue,
+            remove_queued,
+            move_queued,
+            clear_queued,
+            play_queued,
         ])
         .build(tauri::generate_context!())
         .expect("erreur au lancement de yato");

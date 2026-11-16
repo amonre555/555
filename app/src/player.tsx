@@ -6,6 +6,7 @@ import { AlbumLink, ArtistLinks, Cover, LikeButton } from "./ui";
 import { themeFromCover } from "./theme";
 import { Visualizer, visualizerOn } from "./visualizer";
 import { EqButton } from "./eq";
+import { QueueButton } from "./queue";
 import { t as tr } from "./i18n";
 import { roundedSquare } from "./shapes";
 
@@ -108,6 +109,7 @@ export function PlayerBar(props: {
         >
           <IconLyrics />
         </button>
+        <QueueButton snap={props.snap} run={props.run} />
         <EqButton />
         <Volume snap={props.snap} run={props.run} />
       </div>
@@ -408,6 +410,7 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
                 >
                   <IconLyrics /> {lyricsMode() ? tr.cover : tr.lyrics}
                 </button>
+                <QueueButton snap={props.snap} run={props.run} />
                 <Volume snap={props.snap} run={props.run} />
               </div>
             </div>

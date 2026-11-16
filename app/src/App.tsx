@@ -27,7 +27,7 @@ type View = "discover" | "library" | "liked" | "history" | "stats" | "playlist" 
 type Tab = "discover" | "search" | "hub" | "settings";
 
 const EMPTY: Snapshot = {
-  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off", speed: 1,
+  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off", speed: 1, upNext: [], upcoming: [],
 };
 
 export default function App() {

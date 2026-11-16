@@ -119,6 +119,16 @@ export interface Snapshot {
   repeat: Repeat;
   /** Vitesse de lecture (1 : normale). Les positions restent en temps du morceau. */
   speed: number;
+  /** File d'attente, dans l'ordre où elle sera jouée. */
+  upNext: QueueItem[];
+  /** Suite de la liste après la file d'attente (les premiers morceaux). */
+  upcoming: Track[];
+}
+
+/** Morceau de la file d'attente : `key` le désigne même si la file bouge. */
+export interface QueueItem {
+  key: number;
+  track: Track;
 }
 
 /** Temps du morceau → temps réel, pour l'affichage (en sped up, un morceau dure moins). */
@@ -296,6 +306,12 @@ export const api = {
     listen<DiscoverSection>("discover-section", (e) => cb(e.payload)),
   playQueue: (tracks: Track[], index: number) => invoke<Snapshot>("play_queue", { tracks, index }),
   playIndex: (index: number) => invoke<Snapshot>("play_index", { index }),
+  /** File d'attente : `first`, avant les morceaux déjà prévus (« Lire ensuite »). */
+  enqueue: (tracks: Track[], first: boolean) => invoke<Snapshot>("enqueue", { tracks, first }),
+  removeQueued: (key: number) => invoke<Snapshot>("remove_queued", { key }),
+  moveQueued: (key: number, to: number) => invoke<Snapshot>("move_queued", { key, to }),
+  clearQueued: () => invoke<Snapshot>("clear_queued"),
+  playQueued: (key: number) => invoke<Snapshot>("play_queued", { key }),
   toggle: () => invoke<Snapshot>("toggle"),
   next: () => invoke<Snapshot>("next"),
   previous: () => invoke<Snapshot>("previous"),
