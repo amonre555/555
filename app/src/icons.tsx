@@ -98,10 +98,12 @@ export const IconEq = () => (
   </Svg>
 );
 
+/** Micro de chanteur, tenu à la main : tête ronde à grille, manche en biais. */
 export const IconLyrics = () => (
-  <Svg size={18}>
-    <rect x="9" y="2.5" width="6" height="12" rx="3" />
-    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21.5" />
+  <Svg size={20}>
+    <circle cx="15.5" cy="8.5" r="5" />
+    <path d="M12 5l7 7" />
+    <path d="M12 12 4.4 19.4a1.6 1.6 0 0 0 2.2 2.2L14 14" />
   </Svg>
 );
 export const IconChevronDown = () => (
@@ -255,7 +257,7 @@ export const IconSpeaker = (p: { size?: number }) => (
   </Svg>
 );
 export const IconQueueList = () => (
-  <Svg size={19}>
+  <Svg size={20}>
     <rect x="3" y="3.5" width="18" height="8" rx="2" />
     <path d="M3 16h18M3 20.5h12" />
   </Svg>
