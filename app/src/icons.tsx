@@ -88,6 +88,16 @@ export const IconNote = () => (
     <circle cx="17" cy="16" r="3" />
   </Svg>
 );
+/** Égaliseur : trois curseurs. */
+export const IconEq = () => (
+  <Svg>
+    <path d="M6 4v16M12 4v16M18 4v16" opacity="0.35" />
+    <circle cx="6" cy="14" r="2.2" fill="currentColor" />
+    <circle cx="12" cy="8" r="2.2" fill="currentColor" />
+    <circle cx="18" cy="12" r="2.2" fill="currentColor" />
+  </Svg>
+);
+
 export const IconLyrics = () => (
   <Svg size={18}>
     <path d="M4 6h10M4 11h16M4 16h7" />

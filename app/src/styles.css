@@ -509,6 +509,13 @@ html[data-vt] .content { view-transition-name: page; }
   content: ""; position: absolute; inset: 0;
   background: radial-gradient(110% 90% at 35% 40%, transparent, color-mix(in srgb, var(--bg) 60%, transparent) 80%), color-mix(in srgb, var(--bg) 22%, transparent);
 }
+.np-visualizer {
+  position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; mix-blend-mode: screen; opacity: 0.75;
+  /* Plus discret côté paroles (à droite) : le texte reste lisible. */
+  -webkit-mask-image: linear-gradient(to right, #000 30%, rgb(0 0 0 / 0.35) 62%); mask-image: linear-gradient(to right, #000 30%, rgb(0 0 0 / 0.35) 62%);
+  animation: fade-in 1.2s var(--soft) both;
+}
+.nowplaying.lyrics-mode .np-visualizer { -webkit-mask-image: none; mask-image: none; opacity: 0.4; }
 .np-close { position: absolute; top: 16px; left: 50%; translate: -50% 0; z-index: 1; width: 44px; height: 44px; border-radius: 50%; color: var(--text); background: var(--surface); box-shadow: var(--hairline); backdrop-filter: blur(20px); }
 .np-close:hover:not(:disabled) { background: var(--surface-2); }
 .np-grid { height: 100%; display: grid; grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.1fr); gap: 72px; align-items: center; }
@@ -1243,3 +1250,55 @@ textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; f
 /* Mise à jour Android : bloquante, au-dessus de tout (lecteur plein écran compris). */
 .update-layer { z-index: 200; }
 .update-layer .dialog-actions .primary { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ---------- Égaliseur (panneau de la barre du lecteur et page Réglages) ---------- */
+.eq-pop { position: relative; display: flex; }
+.eq-popover {
+  position: absolute; right: -8px; bottom: calc(100% + 18px); z-index: 80; width: 440px;
+  padding: 16px 18px 14px; border-radius: var(--r-lg);
+  background: linear-gradient(160deg, rgba(20, 26, 92, 0.96), rgba(8, 8, 20, 0.97) 60%);
+  box-shadow: var(--hairline), 0 30px 80px -20px rgba(0, 0, 0, 0.9), 0 0 60px -30px var(--blue);
+  animation: eq-in 0.32s var(--soft) both; transform-origin: bottom right;
+}
+@keyframes eq-in { from { opacity: 0; transform: translateY(8px) scale(0.97); filter: blur(4px); } }
+.eq-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.eq-title { font-family: var(--display, inherit); font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+.eq-reset { font-size: 12px; color: var(--text-2); padding: 4px 10px; border-radius: var(--r-pill); background: var(--surface); }
+.eq-reset:hover:not(:disabled) { color: var(--text); background: var(--surface-2); }
+.eq-reset:disabled { opacity: 0.35; }
+
+.eq-panel { display: flex; flex-direction: column; gap: 12px; }
+.eq-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.eq-chip {
+  padding: 6px 12px; border-radius: var(--r-pill); font-size: 12.5px; font-weight: 500; color: var(--text-2);
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--surface-2); transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.eq-chip:hover { color: var(--text); background: var(--surface-2); }
+.eq-chip.on { color: #fff; background: var(--blue); box-shadow: 0 6px 24px -8px var(--blue); }
+
+.eq-graph {
+  display: block; width: 100%; height: auto; border-radius: 14px; cursor: ns-resize; touch-action: none; user-select: none;
+  background: radial-gradient(120% 100% at 50% 100%, rgba(36, 51, 255, 0.14), transparent 70%), rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 0 1px var(--surface-2);
+}
+.eq-grid { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; }
+.eq-zero { stroke: rgba(255, 255, 255, 0.18); stroke-width: 1; stroke-dasharray: 3 4; }
+.eq-label { fill: var(--text-3); font-size: 9.5px; font-weight: 600; letter-spacing: 0.04em; }
+.eq-curve { fill: none; stroke: var(--md-primary); stroke-width: 2.2; stroke-linejoin: round; filter: drop-shadow(0 0 6px var(--md-primary)); }
+.eq-node { cursor: grab; outline: none; }
+.eq-node-halo { fill: var(--md-primary); opacity: 0; transition: opacity 0.2s; }
+.eq-node-dot { fill: #fff; stroke: var(--md-primary); stroke-width: 3; transition: r 0.2s var(--soft); }
+.eq-node:hover .eq-node-halo, .eq-node:focus-visible .eq-node-halo { opacity: 0.18; }
+.eq-node.on { cursor: grabbing; }
+.eq-node.on .eq-node-halo { opacity: 0.28; }
+.eq-node.on .eq-node-dot { r: 8; }
+.eq-value { fill: var(--text); font-size: 11px; font-weight: 600; paint-order: stroke; stroke: rgba(0, 0, 0, 0.6); stroke-width: 3px; pointer-events: none; }
+.eq-hint { margin: -4px 0 0; font-size: 11.5px; color: var(--text-3); }
+
+.eq-range { display: grid; grid-template-columns: 96px 1fr 52px; align-items: center; gap: 12px; font-size: 13px; }
+.eq-range-label { color: var(--text-2); }
+.eq-range-value { color: var(--text-2); text-align: right; font-variant-numeric: tabular-nums; }
+
+.settings-eq { padding: 16px 18px 18px; margin-top: 2px; background: rgba(255, 255, 255, 0.035); border-radius: 6px 6px var(--r-md) var(--r-md); }
+.settings-eq-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.settings-eq .eq-panel { max-width: 620px; }

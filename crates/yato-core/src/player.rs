@@ -25,7 +25,11 @@ use parking_lot::Mutex;
 use rodio::{Decoder, Source};
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, Result, SourceRegistry, StreamData, Track, stream::Download};
+use crate::{
+    Error, Result, SourceRegistry, StreamData, Track,
+    fx::{Clock, Fx, FxSettings, FxSource},
+    stream::Download,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -61,6 +65,8 @@ pub struct Snapshot {
     pub error: Option<String>,
     pub shuffle: bool,
     pub repeat: Repeat,
+    /// Vitesse de lecture : l'interface affiche les durées en temps réel.
+    pub speed: f32,
 }
 
 /// Ce qu'il faut pour reprendre l'écoute au prochain lancement.
@@ -153,6 +159,12 @@ pub struct Controller {
     generation: AtomicU64,
     /// Incrémenté pour arrêter le fondu enchaîné en cours.
     fade_generation: AtomicU64,
+    /// Égaliseur, réverbération et mesure du son (pour le visualiseur).
+    fx: Arc<Fx>,
+    /// Position de chaque lecteur, en temps du morceau (voir [`Clock`]).
+    clocks: [Arc<Clock>; 2],
+    /// Vitesse de lecture (bits d'un `f32`).
+    speed: std::sync::atomic::AtomicU32,
 }
 
 impl Controller {
@@ -183,6 +195,9 @@ impl Controller {
             }),
             generation: AtomicU64::new(0),
             fade_generation: AtomicU64::new(0),
+            fx: Arc::new(Fx::default()),
+            clocks: Default::default(),
+            speed: std::sync::atomic::AtomicU32::new(1f32.to_bits()),
         }))
     }
 
@@ -199,9 +214,14 @@ impl Controller {
         &self.players[self.active()]
     }
 
-    /// Position dans le morceau en cours, en secondes.
+    /// Position dans le morceau en cours, en secondes (temps du morceau, quelle que soit la
+    /// vitesse).
     fn position(&self, st: &State) -> f64 {
-        st.offset + self.player().get_pos().as_secs_f64()
+        st.offset + self.clocks[self.active()].get()
+    }
+
+    fn speed(&self) -> f32 {
+        f32::from_bits(self.speed.load(Ordering::Relaxed))
     }
 
     pub fn snapshot(&self) -> Snapshot {
@@ -222,6 +242,7 @@ impl Controller {
             error: st.error.clone(),
             shuffle: st.shuffle,
             repeat: st.repeat,
+            speed: self.speed(),
         }
     }
 
@@ -270,6 +291,22 @@ impl Controller {
     /// Durée du fondu enchaîné entre deux morceaux (0 : aucun, jusqu'à 12 s).
     pub fn set_crossfade(&self, seconds: f64) {
         self.state.lock().crossfade = seconds.clamp(0.0, 12.0);
+    }
+
+    /// Égaliseur, réverbération et vitesse : s'appliquent tout de suite, au morceau en cours.
+    pub fn set_fx(&self, settings: FxSettings) {
+        let s = settings.clamped();
+        self.fx.set(s);
+        self.speed.store(s.speed.to_bits(), Ordering::Relaxed);
+        for p in &self.players {
+            p.set_speed(s.speed);
+        }
+    }
+
+    /// Niveau des basses, médiums, aigus et de l'ensemble (0 à 1 environ), mesuré sur le son
+    /// qui part vers la sortie.
+    pub fn levels(&self) -> [f32; 4] {
+        self.fx.levels()
     }
 
     /// Prépare un morceau en arrière-plan (sans bloquer). Sans runtime tokio, ne fait rien.
@@ -390,7 +427,7 @@ impl Controller {
                     return Ok(stale);
                 }
                 let d = decoder.total_duration();
-                player.append(decoder);
+                player.append(FxSource::new(decoder, self.fx.clone(), self.clocks[slot].clone()));
                 (d, started)
             }
             StreamData::Http { .. } | StreamData::Buffered { .. } => {
@@ -431,7 +468,7 @@ impl Controller {
                     return Ok(stale);
                 }
                 let d = decoder.total_duration();
-                player.append(decoder);
+                player.append(FxSource::new(decoder, self.fx.clone(), self.clocks[slot].clone()));
                 (d, started)
             }
         };
@@ -539,10 +576,13 @@ impl Controller {
             }
         }
         self.cancel_fade();
+        // Le changement de vitesse de rodio multiplie la position demandée par la vitesse
+        // (il la prend pour du temps écoulé) : on la divise d'abord, pour que le décodeur
+        // arrive bien à `seconds` dans le morceau.
         self.player()
-            .try_seek(Duration::from_secs_f64(seconds.max(0.0)))
+            .try_seek(Duration::from_secs_f64(seconds.max(0.0) / f64::from(self.speed())))
             .map_err(|e| Error::Decode(e.to_string()))?;
-        // Après un saut, rodio compte depuis le début du morceau.
+        // Après un saut, la position compte depuis le début du morceau.
         self.state.lock().offset = 0.0;
         Ok(())
     }

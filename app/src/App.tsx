@@ -27,7 +27,7 @@ type View = "discover" | "library" | "liked" | "history" | "stats" | "playlist" 
 type Tab = "discover" | "search" | "hub" | "settings";
 
 const EMPTY: Snapshot = {
-  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off",
+  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off", speed: 1,
 };
 
 export default function App() {
@@ -248,7 +248,8 @@ export default function App() {
   };
   const position = createMemo(() => {
     const s = snap();
-    const p = s.status === "playing" ? s.position + (now() - snapAt) / 1000 : s.position;
+    // En temps du morceau : il avance plus vite que l'horloge en sped up, moins vite en slowed.
+    const p = s.status === "playing" ? s.position + ((now() - snapAt) / 1000) * (s.speed || 1) : s.position;
     return s.duration ? Math.min(p, s.duration) : p;
   });
   let raf = 0;

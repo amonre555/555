@@ -18,13 +18,13 @@ const callbacks = new Map<number, (e: unknown) => void>();
 let tracks: Track[] = [];
 let queue: Track[] = [];
 let state: Snapshot = {
-  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off",
+  track: null, status: "idle", position: 0, duration: null, volume: 0.8, index: null, queueLen: 0, error: null, shuffle: false, repeat: "off", speed: 1,
 };
 let startedAt = 0;
 
 const snap = (): Snapshot => {
   if (state.status === "playing") state.position = (performance.now() - startedAt) / 1000;
-  return { ...state };
+  return { ...state, speed: settings.fx.speed };
 };
 const emit = (event: string, payload: unknown) => (listeners.get(event) ?? []).forEach((l) => l(payload));
 setInterval(() => emit("player", snap()), 250);
@@ -310,7 +310,7 @@ const cleanQuery = (q: unknown) => String(q).trim().split(/\s+/).join(" ");
 
 // Collection en mémoire (perdue au rechargement de la page).
 const coll: Collection = { liked: [], playlists: [], history: [] };
-let settings = { crossfade: 0, resume: true, discord: true };
+let settings = { crossfade: 0, resume: true, discord: true, fx: { bass: 0, mid: 0, treble: 0, reverb: 0, speed: 1 } };
 let plCounter = 0;
 const copy = (): Collection => structuredClone(coll);
 const pl = (id: string) => {
@@ -334,6 +334,12 @@ const handlers: Record<string, (args: any) => unknown> = {
   clear_recent_searches: () => writeRecent([]),
   clear_history: () => ((coll.history = []), copy()),
   get_settings: () => ({ ...settings }),
+  // Faux niveaux qui battent à ~120 BPM, pour voir le visualiseur sans le vrai son.
+  audio_levels: () => {
+    const t = performance.now() / 1000;
+    const beat = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2)), 8);
+    return [0.25 + 0.7 * beat, 0.35 + 0.2 * Math.sin(t * 1.7), 0.2 + 0.15 * Math.sin(t * 5.3), 0.4 + 0.4 * beat];
+  },
   set_settings: ({ value }) => ((settings = { ...value }), { ...settings }),
   set_shuffle: ({ on }) => ((state.shuffle = on), snap()),
   set_repeat: ({ repeat }) => ((state.repeat = repeat), snap()),

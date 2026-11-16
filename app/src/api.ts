@@ -117,7 +117,13 @@ export interface Snapshot {
   error: string | null;
   shuffle: boolean;
   repeat: Repeat;
+  /** Vitesse de lecture (1 : normale). Les positions restent en temps du morceau. */
+  speed: number;
 }
+
+/** Temps du morceau → temps réel, pour l'affichage (en sped up, un morceau dure moins). */
+export const realTime = (seconds: number | null | undefined, snap: Snapshot) =>
+  seconds == null ? seconds : seconds / (snap.speed || 1);
 
 export type YtDlpStatus =
   | { state: "unknown" }
@@ -195,7 +201,23 @@ export interface Settings {
   resume: boolean;
   /** Statut Discord. */
   discord: boolean;
+  /** Égaliseur, réverbération et vitesse. */
+  fx: FxSettings;
 }
+
+/** Effets appliqués au son. */
+export interface FxSettings {
+  /** Gains en dB, de -12 à +12. */
+  bass: number;
+  mid: number;
+  treble: number;
+  /** Réverbération, de 0 à 1. */
+  reverb: number;
+  /** Vitesse, de 0,5 à 1,5 (le son monte ou descend avec). */
+  speed: number;
+}
+
+export const FLAT_FX: FxSettings = { bass: 0, mid: 0, treble: 0, reverb: 0, speed: 1 };
 
 /** Période résumée par les statistiques. */
 export type Period = { kind: "year"; year: number } | { kind: "month"; year: number; month: number } | { kind: "all" };
@@ -310,6 +332,8 @@ export const api = {
   onCollection: (cb: (c: Collection) => void): Promise<UnlistenFn> => listen<Collection>("collection", (e) => cb(e.payload)),
   getSettings: () => invoke<Settings>("get_settings"),
   setSettings: (value: Settings) => invoke<Settings>("set_settings", { value }),
+  /** Basses, médiums, aigus, ensemble (0 à 1 environ), pour le visualiseur. */
+  audioLevels: () => invoke<[number, number, number, number]>("audio_levels"),
   setShuffle: (on: boolean) => invoke<Snapshot>("set_shuffle", { on }),
   setRepeat: (repeat: Repeat) => invoke<Snapshot>("set_repeat", { repeat }),
   onPlayer: (cb: (s: Snapshot) => void): Promise<UnlistenFn> =>

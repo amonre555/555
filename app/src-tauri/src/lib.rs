@@ -275,9 +275,17 @@ fn get_settings(state: State<'_, AppState>) -> Settings {
     state.settings.lock().clone()
 }
 
+/// Niveau des basses, médiums, aigus et de l'ensemble, pour le visualiseur.
 #[tauri::command]
-fn set_settings(state: State<'_, AppState>, value: Settings) -> Res<Settings> {
+fn audio_levels(state: State<'_, AppState>) -> [f32; 4] {
+    state.controller.levels()
+}
+
+#[tauri::command]
+fn set_settings(state: State<'_, AppState>, mut value: Settings) -> Res<Settings> {
+    value.fx = value.fx.clamped();
     state.controller.set_crossfade(value.crossfade);
+    state.controller.set_fx(value.fx);
     *state.settings.lock() = value.clone();
     settings::save(&state.settings_path, &value)?;
     if !value.resume {
@@ -499,6 +507,7 @@ pub fn run() {
 
             let controller = Controller::new(Arc::new(sources), client.clone())?;
             controller.set_crossfade(prefs.crossfade);
+            controller.set_fx(prefs.fx);
             if prefs.resume {
                 controller.restore(settings::load::<Session>(&session_path));
             }
@@ -696,6 +705,7 @@ pub fn run() {
             import_playlist,
             get_settings,
             set_settings,
+            audio_levels,
             set_shuffle,
             set_repeat,
         ])

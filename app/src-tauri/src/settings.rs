@@ -14,11 +14,13 @@ pub struct Settings {
     pub resume: bool,
     /// Afficher « Écoute … » dans le statut Discord.
     pub discord: bool,
+    /// Égaliseur, réverbération et vitesse.
+    pub fx: yato_core::fx::FxSettings,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { crossfade: 0.0, resume: true, discord: true }
+        Self { crossfade: 0.0, resume: true, discord: true, fx: Default::default() }
     }
 }
 

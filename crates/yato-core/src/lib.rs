@@ -10,11 +10,13 @@
 //! - [`sources`] : les sources fournies (bibliothèque locale, Deezer pour les infos, YouTube Music pour le son)
 //! - [`stream`]  : lecteur HTTP progressif (la lecture démarre avant la fin du téléchargement)
 //! - [`player`]  : moteur de lecture + file d'attente
+//! - [`fx`]      : égaliseur, réverbération et mesure du son (visualiseur)
 //!
 //! L'interface (Tauri aujourd'hui, autre chose demain) ne fait qu'appeler ce crate.
 
 pub mod collection;
 pub mod discover;
+pub mod fx;
 pub mod error;
 pub mod import;
 pub mod lyrics;

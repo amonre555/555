@@ -1,9 +1,11 @@
 // Lecteur : fond vivant, barre de lecture flottante, vue « En lecture » avec paroles.
 import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show } from "solid-js";
-import { api, bigCoverUrl, coverUrl, formatTime, type ArtistRef, type LyricWord, type Lyrics, type Snapshot, type Track } from "./api";
+import { api, bigCoverUrl, coverUrl, formatTime, realTime, type ArtistRef, type LyricWord, type Lyrics, type Snapshot, type Track } from "./api";
 import { IconChevronDown, IconLyrics, IconMinus, IconNext, IconPause, IconPlay, IconPlus, IconPrev, IconRepeat, IconShuffle, IconVolume } from "./icons";
 import { AlbumLink, ArtistLinks, Cover, LikeButton } from "./ui";
 import { themeFromCover } from "./theme";
+import { Visualizer, visualizerOn } from "./visualizer";
+import { EqButton } from "./eq";
 import { t as tr } from "./i18n";
 import { roundedSquare } from "./shapes";
 
@@ -95,8 +97,8 @@ export function PlayerBar(props: {
 
       <div class="side-controls">
         <span class="player-time">
-          {formatTime(props.position)}
-          <span class="player-time-total"> / {formatTime(props.snap.duration)}</span>
+          {formatTime(realTime(props.position, props.snap))}
+          <span class="player-time-total"> / {formatTime(realTime(props.snap.duration, props.snap))}</span>
         </span>
         <button
           classList={{ "icon-btn": true, active: props.expanded }}
@@ -106,6 +108,7 @@ export function PlayerBar(props: {
         >
           <IconLyrics />
         </button>
+        <EqButton />
         <Volume snap={props.snap} run={props.run} />
       </div>
     </footer>
@@ -178,7 +181,7 @@ function Progress(props: { snap: Snapshot; position: number; run: Run; line?: bo
   return (
     <div classList={{ progress: true, "progress-line": !!props.line }}>
       <Show when={!props.line}>
-        <span class="time">{formatTime(shown())}</span>
+        <span class="time">{formatTime(realTime(shown(), props.snap))}</span>
       </Show>
       {/*
         Barre ondulée (Material 3 Expressive) : la partie écoutée est une vague qui défile
@@ -206,7 +209,7 @@ function Progress(props: { snap: Snapshot; position: number; run: Run; line?: bo
       />
       </div>
       <Show when={!props.line}>
-        <span class="time">{formatTime(props.snap.duration)}</span>
+        <span class="time">{formatTime(realTime(props.snap.duration, props.snap))}</span>
       </Show>
     </div>
   );
@@ -367,6 +370,9 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
       {/* Fond propre à la vue (pochette floutée sur une base opaque) : il apparaît avec elle. */}
       <div class="np-bg" aria-hidden="true">
         <Show when={bigCoverUrl(track())}>{(u) => <div class="np-bg-art" style={{ "background-image": `url("${u()}")` }} />}</Show>
+        <Show when={visualizerOn()}>
+          <Visualizer playing={props.snap.status === "playing"} />
+        </Show>
       </div>
       <button class="icon-btn np-close" title={tr.close} onClick={props.onClose}>
         <IconChevronDown />

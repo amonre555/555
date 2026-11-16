@@ -1,7 +1,10 @@
 // Page Réglages, et fenêtre d'import de playlist.
 import { getVersion } from "@tauri-apps/api/app";
 import { createSignal, For, onMount, Show, type JSX } from "solid-js";
-import { api, type Settings } from "./api";
+import { api, FLAT_FX, type Settings } from "./api";
+import { EqPanel } from "./eq";
+import { fx, setFx } from "./fx-store";
+import { setVisualizerOn, visualizerOn } from "./visualizer";
 import { clearHistory, collection, importPlaylist, notify } from "./collection";
 import { IconClose, IconLink } from "./icons";
 import { checkForUpdates } from "./update";
@@ -49,7 +52,8 @@ export function SettingsView(props: { onImport: () => void; onLibrary: () => voi
   const change = async (patch: Partial<Settings>) => {
     const cur = settings();
     if (!cur) return;
-    const next = { ...cur, ...patch };
+    // Les effets se règlent ailleurs (égaliseur) : on garde toujours leur valeur la plus récente.
+    const next = { ...cur, ...patch, fx: fx() };
     setSettings(next);
     try {
       setSettings(await api.setSettings(next));
@@ -120,6 +124,20 @@ export function SettingsView(props: { onImport: () => void; onLibrary: () => voi
               <Row title={t.resume} hint={t.resumeHint}>
                 <Toggle on={s().resume} label={t.resume} onChange={(on) => change({ resume: on })} />
               </Row>
+            </section>
+
+            <section class="settings-group">
+              <h2 class="section-title">{t.sound}</h2>
+              <Row title={t.visualizer} hint={t.visualizerHint}>
+                <Toggle on={visualizerOn()} label={t.visualizer} onChange={setVisualizerOn} />
+              </Row>
+              <div class="settings-eq">
+                <div class="settings-eq-head">
+                  <div class="setting-title">{t.equalizer}</div>
+                  <button class="ghost" onClick={() => setFx(FLAT_FX)}>{t.eqReset}</button>
+                </div>
+                <EqPanel />
+              </div>
             </section>
 
             <section class="settings-group">
