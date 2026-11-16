@@ -4,6 +4,10 @@ What's new in 555, version by version. The latest is at the top.
 
 ## Unreleased
 
+### Improvements
+
+- Jumping far into a track, or picking up where you left off after a restart, now starts much faster: 555 downloads from the point you chose instead of waiting for the whole beginning.
+
 ### Fixes
 
 - Importing a playlist now only follows real Deezer short links: a look-alike link can no longer send 555 to another address.
