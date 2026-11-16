@@ -2,6 +2,15 @@
 
 What's new in 555, version by version. The latest is at the top.
 
+## 0.3.8 — 2026-11-16
+
+### New
+
+- Equalizer: a new button in the player bar opens a curve you shape by dragging three points (bass, mids, treble). Double-click a point to reset it.
+- Presets: Slowed + reverb, Sped up and Bass boost in one click, or tune each slider yourself, with reverb and speed.
+- Speed: from slowed to sped up, the pitch follows the speed like a record. Times, the progress bar and the lyrics (line by line and word by word) stay in sync.
+- Visualizer: soft lights behind Now playing that move with the bass, mids and treble. Turn it on or off in Settings → Sound.
+
 ## 0.3.7 — 2026-11-13
 
 ### Fixes
