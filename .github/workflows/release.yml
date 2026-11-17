@@ -1,6 +1,8 @@
 # Publishes a 555 release: builds the app for macOS (Apple Silicon and Intel, one file) and
 # Windows, creates the GitHub Release for the tag with the installers, and `latest.json`,
-# which 555 reads for its automatic updates. Then adds the Android APK to the same release.
+# which 555 reads for its automatic updates. Then adds the Android APK to the same release, and
+# the iPhone/iPad .ipa with its SideStore source (`555-sidestore.json`: SideStore reads it to
+# offer the update on the phone).
 #
 # To publish: `./scripts/release.sh 0.2.0`, then push the commit and the tag.
 # Required secrets (Settings → Secrets and variables → Actions):
@@ -92,8 +94,9 @@ jobs:
             **macOS**: `555_…_universal.dmg` (Apple Silicon and Intel). The app isn't signed by Apple: on first launch, right-click 555 → “Open”, or run `xattr -cr /Applications/555.app`.
             **Windows**: `555_…_x64-setup.exe`. If Windows says “Windows protected your PC”: “More info” → “Run anyway”.
             **Android** (8 or later): `555_…_android.apk`. Open it on the phone and allow your browser or file manager to install apps. 555 isn't on the Play Store, so Play Protect may warn you: “More details” → “Install anyway”. To update, install the new APK over the old one.
+            **iPhone and iPad** (beta, iOS 15 or later): `555_…_ios.ipa`, installed with SideStore. Guide: https://555.amon.lol/ios.html
 
-            Once installed, 555 updates itself.
+            Once installed, 555 updates itself (on iPhone, SideStore offers the update).
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
@@ -159,3 +162,66 @@ jobs:
           apk="555_${version}_android.apk"
           cp app/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk "$apk"
           gh release upload "$GITHUB_REF_NAME" "$apk" --clobber
+
+  # iPhone and iPad: unsigned .ipa (each user's SideStore signs it with their own Apple Account),
+  # and the SideStore source that points to it. SideStore reads the source from
+  # releases/latest/download/555-sidestore.json and offers the new version on the phone.
+  ios:
+    name: iPhone and iPad
+    needs: build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          key: iOS
+
+      - name: Frontend dependencies
+        working-directory: app
+        run: npm ci
+
+      # The Xcode project has signing turned off, so Tauri's last step (exporting a signed .ipa)
+      # fails on purpose: the archive it made just before is what we package.
+      - name: Build the app
+        working-directory: app
+        run: |
+          npx tauri ios build --target aarch64 || true
+          test -x src-tauri/gen/apple/build/yato_iOS.xcarchive/Products/Applications/555.app/555
+
+      - name: Package the .ipa and the SideStore source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          ipa="555_${version}_ios.ipa"
+          mkdir Payload
+          cp -R app/src-tauri/gen/apple/build/yato_iOS.xcarchive/Products/Applications/555.app Payload/
+          plist=Payload/555.app/Info.plist
+          if [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")" != "$version" ]; then
+            echo "::error::The .ipa does not say version $version"
+            exit 1
+          fi
+          zip -qry "$ipa" Payload
+
+          notes=$(awk -v v="$version" '/^## /{ if (f) exit; f = ($2 == v); next } f' CHANGELOG.md | sed -e '/./,$!d')
+          jq -n \
+            --arg version "$version" \
+            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg url "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$ipa" \
+            --argjson size "$(stat -f%z "$ipa")" \
+            --arg notes "$notes" \
+            -f .github/sidestore-source.jq > 555-sidestore.json
+          cat 555-sidestore.json
+
+          gh release upload "$GITHUB_REF_NAME" "$ipa" 555-sidestore.json --clobber
