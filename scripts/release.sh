@@ -27,7 +27,7 @@ if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
   exit 1
 fi
 
-# The app version is the Cargo workspace one (tauri.conf.json has none: it reads it from there).
+# The app version: Cargo workspace for the Rust side, app/package.json for tauri.conf.json (iOS reads it there).
 sed -i.bak "/^\[workspace.package\]/,/^\[/s/^version = \".*\"/version = \"$version\"/" Cargo.toml && rm Cargo.toml.bak
 (cd app && npm version "$version" --no-git-tag-version --allow-same-version >/dev/null)
 cargo update --workspace --quiet

@@ -27,3 +27,7 @@ zip = { version = "9.5.0", default-features = false, features = ["deflate"] }
 openssl = { version = "0.10", features = ["vendored"] }
 # Android : QuickJS (utilisé par rustypipe) n'a pas de liaisons toutes prêtes, on les génère.
 rquickjs = { version = "0.9", features = ["bindgen"] }
+
+# iPhone : pareil pour QuickJS (TLS : celui du système, pas d'OpenSSL).
+[target.'cfg(target_os = "ios")'.dependencies]
+rquickjs = { version = "0.9", features = ["bindgen"] }

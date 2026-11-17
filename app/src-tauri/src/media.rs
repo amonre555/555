@@ -1,5 +1,6 @@
 //! Contrôles multimédia du système : touches du clavier (lecture, suivant…), panneau multimédia
-//! de Windows (avec titre, artiste et pochette), MPRIS sous Linux, « À l'écoute » sous macOS.
+//! de Windows (avec titre, artiste et pochette), MPRIS sous Linux, « À l'écoute » sous macOS et
+//! iOS (écran verrouillé, Dynamic Island, Centre de contrôle, écouteurs).
 //!
 //! Les contrôles vivent dans leur propre thread (l'API Windows n'aime pas changer de thread).
 //! Il reçoit les états du lecteur et renvoie les commandes de l'utilisateur au contrôleur.
@@ -25,19 +26,34 @@ pub fn spawn(hwnd: Option<*mut c_void>, cover_dir: PathBuf, controller: Arc<Cont
     let (tx, rx) = mpsc::channel::<Snapshot>();
     let (events_tx, mut events_rx) = tokio::sync::mpsc::unbounded_channel::<MediaControlEvent>();
     let hwnd = hwnd.map(|h| h as usize); // un pointeur brut ne peut pas changer de thread
+    let config = move || PlatformConfig {
+        display_name: "555",
+        dbus_name: "yato",
+        hwnd: hwnd.map(|h| h as *mut c_void),
+    };
+
+    // iPhone : les commandes (lecture, suivant…) s'enregistrent depuis le fil principal, comme
+    // Apple le demande (on y est : appelé pendant le démarrage de l'appli).
+    #[cfg(target_os = "ios")]
+    let attached = {
+        let mut controls = MediaControls::new(config()).ok()?;
+        controls.attach(move |e| { let _ = events_tx.send(e); }).ok()?;
+        controls
+    };
 
     std::thread::Builder::new()
         .name("yato-media-controls".into())
         .spawn(move || {
-            let config = PlatformConfig {
-                display_name: "555",
-                dbus_name: "yato",
-                hwnd: hwnd.map(|h| h as *mut c_void),
+            #[cfg(target_os = "ios")]
+            let mut controls = attached;
+            #[cfg(not(target_os = "ios"))]
+            let mut controls = {
+                let Ok(mut controls) = MediaControls::new(config()) else { return };
+                if controls.attach(move |e| { let _ = events_tx.send(e); }).is_err() {
+                    return;
+                }
+                controls
             };
-            let Ok(mut controls) = MediaControls::new(config) else { return };
-            if controls.attach(move |e| { let _ = events_tx.send(e); }).is_err() {
-                return;
-            }
             let mut shown = Shown::default();
             for snap in rx {
                 shown.update(&mut controls, &snap, &cover_dir);
@@ -89,6 +105,10 @@ async fn seek(c: &Arc<Controller>, to: f64) -> yato_core::Result<()> {
 #[derive(Default)]
 struct Shown {
     track_id: Option<String>,
+    /// Durée envoyée : souvent inconnue au changement de morceau, elle arrive un peu après.
+    duration: Option<f64>,
+    /// Pochette du morceau en cours (sur iPhone, un fichier téléchargé : on ne le refait pas).
+    cover: Option<String>,
     status: Option<Status>,
     /// Position attendue (position affichée + temps écoulé) pour repérer les sauts.
     position: f64,
@@ -97,23 +117,32 @@ struct Shown {
 impl Shown {
     fn update(&mut self, controls: &mut MediaControls, snap: &Snapshot, cover_dir: &Path) {
         let id = snap.track.as_ref().map(|t| t.id.clone());
-        if id != self.track_id {
+        let duration = snap.duration.or(snap.track.as_ref().and_then(|t| t.duration)).filter(|d| *d > 0.0);
+        let new_track = id != self.track_id;
+        if new_track || duration != self.duration {
             match &snap.track {
                 Some(t) => {
-                    let cover = cover_url(t, cover_dir);
+                    if new_track {
+                        let cover = cover_url(t, cover_dir);
+                        #[cfg(target_os = "ios")]
+                        let cover = cover.and_then(|url| crate::cover::local_cover(&url, cover_dir));
+                        self.cover = cover;
+                    }
                     let _ = controls.set_metadata(MediaMetadata {
                         title: Some(&t.title),
                         artist: Some(&t.artist),
                         album: t.album.as_deref(),
-                        cover_url: cover.as_deref(),
-                        duration: snap.duration.map(Duration::from_secs_f64),
+                        cover_url: self.cover.as_deref(),
+                        duration: duration.map(Duration::from_secs_f64),
                     });
                 }
                 None => {
+                    self.cover = None;
                     let _ = controls.set_metadata(MediaMetadata::default());
                 }
             }
             self.track_id = id;
+            self.duration = duration;
             self.status = None; // forcer la mise à jour de l'état
         }
 
@@ -128,8 +157,55 @@ impl Shown {
                 Status::Idle | Status::Error => MediaPlayback::Stopped,
             };
             let _ = controls.set_playback(playback);
+            #[cfg(target_os = "ios")]
+            ios::set_rate(snap.status == Status::Playing, snap.position.max(0.0), duration);
             self.status = Some(snap.status);
         }
         self.position = snap.position;
+    }
+}
+
+/// iPhone : souvlaki donne l'état « lecture / pause » par `playbackState`, qui n'existe que sur
+/// macOS. iOS le déduit de la vitesse de lecture : sans elle, pas de boutons sur l'écran
+/// verrouillé et le temps n'avance pas. On l'ajoute à ce que souvlaki a déjà envoyé.
+#[cfg(target_os = "ios")]
+mod ios {
+    use objc2::{
+        msg_send,
+        runtime::{AnyClass, AnyObject},
+    };
+
+    unsafe extern "C" {
+        static MPNowPlayingInfoPropertyPlaybackRate: *mut AnyObject;
+        static MPNowPlayingInfoPropertyElapsedPlaybackTime: *mut AnyObject;
+        static MPMediaItemPropertyPlaybackDuration: *mut AnyObject;
+    }
+
+    pub fn set_rate(playing: bool, position: f64, duration: Option<f64>) {
+        unsafe {
+            let (Some(center_class), Some(dict_class), Some(number_class)) = (
+                AnyClass::get(c"MPNowPlayingInfoCenter"),
+                AnyClass::get(c"NSMutableDictionary"),
+                AnyClass::get(c"NSNumber"),
+            ) else {
+                return;
+            };
+            let number = |v: f64| -> *mut AnyObject { msg_send![number_class, numberWithDouble: v] };
+            let center: *mut AnyObject = msg_send![center_class, defaultCenter];
+            let info: *mut AnyObject = msg_send![dict_class, dictionary];
+            let previous: *mut AnyObject = msg_send![&*center, nowPlayingInfo];
+            if !previous.is_null() {
+                let _: () = msg_send![&*info, addEntriesFromDictionary: previous];
+            }
+            let rate = number(if playing { 1.0 } else { 0.0 });
+            let _: () = msg_send![&*info, setObject: rate, forKey: MPNowPlayingInfoPropertyPlaybackRate];
+            let elapsed = number(position);
+            let _: () = msg_send![&*info, setObject: elapsed, forKey: MPNowPlayingInfoPropertyElapsedPlaybackTime];
+            if let Some(d) = duration {
+                let d = number(d);
+                let _: () = msg_send![&*info, setObject: d, forKey: MPMediaItemPropertyPlaybackDuration];
+            }
+            let _: () = msg_send![&*center, setNowPlayingInfo: info];
+        }
     }
 }

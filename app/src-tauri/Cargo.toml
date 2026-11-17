@@ -26,3 +26,9 @@ discord-rich-presence = "1.1.0"
 souvlaki = "0.9.3"
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"
+
+# iPhone : réglage natif de la WebView (marges du système, voir lib.rs), et écran verrouillé /
+# Dynamic Island / Centre de contrôle (« À l'écoute », même code que sur macOS).
+[target.'cfg(target_os = "ios")'.dependencies]
+objc2 = "0.6"
+souvlaki = "0.9.3"

@@ -7,7 +7,7 @@ mod android_update;
 mod cover;
 #[cfg(desktop)]
 mod discord;
-#[cfg(desktop)]
+#[cfg(any(desktop, target_os = "ios"))]
 mod media;
 mod settings;
 
@@ -532,6 +532,32 @@ fn cover_response(uri_path: &str) -> http::Response<Vec<u8>> {
     .expect("réponse HTTP valide")
 }
 
+// Session audio iOS « lecture » (catégorie AVAudioSessionCategoryPlayback), activée.
+#[cfg(target_os = "ios")]
+#[link(name = "AVFAudio", kind = "framework")]
+unsafe extern "C" {}
+
+#[cfg(target_os = "ios")]
+fn ios_audio_session() {
+    use objc2::{
+        msg_send,
+        runtime::{AnyClass, AnyObject, Bool},
+    };
+    unsafe {
+        let (Some(session_class), Some(string_class)) = (AnyClass::get(c"AVAudioSession"), AnyClass::get(c"NSString")) else {
+            return;
+        };
+        let session: *mut AnyObject = msg_send![session_class, sharedInstance];
+        let category: *mut AnyObject = msg_send![string_class, stringWithUTF8String: c"AVAudioSessionCategoryPlayback".as_ptr()];
+        let no_error = std::ptr::null_mut::<*mut AnyObject>();
+        let ok: Bool = msg_send![&*session, setCategory: category, error: no_error];
+        let active: Bool = msg_send![&*session, setActive: Bool::YES, error: no_error];
+        if !ok.as_bool() || !active.as_bool() {
+            eprintln!("session audio iOS : réglage impossible");
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     yato_core::timing::start();
@@ -548,6 +574,22 @@ pub fn run() {
             tauri::async_runtime::spawn_blocking(move || responder.respond(cover_response(&path)));
         })
         .setup(|app| {
+            // iPhone : la WebView ajoute d'elle-même les marges du système (encoche, barre du
+            // bas), en plus de celles que l'interface gère déjà (`--sat` / `--sab`) : on les retire.
+            #[cfg(target_os = "ios")]
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.with_webview(|wv| unsafe {
+                    use objc2::{msg_send, runtime::AnyObject};
+                    let webview = &*(wv.inner() as *const AnyObject);
+                    let scroll: *mut AnyObject = msg_send![webview, scrollView];
+                    // UIScrollViewContentInsetAdjustmentNever
+                    let _: () = msg_send![&*scroll, setContentInsetAdjustmentBehavior: 2isize];
+                });
+            }
+            // iPhone : 555 est un lecteur de musique. Sans ça, iOS coupe le son écran verrouillé,
+            // appli en arrière-plan ou interrupteur sur « silencieux ».
+            #[cfg(target_os = "ios")]
+            ios_audio_session();
             migrate_old_data(&app.path().app_data_dir()?);
             let cache_path = app.path().app_data_dir()?.join("library.json");
             let library = Arc::new(LocalLibrary::load(&cache_path));
@@ -617,9 +659,10 @@ pub fn run() {
                 .get_webview_window("main")
                 .and_then(|w| w.hwnd().ok())
                 .map(|h| h.0 as *mut std::ffi::c_void);
-            #[cfg(all(desktop, not(windows)))]
+            #[cfg(any(all(desktop, not(windows)), target_os = "ios"))]
             let hwnd = None;
-            #[cfg(desktop)]
+            // iPhone : écran verrouillé, Dynamic Island, Centre de contrôle, écouteurs.
+            #[cfg(any(desktop, target_os = "ios"))]
             let media = media::spawn(hwnd, app.path().app_cache_dir()?.join("now-playing"), controller.clone());
             // Statut Discord (« Écoute … »), s'il est configuré.
             #[cfg(desktop)]
@@ -627,8 +670,6 @@ pub fn run() {
             // Android : notification du lecteur et lecture écran éteint ; pas de Discord.
             #[cfg(target_os = "android")]
             let media = android_media::spawn(app.handle(), app.path().app_cache_dir()?.join("now-playing"), controller.clone());
-            #[cfg(target_os = "ios")]
-            let media: Option<std::sync::mpsc::Sender<Snapshot>> = None;
             #[cfg(mobile)]
             let discord: Option<std::sync::mpsc::Sender<Snapshot>> = None;
 

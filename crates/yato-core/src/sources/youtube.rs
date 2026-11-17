@@ -44,7 +44,7 @@ type DirectUrls = Arc<Mutex<std::collections::HashMap<String, (Instant, String, 
 async fn fetch_direct(rp: &RustyPipe, http: &reqwest::Client, direct: &DirectUrls, id: &str) -> Option<(String, u64)> {
     let t0 = Instant::now();
     let mut found = None;
-    if cfg!(target_os = "android") {
+    if cfg!(any(target_os = "android", target_os = "ios")) {
         found = visionos_direct(rp, http, id).await;
         crate::timing::step("flux direct : adresse obtenue (visionOS)", t0);
     }
@@ -154,7 +154,7 @@ impl YouTubeMusicSource {
             crate::timing::step("youtube : déjà dans le cache (anticipé)", Instant::now());
             return Ok(d);
         }
-        if cfg!(target_os = "android") {
+        if cfg!(any(target_os = "android", target_os = "ios")) {
             return self.download_direct_only(id).await;
         }
         let ytdlp = self.ytdlp.clone();

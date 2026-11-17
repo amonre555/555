@@ -8,7 +8,7 @@ import { setVisualizerOn, visualizerOn } from "./visualizer";
 import { clearHistory, collection, importPlaylist, notify } from "./collection";
 import { IconClose, IconLink } from "./icons";
 import { checkForUpdates } from "./update";
-import { isAndroid } from "./mobile";
+import { isAndroid, isIOS } from "./mobile";
 import { lang, LANGUAGES, setLang, t, type Lang } from "./i18n";
 
 /** Une ligne de réglage : intitulé, explication, et la commande à droite. */
@@ -160,8 +160,8 @@ export function SettingsView(props: { onImport: () => void; onLibrary: () => voi
               </Row>
             </section>
 
-            {/* Android : ni Discord ni mises à jour intégrées (l'APK s'installe à la main). */}
-            <Show when={!isAndroid}>
+            {/* Android et iOS : pas de Discord (ni de mises à jour intégrées sur iOS : SideStore). */}
+            <Show when={!isAndroid && !isIOS}>
               <section class="settings-group">
                 <h2 class="section-title">Discord</h2>
                 <Row title={t.showListening} hint={t.discordHint}>
@@ -172,10 +172,13 @@ export function SettingsView(props: { onImport: () => void; onLibrary: () => voi
 
             <section class="settings-group">
               <h2 class="section-title">555</h2>
-              <Row title={t.version(version() || "-")} hint={t.updatesHint}>
-                <button class="ghost" onClick={lookForUpdate} disabled={checking()}>
-                  {checking() ? t.checking : t.checkUpdates}
-                </button>
+              {/* iOS : pas de mise à jour depuis l'appli, le nouveau .ipa s'installe avec SideStore. */}
+              <Row title={t.version(version() || "-")} hint={isIOS ? undefined : t.updatesHint}>
+                <Show when={!isIOS}>
+                  <button class="ghost" onClick={lookForUpdate} disabled={checking()}>
+                    {checking() ? t.checking : t.checkUpdates}
+                  </button>
+                </Show>
               </Row>
             </section>
           </>

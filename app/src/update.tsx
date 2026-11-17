@@ -14,7 +14,7 @@ import { createSignal, Match, onCleanup, onMount, Show, Switch } from "solid-js"
 import { notify } from "./collection";
 import { IconDownload } from "./icons";
 import { t } from "./i18n";
-import { isAndroid } from "./mobile";
+import { isAndroid, isIOS } from "./mobile";
 
 const FIRST_CHECK_MS = 4000;
 const EVERY_MS = 6 * 3600 * 1000;
@@ -59,7 +59,7 @@ function checkRegularly() {
 }
 
 export function UpdateCard() {
-  if (isAndroid) return null;
+  if (isAndroid || isIOS) return null;
   checkRegularly();
 
   const install = async () => {

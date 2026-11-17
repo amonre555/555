@@ -11,6 +11,13 @@ export const isMobile = mobile;
 export const isAndroid = /Android/i.test(navigator.userAgent);
 
 /**
+ * iPhone et iPad (l'iPad se présente comme un Mac, mais tactile). Pas de mises à jour intégrées
+ * (SideStore réinstalle le .ipa) ni de Discord.
+ */
+export const isIOS =
+  /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+
+/**
  * Bouton « retour » d'Android : la WebView revient en arrière dans son historique, sinon ferme
  * l'appli. On garde donc toujours une entrée d'historique « tampon » : un retour la consomme
  * (`popstate`), on demande à l'appli de reculer d'un cran (fermer un menu, la vue « En lecture »,

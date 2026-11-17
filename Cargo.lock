@@ -7256,6 +7256,7 @@ name = "yato"
 version = "0.3.9"
 dependencies = [
  "discord-rich-presence",
+ "objc2",
  "parking_lot 0.13.0",
  "percent-encoding",
  "serde",
