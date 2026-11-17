@@ -57,6 +57,11 @@
     .callout { margin-top: 16px; padding: 14px 16px; border-radius: 14px; font-size: 15px; background: rgba(36, 51, 255, 0.12); box-shadow: inset 0 0 0 1px rgba(111, 123, 255, 0.35); }
     .callout.warn { background: rgba(255, 181, 71, 0.08); box-shadow: inset 0 0 0 1px rgba(255, 181, 71, 0.35); }
     .callout b { color: #fff; }
+    .step > div { min-width: 0; }
+    .cmd { position: relative; margin-top: 10px; padding: 12px 70px 12px 14px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); overflow-wrap: anywhere; }
+    .cmd code { padding: 0; background: none; font-size: 13px; }
+    .copy { position: absolute; top: 7px; right: 7px; padding: 4px 10px; border: 0; border-radius: 8px; font: inherit; font-size: 12px; background: var(--glass-2); color: var(--text-2); cursor: pointer; }
+    .copy:hover { color: var(--text); }
 
     .part { display: flex; align-items: center; gap: 12px; margin: 64px 0 18px; }
     .part span { flex: none; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; background: var(--blue); }
@@ -136,7 +141,7 @@
       <p class="lead">555 isn't on the App Store, so you install it yourself with <b>SideStore</b>, a free app that signs apps with your own Apple Account. The first setup needs a computer once and takes about 15 minutes. After that, everything happens on your phone.</p>
       <div class="summary">
         <div><b>Part 1 · once</b>Install SideStore with a computer and a cable.</div>
-        <div><b>Part 2 · on the device</b>Open the 555 file in SideStore. Done.</div>
+        <div><b>Part 2 · on the device</b>Add the 555 source to SideStore and install 555. Done.</div>
         <div><b>Every 7 days</b>SideStore renews 555 by itself. Nothing to reinstall.</div>
       </div>
     </header>
@@ -214,14 +219,16 @@
     <ol class="steps">
       <li class="step solo">
         <div>
-          <h3>Get the 555 file <span class="where">PHONE</span></h3>
-          <p class="body">The iPhone version is a private beta for now: you get the 555 file (<code>.ipa</code>) directly from us. Save it to the <b>Files</b> app on the phone (from AirDrop, Telegram, Mail…: open it, then Share → <b>Save to Files</b>).</p>
+          <h3>Add the 555 source <span class="where">PHONE</span></h3>
+          <p class="body">Copy this address. In SideStore, open the <b>Sources</b> tab, tap <b>+</b>, paste it and add the source.</p>
+          <div class="cmd"><code>https://github.com/amonre555/555/releases/latest/download/555-sidestore.json</code><button class="copy" type="button">Copy</button></div>
+          <p class="body">This is how SideStore finds 555 and, later, its updates.</p>
         </div>
       </li>
       <li class="step">
         <div>
-          <h3>Open it in SideStore <span class="where">PHONE</span></h3>
-          <p class="body">With LocalDevVPN connected, open SideStore, go to <b>My Apps</b>, tap <b>+</b> at the top left and pick the 555 file. After a few seconds, 555 is on your home screen.</p>
+          <h3>Install 555 <span class="where">PHONE</span></h3>
+          <p class="body">With LocalDevVPN connected, open the <b>Browse</b> tab in SideStore, find 555 and tap <b>Free</b>. After a few seconds, 555 is on your home screen.</p>
         </div>
         <div class="mock ios" aria-hidden="true"><div style="display:flex;justify-content:space-between;align-items:center;margin:0 4px 10px"><span class="plus">+</span><span class="title" style="margin:0">My Apps</span><span></span></div><div class="group"><div class="row"><div class="appline"><span class="app-ic ss"></span><span>SideStore<small>Expires in 7 days</small></span></div><span class="pill">7 DAYS</span></div><div class="row"><div class="appline"><span class="app-ic app555"></span><span>555<small>Expires in 7 days</small></span></div><span class="pill">7 DAYS</span></div></div></div>
       </li>
@@ -232,7 +239,8 @@
     <div class="callout warn"><b>If 555 does expire</b>, it just won't open: your library and playlists are still there. Connect LocalDevVPN, open SideStore and tap 7 DAYS next to 555.</div>
 
     <h2>Updating 555</h2>
-    <p class="muted">When you get a new 555 file, save it to Files and open it in SideStore the same way (My Apps → <b>+</b>). It installs over the old one and keeps your data. <b>Don't delete 555 first</b>, or you'll lose your library.</p>
+    <p class="muted">When a new version comes out, SideStore shows it under <b>My Apps</b>: with LocalDevVPN connected, tap <b>Update</b> next to 555. It installs over the old one and keeps your data. <b>Don't delete 555 first</b>, or you'll lose your library.</p>
+    <p class="muted">Got a 555 file (<code>.ipa</code>) instead? Save it to Files, then in SideStore: My Apps → <b>+</b> at the top left → pick the file.</p>
 
     <h2>Something's wrong?</h2>
     <div class="faq">
@@ -241,12 +249,23 @@
       <details><summary>It stopped working after an iOS update</summary><p>An iOS update can reset the pairing between SideStore and the phone. Plug the phone into the computer, open iloader, click “Manage Pairing File”, then “Place” next to SideStore.</p></details>
       <details><summary>“Maximum number of apps” error</summary><p>A free Apple Account can only have 3 sideloaded apps at a time, SideStore included, and 10 different apps per week. Remove another sideloaded app from My Apps.</p></details>
       <details><summary>“Untrusted Developer” when opening 555</summary><p>Go back to Settings › General › VPN &amp; Device Management and trust your Apple Account (step 5).</p></details>
-      <details><summary>Is it safe?</summary><p>SideStore signs 555 with your own Apple Account, on your phone. The 555 file is built by GitHub from the public source code. Neither SideStore nor 555 gets access to your iCloud.</p></details>
+      <details><summary>Is it safe?</summary><p>SideStore signs 555 with your own Apple Account, on your phone. The 555 file is built by GitHub from the public source code, for each release. Neither SideStore nor 555 gets access to your iCloud.</p></details>
     </div>
 
-    <div class="callout" style="margin-top:40px"><b>Beta:</b> the iPhone version is brand new and still being tested. Controls on the lock screen aren't there yet. Found a bug? Tell us on <a href="https://github.com/amonre555/555/issues" target="_blank" rel="noopener">GitHub</a>.</div>
+    <div class="callout" style="margin-top:40px"><b>Beta:</b> the iPhone version is brand new and still being tested. Found a bug? Tell us on <a href="https://github.com/amonre555/555/issues" target="_blank" rel="noopener">GitHub</a>.</div>
 
     <footer>555 · free and open source · not affiliated with Apple</footer>
   </main>
+  <script>
+    document.querySelectorAll(".copy").forEach((b) =>
+      b.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(b.previousElementSibling.textContent);
+          b.textContent = "Copied";
+          setTimeout(() => (b.textContent = "Copy"), 1500);
+        } catch {}
+      })
+    );
+  </script>
 </body>
 </html>

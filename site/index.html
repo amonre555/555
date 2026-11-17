@@ -140,6 +140,24 @@
     .copy { position: absolute; top: 7px; right: 7px; padding: 4px 10px; border-radius: 8px; font-size: 12px; background: var(--glass-2); color: var(--text-2); }
     .copy:hover { color: var(--text); }
 
+    /* Download counter (hero): odometer digits that roll into place. */
+    .dl-count { position: relative; display: inline-flex; align-items: center; gap: 14px; margin-top: 28px; }
+    /* Soft blue glow behind the number, outside the digit window so nothing clips it. */
+    .dl-count::before { content: ""; position: absolute; inset: 10% 20%; z-index: -1; border-radius: 50%; background: var(--blue); filter: blur(40px); opacity: 0.45; pointer-events: none; }
+    .dl-count[hidden] { display: none; }
+    .dl-count svg { width: 30px; height: 30px; color: var(--blue-light); filter: drop-shadow(0 0 14px rgba(36, 51, 255, 0.9)); }
+    /* The window is taller than a digit and fades out top and bottom, so digits glide in and out with no hard edge. */
+    .odo {
+      --h: 1.5em; display: inline-flex; height: var(--h); overflow: hidden;
+      font-family: var(--display); font-size: clamp(38px, 6vw, 52px); font-weight: 700; line-height: var(--h); letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+      color: #fff;
+      -webkit-mask-image: linear-gradient(transparent, #000 32%, #000 68%, transparent); mask-image: linear-gradient(transparent, #000 32%, #000 68%, transparent);
+    }
+    .odo .col { display: flex; flex-direction: column; transition: transform 2.4s var(--soft); }
+    .odo .col span, .odo .sep { display: block; height: var(--h); text-align: center; }
+    .dl-count-label { color: var(--text-2); font-size: clamp(17px, 2vw, 20px); }
+    @media (prefers-reduced-motion: reduce) { .odo .col { transition: none; } }
+
     /* FAQ */
     .faq { margin-top: 40px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
     details { border-radius: 16px; background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
@@ -215,6 +233,11 @@
         <a class="btn btn-ghost" href="https://github.com/amonre555/555" target="_blank" rel="noopener">View source</a>
       </div>
       <p class="hero-meta" id="hero-meta">Free and open source. macOS, Windows and Android.</p>
+      <div class="dl-count" id="dl-count" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>
+        <span class="odo" id="dl-odo" aria-hidden="true"></span>
+        <span class="dl-count-label">downloads</span>
+      </div>
 
       <div class="shot reveal">
         <img src="assets/shot-discover.jpg" width="2000" height="1250" alt="555 playing VHS by Mattyeux, on the Discover page" />
@@ -408,8 +431,49 @@
         }
         const date = new Date(latest.published_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
         document.getElementById("hero-meta").textContent = `Version ${latest.tag_name.replace(/^v/, "")} · ${date} · Free and open source.`;
+
+        // Installers downloaded across every release (updater files and signatures left out).
+        const total = releases
+          .filter((r) => !r.draft)
+          .flatMap((r) => r.assets)
+          .filter((a) => /(\.dmg|-setup\.exe|\.msi|\.apk|\.ipa)$/.test(a.name))
+          .reduce((n, a) => n + a.download_count, 0);
+        if (total > 0) showCount(total);
       })
       .catch(() => {});
+
+    // Odometer: each digit is a column of 0-9 twice over, so it spins a full turn before landing.
+    function showCount(total) {
+      const box = document.getElementById("dl-count");
+      const odo = document.getElementById("dl-odo");
+      const text = total.toLocaleString("en-US");
+      box.setAttribute("aria-label", `${text} downloads`);
+      const cols = [];
+      for (const ch of text) {
+        if (!/\d/.test(ch)) {
+          odo.insertAdjacentHTML("beforeend", `<span class="sep">${ch}</span>`);
+          continue;
+        }
+        const col = document.createElement("span");
+        col.className = "col";
+        col.innerHTML = Array.from({ length: 20 }, (_, i) => `<span>${i % 10}</span>`).join("");
+        col.dataset.to = 10 + Number(ch);
+        odo.append(col);
+        cols.push(col);
+      }
+      box.hidden = false;
+      const roll = () =>
+        cols.forEach((col, i) => {
+          col.style.transitionDelay = `${i * 0.12}s`;
+          col.style.transform = `translateY(calc(var(--h) * -${col.dataset.to}))`;
+        });
+      new IntersectionObserver((entries, obs) => {
+        if (!entries[0].isIntersecting) return;
+        obs.disconnect();
+        void box.offsetHeight; // commit the starting position so the transition runs
+        roll();
+      }, { threshold: 0.6 }).observe(box);
+    }
 
     document.querySelectorAll(".copy").forEach((b) =>
       b.addEventListener("click", async () => {
