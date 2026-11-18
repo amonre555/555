@@ -2,6 +2,14 @@
 
 What's new in 555, version by version. The latest is at the top.
 
+## 0.4.0 — 2026-11-18
+
+### New
+
+- 555 on iPhone and iPad (iOS 15 or later), out of beta. It isn't on the App Store: you install it with SideStore, a free app that signs it with your own Apple Account. Step-by-step guide: https://555.amon.lol/ios.html
+- On iPhone, music keeps playing with the screen locked, in the background and with the silent switch on. The lock screen, the Dynamic Island and Control Center show the song, the cover and the controls.
+- Updates on iPhone: add the 555 source in SideStore once, and new versions install from the phone. SideStore renews the app by itself every 7 days.
+
 ## 0.3.11 — 2026-11-18
 
 ### Fixes
