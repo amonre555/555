@@ -58,13 +58,20 @@ void main() {
   gl_FragColor = vec4(col, 1.0);
 }`;
 
-/** Couleur CSS (`#rrggbb`) d'une variable du thème, en composantes 0–1. */
+/**
+ * Couleur d'une variable du thème, en composantes 0–1. Les variables déclarées avec `@property`
+ * (`<color>`) sont rendues en `rgb(r, g, b)` par le navigateur, les autres restent en `#rrggbb`.
+ */
 function cssColor(name: string, fallback: [number, number, number]): [number, number, number] {
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  const m = /^#([0-9a-f]{6})$/i.exec(v);
-  if (!m) return fallback;
-  const n = parseInt(m[1], 16);
-  return [(n >> 16) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  const hex = /^#([0-9a-f]{6})$/i.exec(v);
+  if (hex) {
+    const n = parseInt(hex[1], 16);
+    return [(n >> 16) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  }
+  const rgb = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(v);
+  if (rgb) return [Number(rgb[1]) / 255, Number(rgb[2]) / 255, Number(rgb[3]) / 255];
+  return fallback;
 }
 
 export function Visualizer(props: { playing: boolean }) {
