@@ -2,6 +2,12 @@
 
 What's new in 555, version by version. The latest is at the top.
 
+## 0.3.10 — 2026-11-18
+
+### Fixes
+
+- Android: music plays from the loudspeaker again (or your headphones), instead of the earpiece used for phone calls.
+
 ## 0.3.9 — 2026-11-16
 
 ### New
