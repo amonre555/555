@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>555 - a light, fast music player</title>
-  <meta name="description" content="555 is a free, open-source music player for macOS, Windows and Android. Stream from Deezer and YouTube Music, play your own files, word-synced lyrics, no account, no ads." />
+  <meta name="description" content="555 is a free, open-source music player for macOS, Windows, Android, iPhone and iPad. Stream from Deezer and YouTube Music, play your own files, word-synced lyrics, no account, no ads." />
   <meta property="og:title" content="555 - a light, fast music player" />
   <meta property="og:description" content="Free and open source. Stream, play your own files, word-synced lyrics. No account, no ads." />
   <meta property="og:image" content="assets/shot-discover.jpg" />
@@ -102,23 +102,19 @@
     h2 { font-family: var(--display); font-size: clamp(30px, 4.6vw, 50px); font-weight: 600; line-height: 1.08; letter-spacing: -0.04em; max-width: 760px; }
     .lead { margin-top: 14px; max-width: 620px; color: var(--text-2); font-size: 18px; }
 
-    .features { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-top: 40px; }
-    .card {
-      grid-column: span 2; padding: 26px; border-radius: var(--r); background: var(--glass);
-      box-shadow: inset 0 0 0 1px var(--line); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      transition: transform 0.4s var(--soft), background 0.3s;
-    }
-    .card:hover { transform: translateY(-3px); background: var(--glass-2); }
-    .card.wide { grid-column: span 3; }
-    .card h3 { font-family: var(--display); font-size: 17px; font-weight: 600; margin: 14px 0 6px; letter-spacing: -0.01em; }
-    .card p { color: var(--text-2); font-size: 15px; }
-    .icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: linear-gradient(145deg, #3a48ff, #0d14a8); color: #fff; }
-    .icon svg { width: 22px; height: 22px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
-    .chip { padding: 4px 10px; border-radius: 999px; font-size: 12px; color: var(--text-2); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+    /* Features: sticky heading on the left, numbered list on the right. */
+    .features-layout { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: clamp(32px, 6vw, 90px); align-items: start; }
+    .features-head { position: sticky; top: 110px; }
+    .feat-list { list-style: none; counter-reset: feat; border-bottom: 1px solid var(--line); }
+    .feat { counter-increment: feat; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 0 20px; padding: 30px 0; border-top: 1px solid var(--line); }
+    .feat::before { content: counter(feat, decimal-leading-zero); font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--text-3); padding-top: 5px; transition: color 0.3s; font-variant-numeric: tabular-nums; }
+    .feat:hover::before { color: var(--blue-light); }
+    .feat h3 { font-family: var(--display); font-size: clamp(19px, 2vw, 23px); font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; margin-bottom: 8px; }
+    .feat p { color: var(--text-2); font-size: 16px; max-width: 520px; }
+    .feat .formats { margin-top: 12px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; letter-spacing: 0.06em; color: var(--text-3); }
 
     /* Karaoke lyrics demo */
-    .lyrics-demo { margin-top: 16px; font-size: 22px; font-weight: 500; line-height: 1.35; }
+    .lyrics-demo { margin-top: 18px; font-size: 22px; font-weight: 500; line-height: 1.35; }
     .lyrics-demo .w { background: linear-gradient(90deg, #fff 50%, rgba(255, 255, 255, 0.28) 50%) 100% 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: sing 4.8s linear infinite; }
     .lyrics-demo .w:nth-child(2) { animation-delay: 0.5s; } .lyrics-demo .w:nth-child(3) { animation-delay: 1s; }
     .lyrics-demo .w:nth-child(4) { animation-delay: 1.5s; } .lyrics-demo .w:nth-child(5) { animation-delay: 2s; }
@@ -134,6 +130,7 @@
     .dl .sub { font-size: 14px; color: var(--text-3); }
     .dl p { color: var(--text-2); font-size: 15px; flex: 1; }
     .dl .btn { margin-top: 10px; align-self: flex-start; }
+    .dl[data-os="linux"] { grid-column: 1 / -1; }
     .note { margin-top: 14px; padding: 18px 20px; border-radius: var(--r); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-2); font-size: 15px; }
     .note b { color: var(--text); font-weight: 500; }
     .cmd { position: relative; margin-top: 10px; padding: 12px 70px 12px 14px; border-radius: 12px; background: rgba(0, 0, 0, 0.35); color: var(--text); overflow-x: auto; white-space: pre; }
@@ -189,7 +186,8 @@
     .reveal.in { opacity: 1; transform: none; }
 
     @media (max-width: 900px) {
-      .card, .card.wide { grid-column: span 3; }
+      .features-layout { grid-template-columns: 1fr; }
+      .features-head { position: static; }
       .downloads { grid-template-columns: 1fr; }
       .tour-row, .tour-row:nth-child(even) { grid-template-columns: 1fr; }
       .faq { grid-template-columns: 1fr; }
@@ -198,8 +196,8 @@
     @media (max-width: 640px) {
       .nav-links { display: none; }
       .hero { padding-top: 60px; }
-      .features { grid-template-columns: 1fr; }
-      .card, .card.wide { grid-column: auto; }
+      .feat { grid-template-columns: 1fr; gap: 10px; padding: 24px 0; }
+      .feat::before { padding-top: 0; }
       section { padding-top: 70px; }
     }
   </style>
@@ -232,7 +230,7 @@
         <a class="btn btn-ghost" href="#download">Other platforms</a>
         <a class="btn btn-ghost" href="https://github.com/amonre555/555" target="_blank" rel="noopener">View source</a>
       </div>
-      <p class="hero-meta" id="hero-meta">Free and open source. macOS, Windows and Android.</p>
+      <p class="hero-meta" id="hero-meta">Free and open source. macOS, Windows, Android, iPhone and iPad.</p>
       <div class="dl-count" id="dl-count" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>
         <span class="odo" id="dl-odo" aria-hidden="true"></span>
@@ -286,55 +284,72 @@
     </section>
 
     <section id="features">
-      <div class="reveal">
-        <p class="eyebrow">Features</p>
-        <h2>All your music, one quiet window.</h2>
-        <p class="lead">555 finds songs on Deezer, plays them through YouTube Music, and plays your own files too. No account, no ads, no tracking.</p>
-      </div>
+      <div class="features-layout">
+        <div class="features-head reveal">
+          <p class="eyebrow">Features</p>
+          <h2>All your music, one quiet window.</h2>
+          <p class="lead">555 finds songs on Deezer, plays them through YouTube Music, and plays your own files too. No account, no ads, no tracking.</p>
+        </div>
 
-      <div class="features">
-        <article class="card wide reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
-          <h3>Starts in a blink</h3>
-          <p>Playback starts as the song downloads, and seeking is instant. The next song, the top search result and the songs you hover are fetched ahead of time.</p>
-        </article>
-        <article class="card wide reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></div>
-          <h3>Lyrics, word by word</h3>
-          <p>Karaoke-style lyrics: each word fills with light the moment it's sung. Click a line to jump there.</p>
-          <div class="lyrics-demo" aria-hidden="true"><span class="w">Every </span><span class="w">word </span><span class="w">lights </span><span class="w">up </span><span class="w">on time</span><span class="next">as the song moves on</span></div>
-        </article>
-        <article class="card reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
-          <h3>Your files, untouched</h3>
-          <p>MP3, FLAC, OGG, M4A, WAV, AIFF. Scanned on every core, searched instantly. Originals are never changed.</p>
-          <div class="chips"><span class="chip">FLAC</span><span class="chip">MP3</span><span class="chip">OGG</span><span class="chip">M4A</span><span class="chip">WAV</span></div>
-        </article>
-        <article class="card reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1m2 4a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></svg></div>
-          <h3>Bring your playlists</h3>
-          <p>Paste a public Spotify, Deezer or YouTube Music link. No Spotify account needed.</p>
-        </article>
-        <article class="card reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.4-9.3-9A5.4 5.4 0 0 1 12 6a5.4 5.4 0 0 1 9.3 6c-2.3 4.6-9.3 9-9.3 9z"/></svg></div>
-          <h3>Likes, playlists, history</h3>
-          <p>Mix local, Deezer and YouTube songs in one playlist. See everything you've played, day by day.</p>
-        </article>
-        <article class="card reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18"/></svg></div>
-          <h3>Blue on black</h3>
-          <p>Deep electric-blue gradients, paper grain, big wide type. Every change of page goes through a soft blur.</p>
-        </article>
-        <article class="card reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12h.01M16 12h.01M7 17c1.5 1 3 1.5 5 1.5s3.5-.5 5-1.5l1.5-9C17 7 15.5 6.5 14 6.3L13.5 7h-3L10 6.3C8.5 6.5 7 7 5.5 8z"/></svg></div>
-          <h3>Discord status</h3>
-          <p>“Listening to” with the title, artist, cover and progress. Nothing is sent when Discord is closed.</p>
-        </article>
-        <article class="card reveal">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8m0-5v5h-5"/></svg></div>
-          <h3>Keeps itself fresh</h3>
-          <p>Signed automatic updates, and a verified yt-dlp kept up to date in the background.</p>
-        </article>
+        <ol class="feat-list">
+          <li class="feat reveal">
+            <div>
+              <h3>Starts in a blink</h3>
+              <p>Playback starts as the song downloads, and seeking is instant. The next song, the top search result and the songs you hover are fetched ahead of time.</p>
+            </div>
+          </li>
+          <li class="feat reveal">
+            <div>
+              <h3>Lyrics, word by word</h3>
+              <p>Karaoke-style lyrics: each word fills with light the moment it's sung. Click a line to jump there.</p>
+              <div class="lyrics-demo" aria-hidden="true"><span class="w">Every </span><span class="w">word </span><span class="w">lights </span><span class="w">up </span><span class="w">on time</span><span class="next">as the song moves on</span></div>
+            </div>
+          </li>
+          <li class="feat reveal">
+            <div>
+              <h3>Your files, untouched</h3>
+              <p>Scanned on every core, searched instantly. Tags and covers are read, originals are never changed.</p>
+              <p class="formats">MP3 · FLAC · OGG · M4A · WAV · AIFF</p>
+            </div>
+          </li>
+          <li class="feat reveal">
+            <div>
+              <h3>Shape the sound</h3>
+              <p>An equalizer you bend by dragging three points: bass, mids, treble. Add reverb, speed songs up or slow them down, or pick a preset in one click. Soft lights behind Now playing move with the music.</p>
+              <p class="formats">Bass boost · Slowed + reverb · Sped up</p>
+            </div>
+          </li>
+          <li class="feat reveal">
+            <div>
+              <h3>Bring your playlists</h3>
+              <p>Paste a public Spotify, Deezer or YouTube Music link. No Spotify account needed.</p>
+            </div>
+          </li>
+          <li class="feat reveal">
+            <div>
+              <h3>Likes, playlists, history</h3>
+              <p>Mix local, Deezer and YouTube songs in one playlist. See everything you've played, day by day.</p>
+            </div>
+          </li>
+          <li class="feat reveal">
+            <div>
+              <h3>Blue on black</h3>
+              <p>Deep electric-blue gradients, paper grain, big wide type. Every change of page goes through a soft blur.</p>
+            </div>
+          </li>
+          <li class="feat reveal">
+            <div>
+              <h3>Discord status</h3>
+              <p>“Listening to” with the title, artist, cover and progress. Nothing is sent when Discord is closed.</p>
+            </div>
+          </li>
+          <li class="feat reveal">
+            <div>
+              <h3>Keeps itself fresh</h3>
+              <p>Signed automatic updates, and a verified yt-dlp kept up to date in the background.</p>
+            </div>
+          </li>
+        </ol>
       </div>
     </section>
 
@@ -362,6 +377,12 @@
           <span class="sub">Android 8 or later, 64-bit phones</span>
           <p>Not on the Play Store: open the APK on your phone and allow installs. If Play Protect warns you: More details → Install anyway. To update, install the new APK over the old one.</p>
           <a class="btn btn-primary" data-asset="android" href="https://github.com/amonre555/555/releases/latest">Download .apk</a>
+        </article>
+        <article class="dl reveal" data-os="ios">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>iPhone and iPad</h3>
+          <span class="sub">iOS 15 or later</span>
+          <p>Not on the App Store: you install 555 with SideStore, a free app that signs it with your own Apple Account. The first setup takes about 15 minutes with a computer, then SideStore renews 555 by itself.</p>
+          <a class="btn btn-primary" href="ios.html">Installation guide</a>
         </article>
         <article class="dl reveal" data-os="linux">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 9-3 3 3 3m8-6 3 3-3 3M13 6l-2 12"/></svg>Linux</h3>
@@ -406,14 +427,15 @@
   <script>
     const REPO = "amonre555/555";
     const ua = navigator.userAgent;
-    const os = /Android/.test(ua) ? "android" : /Mac/.test(ua) && !/iPhone|iPad/.test(ua) ? "mac" : /Windows/.test(ua) ? "win" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null;
-    const label = { mac: "Download for macOS", win: "Download for Windows", linux: "Build for Linux", android: "Download for Android" };
+    const os = /Android/.test(ua) ? "android" : /iPhone|iPad|iPod/.test(ua) ? "ios" : /Mac/.test(ua) && !/iPhone|iPad/.test(ua) ? "mac" : /Windows/.test(ua) ? "win" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null;
+    const label = { mac: "Download for macOS", win: "Download for Windows", linux: "Build for Linux", android: "Download for Android", ios: "Install on iPhone" };
 
     const main = document.getElementById("main-download");
     if (os) {
       document.getElementById("main-download-label").textContent = label[os];
       document.querySelector(`.dl[data-os="${os}"]`)?.classList.add("detected");
       if (os === "linux") main.href = `https://github.com/${REPO}#run-from-source`;
+      if (os === "ios") main.href = "ios.html";
     }
 
     // Latest release: direct installer links and version.

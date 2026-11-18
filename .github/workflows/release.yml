@@ -94,7 +94,7 @@ jobs:
             **macOS**: `555_…_universal.dmg` (Apple Silicon and Intel). The app isn't signed by Apple: on first launch, right-click 555 → “Open”, or run `xattr -cr /Applications/555.app`.
             **Windows**: `555_…_x64-setup.exe`. If Windows says “Windows protected your PC”: “More info” → “Run anyway”.
             **Android** (8 or later): `555_…_android.apk`. Open it on the phone and allow your browser or file manager to install apps. 555 isn't on the Play Store, so Play Protect may warn you: “More details” → “Install anyway”. To update, install the new APK over the old one.
-            **iPhone and iPad** (beta, iOS 15 or later): `555_…_ios.ipa`, installed with SideStore. Guide: https://555.amon.lol/ios.html
+            **iPhone and iPad** (iOS 15 or later): `555_…_ios.ipa`, installed with SideStore. Guide: https://555.amon.lol/ios.html
 
             Once installed, 555 updates itself (on iPhone, SideStore offers the update).
           releaseDraft: false

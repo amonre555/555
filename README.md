@@ -58,6 +58,8 @@ The app isn't signed by Apple or Microsoft:
 
 **Android** (8 or later): `_android.apk` in the same Releases. Open it on the phone and allow your browser or file manager to install apps; Play Protect may warn you since 555 isn't on the Play Store ("More details" → "Install anyway"). To update, install the new APK over the old one. On Android, music keeps playing with the screen off, with the controls on the lock screen and in the notification.
 
+**iPhone and iPad** (iOS 15 or later): `_ios.ipa` in the same Releases, installed with [SideStore](https://sidestore.io), which signs it with your own Apple Account. Step-by-step guide: https://555.amon.lol/ios.html. SideStore renews the app every 7 days and offers updates.
+
 To build it yourself, with an Android phone plugged in (USB debugging on): `sh scripts/android.sh`.
 
 ## Structure
@@ -75,7 +77,7 @@ app/src-tauri/       Tauri bridge: commands, events, cover:// protocol
 site/                Website (GitHub Pages)
 ```
 
-The core doesn't know about Tauri: the same core powers the desktop app and the Android version (Tauri v2).
+The core doesn't know about Tauri: the same core powers the desktop app and the Android, iPhone and iPad versions (Tauri v2).
 
 ## Run from source
 
