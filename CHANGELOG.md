@@ -2,6 +2,12 @@
 
 What's new in 555, version by version. The latest is at the top.
 
+## 0.3.11 — 2026-11-18
+
+### Fixes
+
+- The visualizer behind Now playing takes the colors of the cover again, instead of staying partly blue.
+
 ## 0.3.10 — 2026-11-18
 
 ### Fixes
