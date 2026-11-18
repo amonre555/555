@@ -68,6 +68,9 @@ pub fn output_devices() -> Vec<OutputDevice> {
     list
 }
 
+/// Android et iOS : une seule sortie, celle que le système choisit.
+const PHONE: bool = cfg!(any(target_os = "android", target_os = "ios"));
+
 enum Cmd {
     /// Sortie voulue (`None` : celle du système) ; répond une fois la sortie ouverte.
     Use(Option<String>, mpsc::Sender<std::result::Result<(), String>>),
@@ -145,7 +148,7 @@ fn run(rx: mpsc::Receiver<Cmd>, mut current: Option<Sink>, source: &Arc<Mutex<Mi
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 // Téléphone : une seule sortie, gérée par le système.
-                if cfg!(any(target_os = "android", target_os = "ios")) {
+                if PHONE {
                     continue;
                 }
                 None
@@ -194,6 +197,7 @@ fn run(rx: mpsc::Receiver<Cmd>, mut current: Option<Sink>, source: &Arc<Mutex<Mi
 
 /// Sortie à utiliser : celle voulue si elle existe, sinon celle par défaut du système.
 fn target_id(wanted: Option<&str>) -> Option<String> {
+    let wanted = wanted.filter(|_| !PHONE);
     let host = rodio::cpal::default_host();
     if let Some(w) = wanted
         && host.output_devices().into_iter().flatten().any(|d| d.id().is_ok_and(|i| i.to_string() == w))
@@ -210,23 +214,24 @@ fn target_id(wanted: Option<&str>) -> Option<String> {
 /// (2048 trames à 48 kHz), que certains périphériques refusent (AirPods : 960 au plus),
 /// et sous macOS son repli écarte toutes les sorties car elles n'annoncent pas de pilote.
 fn open_sink(wanted: Option<&str>) -> std::result::Result<Sink, rodio::DeviceSinkError> {
+    let wanted = wanted.filter(|_| !PHONE);
     let host = rodio::cpal::default_host();
     let id_of = |d: &rodio::cpal::Device| d.id().ok().map(|i| i.to_string());
     let all: Vec<rodio::cpal::Device> = host.output_devices().into_iter().flatten().collect();
-    let default_id = host.default_output_device().as_ref().and_then(id_of);
     let mut ordered: Vec<rodio::cpal::Device> = Vec::new();
-    for pick in [wanted.map(str::to_owned), default_id] {
-        if let Some(p) = pick
-            && let Some(d) = all.iter().find(|d| id_of(d).as_deref() == Some(p.as_str()))
-        {
-            ordered.push(d.clone());
-        }
-    }
-    ordered.extend(all.iter().cloned());
-    if ordered.is_empty()
-        && let Some(d) = host.default_output_device()
+    if let Some(w) = wanted
+        && let Some(d) = all.iter().find(|d| id_of(d).as_deref() == Some(w))
     {
-        ordered.push(d);
+        ordered.push(d.clone());
+    }
+    // La sortie par défaut telle que le système la donne, même si elle n'est pas dans la
+    // liste : sur Android, c'est « laisser le système choisir » (id -1), absent de la liste.
+    // Sans ça, on ouvrait le premier appareil listé : l'écouteur qui sert aux appels.
+    ordered.extend(host.default_output_device());
+    // Téléphone : pas de repli sur un appareil précis (écouteur, sortie des appels…), le
+    // système route lui-même vers le haut-parleur, le casque ou le Bluetooth.
+    if !PHONE {
+        ordered.extend(all.iter().cloned());
     }
 
     let mut first_err = None;
