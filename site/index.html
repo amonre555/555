@@ -130,6 +130,7 @@
     .dl .sub { font-size: 14px; color: var(--text-3); }
     .dl p { color: var(--text-2); font-size: 15px; flex: 1; }
     .dl .btn { margin-top: 10px; align-self: flex-start; }
+    .dl-actions { display: flex; flex-wrap: wrap; gap: 8px; }
     .dl[data-os="linux"] { grid-column: 1 / -1; }
     .note { margin-top: 14px; padding: 18px 20px; border-radius: var(--r); background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-2); font-size: 15px; }
     .note b { color: var(--text); font-weight: 500; }
@@ -381,8 +382,11 @@
         <article class="dl reveal" data-os="ios">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>iPhone and iPad</h3>
           <span class="sub">iOS 15 or later</span>
-          <p>Not on the App Store: you install 555 with SideStore, a free app that signs it with your own Apple Account. The first setup takes about 15 minutes with a computer, then SideStore renews 555 by itself.</p>
-          <a class="btn btn-primary" href="ios.html">Installation guide</a>
+          <p>Not on the App Store: download the .ipa and open it with SideStore, a free app that signs it with your own Apple Account. New to SideStore? The guide walks you through the 15-minute setup.</p>
+          <div class="dl-actions">
+            <a class="btn btn-primary" data-asset="ios" href="https://github.com/amonre555/555/releases/latest">Download .ipa</a>
+            <a class="btn btn-ghost" href="ios.html">Installation guide</a>
+          </div>
         </article>
         <article class="dl reveal" data-os="linux">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 9-3 3 3 3m8-6 3 3-3 3M13 6l-2 12"/></svg>Linux</h3>
@@ -428,14 +432,13 @@
     const REPO = "amonre555/555";
     const ua = navigator.userAgent;
     const os = /Android/.test(ua) ? "android" : /iPhone|iPad|iPod/.test(ua) ? "ios" : /Mac/.test(ua) && !/iPhone|iPad/.test(ua) ? "mac" : /Windows/.test(ua) ? "win" : /Linux/.test(ua) && !/Android/.test(ua) ? "linux" : null;
-    const label = { mac: "Download for macOS", win: "Download for Windows", linux: "Build for Linux", android: "Download for Android", ios: "Install on iPhone" };
+    const label = { mac: "Download for macOS", win: "Download for Windows", linux: "Build for Linux", android: "Download for Android", ios: "Download for iPhone" };
 
     const main = document.getElementById("main-download");
     if (os) {
       document.getElementById("main-download-label").textContent = label[os];
       document.querySelector(`.dl[data-os="${os}"]`)?.classList.add("detected");
       if (os === "linux") main.href = `https://github.com/${REPO}#run-from-source`;
-      if (os === "ios") main.href = "ios.html";
     }
 
     // Latest release: direct installer links and version.
@@ -445,7 +448,7 @@
         const latest = releases.find((r) => !r.draft && !r.prerelease);
         if (!latest) return;
         const find = (re) => latest.assets.find((a) => re.test(a.name))?.browser_download_url;
-        const links = { mac: find(/\.dmg$/), win: find(/-setup\.exe$/), android: find(/_android\.apk$/) };
+        const links = { mac: find(/\.dmg$/), win: find(/-setup\.exe$/), android: find(/_android\.apk$/), ios: find(/_ios\.ipa$/) };
         for (const [k, url] of Object.entries(links)) {
           if (!url) continue;
           document.querySelectorAll(`[data-asset="${k}"]`).forEach((a) => (a.href = url));

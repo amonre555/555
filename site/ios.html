@@ -222,6 +222,7 @@
           <p class="body">Copy this address. In SideStore, open the <b>Sources</b> tab, tap <b>+</b>, paste it and add the source.</p>
           <div class="cmd"><code>https://github.com/amonre555/555/releases/latest/download/555-sidestore.json</code><button class="copy" type="button">Copy</button></div>
           <p class="body">This is how SideStore finds 555 and, later, its updates.</p>
+          <div class="callout warn">Paste it in <b>Sources</b>, not in My Apps, and don't open this link in Safari: it's a list of versions, not the app. Otherwise SideStore shows “Archive appears to be corrupt”.</div>
         </div>
       </li>
       <li class="step">
@@ -239,13 +240,14 @@
 
     <h2>Updating 555</h2>
     <p class="muted">When a new version comes out, SideStore shows it under <b>My Apps</b>: with LocalDevVPN connected, tap <b>Update</b> next to 555. It installs over the old one and keeps your data. <b>Don't delete 555 first</b>, or you'll lose your library.</p>
-    <p class="muted">Got a 555 file (<code>.ipa</code>) instead? Save it to Files, then in SideStore: My Apps → <b>+</b> at the top left → pick the file.</p>
+    <p class="muted">Prefer the file? <a class="ipa-link" href="https://github.com/amonre555/555/releases/latest" style="color:#fff;text-decoration:underline">Download the latest 555 <code>.ipa</code></a>, save it to Files, then in SideStore: My Apps → <b>+</b> at the top left → pick the file.</p>
 
     <h2>Something's wrong?</h2>
     <div class="faq">
       <details><summary>iloader doesn't see my phone</summary><p>Try another cable (many only charge), plug it straight into the computer, unlock the phone and tap Trust. If the phone shows up in Finder (Mac) or iTunes (Windows), iloader will see it too.</p></details>
       <details><summary>SideStore says “Anisette” or can't sign in</summary><p>It's usually SideStore's login server being down for a moment: try again later. Check the password too, it's case-sensitive.</p></details>
       <details><summary>It stopped working after an iOS update</summary><p>An iOS update can reset the pairing between SideStore and the phone. Plug the phone into the computer, open iloader, click “Manage Pairing File”, then “Place” next to SideStore.</p></details>
+      <details><summary>“Install 555-sidestore failed: archive appears to be corrupt”</summary><p>SideStore tried to install the source address as if it were the app. Add the address in the <b>Sources</b> tab, then install 555 from <b>Browse</b>. Or skip the source: <a class="ipa-link" href="https://github.com/amonre555/555/releases/latest" style="color:#fff;text-decoration:underline">download the .ipa</a>, then in SideStore: My Apps → <b>+</b> → pick the file.</p></details>
       <details><summary>“Maximum number of apps” error</summary><p>A free Apple Account can only have 3 sideloaded apps at a time, SideStore included, and 10 different apps per week. Remove another sideloaded app from My Apps.</p></details>
       <details><summary>“Untrusted Developer” when opening 555</summary><p>Go back to Settings › General › VPN &amp; Device Management and trust your Apple Account (step 5).</p></details>
       <details><summary>Is it safe?</summary><p>SideStore signs 555 with your own Apple Account, on your phone. The 555 file is built by GitHub from the public source code, for each release. Neither SideStore nor 555 gets access to your iCloud.</p></details>
@@ -256,6 +258,14 @@
     <footer>555 · free and open source · not affiliated with Apple</footer>
   </main>
   <script>
+    // Direct link to the latest .ipa (falls back to the Releases page).
+    fetch("https://api.github.com/repos/amonre555/555/releases/latest")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((rel) => {
+        const url = rel.assets.find((a) => /_ios\.ipa$/.test(a.name))?.browser_download_url;
+        if (url) document.querySelectorAll(".ipa-link").forEach((a) => (a.href = url));
+      })
+      .catch(() => {});
     document.querySelectorAll(".copy").forEach((b) =>
       b.addEventListener("click", async () => {
         try {
