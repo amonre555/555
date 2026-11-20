@@ -318,6 +318,7 @@ export const api = {
   removeFolder: (path: string) => invoke<number>("remove_folder", { path }),
   rescan: () => invoke<number>("rescan"),
   search: (query: string, source?: string) => invoke<Track[]>("search", { query, source: source ?? null }),
+  searchArtists: (query: string) => invoke<ArtistCard[]>("search_artists", { query }),
   featured: (source: string) => invoke<Track[]>("featured", { source }),
   /** Sections de Découvrir, tout de suite (cache) ; les sections recalculées arrivent par `onDiscoverSection`. */
   discover: (force = false) => invoke<DiscoverSection[]>("discover", { force, offset: utcOffset() }),

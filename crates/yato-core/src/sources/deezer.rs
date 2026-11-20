@@ -432,6 +432,23 @@ impl DeezerSource {
         })
     }
 
+    /// Artistes qui répondent à une recherche. Le plus suivi des homonymes exacts passe en tête
+    /// (la recherche Deezer classe parfois un inconnu du même nom avant le vrai).
+    pub async fn search_artists(&self, query: &str, limit: usize) -> Result<Vec<ArtistCard>> {
+        let mut found: Vec<DzArtist> = self.list("/search/artist", &[("q", query.to_owned()), ("limit", limit.to_string())]).await?;
+        let exact = found
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| a.name.trim().eq_ignore_ascii_case(query.trim()))
+            .max_by_key(|(_, a)| a.nb_fan.unwrap_or(0))
+            .map(|(i, _)| i);
+        if let Some(i) = exact {
+            let best = found.remove(i);
+            found.insert(0, best);
+        }
+        Ok(found.into_iter().filter_map(card).collect())
+    }
+
     // ---------- Découvrir ----------
 
     /// Identifiant Deezer d'un artiste à partir de son nom (même nom de préférence).

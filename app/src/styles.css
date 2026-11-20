@@ -258,6 +258,7 @@ html[data-vt] .content { view-transition-name: page; }
 .hero.compact { padding: 4px 0; gap: 22px; }
 .hero.compact .cover.xl { width: 120px; height: 120px; border-radius: var(--r-md); }
 .hero.compact .hero-title { font-size: 32px; }
+.artist-hero .artist-photo { width: 120px; height: 120px; cursor: default; }
 .search-top { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 1.3fr); gap: 28px; align-items: start; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 12px; }
@@ -1077,6 +1078,7 @@ textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; f
   .search-top { gap: 22px; }
   .hero.compact { flex-direction: row; align-items: center; text-align: left; gap: 16px; }
   .hero.compact .cover.xl { width: 104px; height: 104px; }
+  .artist-hero .artist-photo { width: 104px; height: 104px; }
   .hero.compact .hero-body { align-items: flex-start; }
   .hero.compact .hero-title { font-size: 22px; }
   .hero.compact .hero-play { align-self: flex-start; height: 40px; padding: 0 18px; margin-top: 4px; }

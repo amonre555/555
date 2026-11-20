@@ -123,6 +123,7 @@ const en = {
 
   // Artist & album
   artist: "Artist",
+  viewArtist: "View artist",
   artistError: (name: string) => `Couldn't load ${name}.`,
   popular: "Popular",
   showLess: "Show less",
@@ -465,6 +466,7 @@ const fr: Dict = {
   ytError: (msg) => `YouTube indisponible : ${msg}`,
 
   artist: "Artiste",
+  viewArtist: "Voir l'artiste",
   artistError: (name) => `Impossible de charger la fiche de ${name}.`,
   popular: "Titres populaires",
   showLess: "Afficher moins",

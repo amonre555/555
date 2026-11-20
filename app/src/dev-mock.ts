@@ -439,6 +439,15 @@ const handlers: Record<string, (args: any) => unknown> = {
     const list = hits.length ? hits : all.slice(0, 8);
     return list;
   },
+  search_artists: async ({ query }) => {
+    const all = tracks.length ? tracks : await loadTrending();
+    const q = String(query).toLowerCase();
+    const names = [...new Set(all.flatMap((t) => t.artists?.map((a) => a.name) ?? [t.artist]))];
+    return names
+      .filter((n) => n.toLowerCase().includes(q))
+      .slice(0, 12)
+      .map((n) => ({ id: `demo-${n}`, name: n, picture: `https://picsum.photos/seed/${encodeURIComponent(n)}/400` }));
+  },
   play_queue: ({ tracks: t, index }) => ((queue = t), playAt(index), snap()),
   play_index: ({ index }) => (playAt(index), snap()),
   toggle: () => {

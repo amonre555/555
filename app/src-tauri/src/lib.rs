@@ -24,7 +24,7 @@ use yato_core::{
     lyrics::{Lyrics, LyricsClient},
     sources::{
         DeezerSource, LocalLibrary, YouTubeMusicSource,
-        deezer::{AlbumPage, ArtistPage},
+        deezer::{AlbumPage, ArtistCard, ArtistPage},
         read_cover,
     },
     ytdlp::{YtDlp, YtDlpStatus},
@@ -349,6 +349,12 @@ async fn search(state: State<'_, AppState>, query: String, source: Option<String
         Some(id) => sources.get(&id)?.search(&query, SEARCH_LIMIT).await,
         None => Ok(sources.search_all(&query, SEARCH_LIMIT).await),
     }
+}
+
+/// Artistes qui répondent à une recherche (Deezer).
+#[tauri::command]
+async fn search_artists(state: State<'_, AppState>, query: String) -> Res<Vec<ArtistCard>> {
+    state.deezer.search_artists(&query, 12).await
 }
 
 #[tauri::command]
@@ -791,6 +797,7 @@ pub fn run() {
             remove_folder,
             rescan,
             search,
+            search_artists,
             featured,
             discover,
             play_queue,

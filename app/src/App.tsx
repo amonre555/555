@@ -1,11 +1,11 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { createEffect, createMemo, createSignal, For, Match, on, onCleanup, onMount, Show, Switch, type JSX } from "solid-js";
-import { api, bigCoverUrl, formatTime, type AlbumPage, type ArtistPage, type Snapshot, type SourceInfo, type Track, type YtDlpStatus } from "./api";
+import { api, bigCoverUrl, formatTime, type AlbumPage, type ArtistCard, type ArtistPage, type Snapshot, type SourceInfo, type Track, type YtDlpStatus } from "./api";
 import { AlbumView } from "./album";
 import { ArtistView } from "./artist";
 import { nameForTransition, transition } from "./motion";
-import { pageRequest, type Page } from "./nav";
-import { IconChart, IconClock, IconClose, IconCompass, IconFolderPlus, IconHeart, IconLibrary, IconLink, IconNote, IconPlay, IconPlus, IconRefresh, IconSearch, IconSettings } from "./icons";
+import { openArtist, pageRequest, type Page } from "./nav";
+import { IconChart, IconClock, IconClose, IconCompass, IconFolderPlus, IconHeart, IconLibrary, IconLink, IconNote, IconPlay, IconPlus, IconRefresh, IconSearch, IconSettings, IconUser } from "./icons";
 import { t } from "./i18n";
 import { HistoryView } from "./history";
 import { RecapCard, recapSeason, StatsView } from "./stats";
@@ -38,6 +38,7 @@ export default function App() {
   const [scanning, setScanning] = createSignal(false);
   const [query, setQuery] = createSignal("");
   const [results, setResults] = createSignal<Track[] | null>(null);
+  const [artistResults, setArtistResults] = createSignal<ArtistCard[]>([]);
   const [snap, setSnap] = createSignal<Snapshot>(EMPTY);
   const [ytdlp, setYtdlp] = createSignal<YtDlpStatus>({ state: "unknown" });
   /**
@@ -372,8 +373,10 @@ export default function App() {
     searchTimer = window.setTimeout(async () => {
       const id = ++searchId;
       try {
-        const r = await api.search(q.trim());
+        // Artistes en parallèle ; s'ils échouent (hors ligne…), on garde les titres.
+        const [r, artists] = await Promise.all([api.search(q.trim()), api.searchArtists(q.trim()).catch(() => [])]);
         if (id !== searchId) return;
+        setArtistResults(artists);
         setResults(r);
         // Le premier résultat en ligne est le plus souvent cliqué : on le prépare tout de suite.
         const online = r.filter((t) => t.source === "deezer" || t.source === "youtube");
@@ -396,6 +399,11 @@ export default function App() {
       .filter((g) => g.tracks.length > 0);
   });
   const best = createMemo(() => grouped().find((g) => g.source.id === "deezer") ?? grouped()[0]);
+  /** L'artiste devient le meilleur résultat quand on tape son nom (« daft punk » → Daft Punk). */
+  const topArtist = createMemo(() => {
+    const a = artistResults()[0];
+    return a && fold(a.name) === fold(query()) ? a : null;
+  });
 
   // ---------- Lecture ----------
   const play = async (tracks: Track[], index: number) => {
@@ -571,13 +579,18 @@ export default function App() {
 
             <Match when={view() === "search"}>
               <Show when={results()} fallback={<Loader />}>
-                <Show when={grouped().length > 0} fallback={<Empty text={t.noResults(query())} />}>
+                <Show when={grouped().length > 0 || artistResults().length > 0} fallback={<Empty text={t.noResults(query())} />}>
                   <Show when={best()}>
                     {(g) => (
                       <div class="search-top">
                         <div>
                           <h2 class="section-title">{t.topResult}</h2>
-                          <Hero track={g().tracks[0]} playing={isCurrent(g().tracks[0])} onPlay={() => playFromSearch(g().tracks, 0)} compact />
+                          <Show
+                            when={topArtist()}
+                            fallback={<Hero track={g().tracks[0]} playing={isCurrent(g().tracks[0])} onPlay={() => playFromSearch(g().tracks, 0)} compact />}
+                          >
+                            {(a) => <ArtistHero artist={a()} />}
+                          </Show>
                         </div>
                         <div class="search-top-list">
                           <h2 class="section-title">{t.songs}</h2>
@@ -590,6 +603,30 @@ export default function App() {
                         </div>
                       </div>
                     )}
+                  </Show>
+                  <Show when={artistResults().length > 0}>
+                    <section class="section">
+                      <h2 class="section-title">{t.artistsLabel}</h2>
+                      <Carousel class="artists-row">
+                        <For each={artistResults()}>
+                          {(a, i) => (
+                            <button
+                              class="card artist-card"
+                              style={{ "--i": Math.min(i(), 16) }}
+                              onClick={(e) => openArtist({ id: a.id, name: a.name }, e.currentTarget.querySelector(".artist-photo") ?? undefined)}
+                            >
+                              <div class="artist-photo sm">
+                                <Show when={a.picture} fallback={<IconUser />}>
+                                  {(src) => <img src={src()} alt="" loading="lazy" decoding="async" />}
+                                </Show>
+                              </div>
+                              <div class="card-title">{a.name}</div>
+                              <div class="card-sub">{t.artist}</div>
+                            </button>
+                          )}
+                        </For>
+                      </Carousel>
+                    </section>
                   </Show>
                   <For each={grouped()}>
                     {(g) => {
@@ -792,6 +829,31 @@ export default function App() {
 const sourceName = (s: SourceInfo) => ({ deezer: t.songs, local: t.myLibrary } as Record<string, string>)[s.id] ?? s.name;
 
 /** Grande carte mise en avant, avec sa pochette en fond flouté. */
+/** Comparaison de noms sans casse, accents ni espaces en trop. */
+const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/\s+/g, " ");
+
+/** Meilleur résultat quand la recherche est le nom d'un artiste : un clic ouvre sa fiche. */
+function ArtistHero(props: { artist: ArtistCard }) {
+  let photo!: HTMLDivElement;
+  const go = () => openArtist({ id: props.artist.id, name: props.artist.name }, photo);
+  return (
+    <div class="hero compact artist-hero">
+      <div class="artist-photo" ref={photo}>
+        <Show when={props.artist.picture} fallback={<IconUser />}>
+          {(src) => <img src={src()} alt="" decoding="async" />}
+        </Show>
+      </div>
+      <div class="hero-body">
+        <div class="eyebrow">{t.artist}</div>
+        <div class="hero-title">{props.artist.name}</div>
+        <button class="primary hero-play" onClick={go}>
+          {t.viewArtist}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Hero(props: { track: Track; playing: boolean; onPlay: () => void; label?: string; compact?: boolean }) {
   return (
     <div
