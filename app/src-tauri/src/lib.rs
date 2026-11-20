@@ -580,18 +580,6 @@ pub fn run() {
             tauri::async_runtime::spawn_blocking(move || responder.respond(cover_response(&path)));
         })
         .setup(|app| {
-            // iPhone : la WebView ajoute d'elle-même les marges du système (encoche, barre du
-            // bas), en plus de celles que l'interface gère déjà (`--sat` / `--sab`) : on les retire.
-            #[cfg(target_os = "ios")]
-            if let Some(w) = app.get_webview_window("main") {
-                let _ = w.with_webview(|wv| unsafe {
-                    use objc2::{msg_send, runtime::AnyObject};
-                    let webview = &*(wv.inner() as *const AnyObject);
-                    let scroll: *mut AnyObject = msg_send![webview, scrollView];
-                    // UIScrollViewContentInsetAdjustmentNever
-                    let _: () = msg_send![&*scroll, setContentInsetAdjustmentBehavior: 2isize];
-                });
-            }
             // iPhone : 555 est un lecteur de musique. Sans ça, iOS coupe le son écran verrouillé,
             // appli en arrière-plan ou interrupteur sur « silencieux ».
             #[cfg(target_os = "ios")]
@@ -658,6 +646,25 @@ pub fn run() {
                 settings_path,
                 session_path,
             });
+
+            // La fenêtre n'est créée qu'ici (`"create": false`), une fois l'état enregistré.
+            // Créée avant (comportement par défaut de Tauri), l'interface pouvait appeler une
+            // commande trop tôt : « state not managed for field `state` », surtout sur téléphone.
+            let window_config = app.config().app.windows.iter().find(|w| w.label == "main").cloned().ok_or("no \"main\" window in tauri.conf.json")?;
+            let _window = tauri::WebviewWindowBuilder::from_config(app.handle(), &window_config)?.build()?;
+
+            // iPhone : la WebView ajoute d'elle-même les marges du système (encoche, barre du
+            // bas), en plus de celles que l'interface gère déjà (`--sat` / `--sab`) : on les retire.
+            #[cfg(target_os = "ios")]
+            {
+                let _ = _window.with_webview(|wv| unsafe {
+                    use objc2::{msg_send, runtime::AnyObject};
+                    let webview = &*(wv.inner() as *const AnyObject);
+                    let scroll: *mut AnyObject = msg_send![webview, scrollView];
+                    // UIScrollViewContentInsetAdjustmentNever
+                    let _: () = msg_send![&*scroll, setContentInsetAdjustmentBehavior: 2isize];
+                });
+            }
 
             // Touches multimédia et panneau multimédia du système.
             #[cfg(windows)]
