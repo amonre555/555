@@ -2,6 +2,16 @@
 
 What's new in 555, version by version. The latest is at the top.
 
+## 0.4.1 — 2026-11-20
+
+### New
+
+- Search finds artists too. Type an artist's name and they show up as the top result, with a row of matching artists below the songs. One tap opens their page.
+
+### Fixes
+
+- On phones, search and the player could fail with a red error box right after launch, most often the first time after an update. The app now waits until it's fully ready before showing its window.
+
 ## 0.4.0 — 2026-11-18
 
 ### New
