@@ -13,6 +13,8 @@ import {
   SchemeContent,
   sourceColorFromImageBytes,
 } from "@material/material-color-utilities";
+import { createEffect, createRoot } from "solid-js";
+import { appearance } from "./appearance";
 
 /** 555's color when nothing is playing (the brand's electric blue). */
 const DEFAULT_SOURCE = argbFromHex("#2433ff");
@@ -45,17 +47,43 @@ const ROLES: Record<string, DynamicColor> = {
 
 /** Couleur source déjà calculée pour chaque pochette. */
 const cache = new Map<string, number>();
-let current = -1;
+let current = "";
+/** Couleur de la pochette en cours (gardée pour réappliquer quand l'apparence change). */
+let coverSource = DEFAULT_SOURCE;
 
-/** Applique le schéma Material 3 sombre d'une couleur source. */
+/**
+ * Applique le schéma Material 3 sombre : couleur de la pochette (ou couleur fixe choisie dans les
+ * Réglages), avec l'intensité choisie (0 : noir et blanc).
+ */
 function apply(source: number) {
-  if (source === current) return;
-  current = source;
-  const scheme = new SchemeContent(Hct.fromInt(source), true, 0);
+  coverSource = source;
+  const a = appearance();
+  const base = a.mode === "fixed" ? argbFromHex(a.color) : source;
+  const key = `${base}/${a.intensity}`;
+  if (key === current) return;
+  current = key;
+  const hct = Hct.fromInt(base);
+  hct.chroma = hct.chroma * a.intensity;
+  const scheme = new SchemeContent(hct, true, 0);
   const root = document.documentElement.style;
   for (const [name, color] of Object.entries(ROLES)) {
     root.setProperty(`--md-${name}`, hexFromArgb(color.getArgb(scheme)));
   }
+}
+
+/** Boutons et accents (`--blue`) : le bleu de 555, ou la couleur fixe choisie. */
+function applyAccent() {
+  const a = appearance();
+  const root = document.documentElement.style;
+  if (a.mode !== "fixed") {
+    root.removeProperty("--blue");
+    root.removeProperty("--blue-deep");
+    return;
+  }
+  const accent = Hct.fromInt(argbFromHex(a.color));
+  const deep = Hct.from(accent.hue, accent.chroma, Math.max(0, accent.tone - 25));
+  root.setProperty("--blue", a.color);
+  root.setProperty("--blue-deep", hexFromArgb(deep.toInt()));
 }
 
 /** Couleur source d'une image : analysée sur une miniature 64 × 64 (rapide). */
@@ -96,5 +124,13 @@ export function themeFromCover(url: string | null) {
     .catch(() => {});
 }
 
-// Palette par défaut dès le démarrage.
+// Palette par défaut dès le démarrage, puis à chaque changement d'apparence.
 apply(DEFAULT_SOURCE);
+applyAccent();
+createRoot(() =>
+  createEffect(() => {
+    appearance();
+    apply(coverSource);
+    applyAccent();
+  }),
+);

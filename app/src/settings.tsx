@@ -5,6 +5,7 @@ import { api, FLAT_FX, type Settings } from "./api";
 import { EqPanel } from "./eq";
 import { fx, setFx } from "./fx-store";
 import { setVisualizerOn, visualizerOn } from "./visualizer";
+import { appearance, resetAppearance, setAppearance, SWATCHES, type ColorMode } from "./appearance";
 import { clearHistory, collection, importPlaylist, notify } from "./collection";
 import { IconClose, IconLink } from "./icons";
 import { checkForUpdates } from "./update";
@@ -100,6 +101,88 @@ export function SettingsView(props: { onImport: () => void; onLibrary: () => voi
                   </For>
                 </div>
               </Row>
+            </section>
+
+            <section class="settings-group">
+              <div class="settings-group-head">
+                <h2 class="section-title">{t.appearance}</h2>
+                <button class="ghost" onClick={resetAppearance}>{t.eqReset}</button>
+              </div>
+              <Row title={t.colors} hint={t.colorsHint}>
+                <div class="segmented" role="radiogroup" aria-label={t.colors}>
+                  <For each={[["cover", t.colorCover], ["fixed", t.colorFixed]] as [ColorMode, string][]}>
+                    {([mode, label]) => (
+                      <button
+                        role="radio"
+                        aria-checked={appearance().mode === mode}
+                        classList={{ on: appearance().mode === mode }}
+                        onClick={() => setAppearance({ mode })}
+                      >
+                        {label}
+                      </button>
+                    )}
+                  </For>
+                </div>
+              </Row>
+              <Show when={appearance().mode === "fixed"}>
+                <Row title={t.color} hint={t.colorHint}>
+                  <div class="swatches" role="radiogroup" aria-label={t.color}>
+                    <For each={SWATCHES}>
+                      {(c) => (
+                        <button
+                          role="radio"
+                          class="swatch"
+                          classList={{ on: appearance().color.toLowerCase() === c }}
+                          aria-checked={appearance().color.toLowerCase() === c}
+                          aria-label={c}
+                          style={{ "--swatch": c }}
+                          onClick={() => setAppearance({ color: c })}
+                        />
+                      )}
+                    </For>
+                    <label class="swatch custom" classList={{ on: !SWATCHES.includes(appearance().color.toLowerCase()) }} title={t.customColor}>
+                      <input
+                        type="color"
+                        value={appearance().color}
+                        aria-label={t.customColor}
+                        onInput={(e) => setAppearance({ color: e.currentTarget.value })}
+                      />
+                    </label>
+                  </div>
+                </Row>
+              </Show>
+              <Row title={t.intensity} hint={t.intensityHint}>
+                <div class="setting-range">
+                  <input
+                    type="range"
+                    class="slider"
+                    min="0"
+                    max="1.5"
+                    step="0.05"
+                    value={appearance().intensity}
+                    style={{ "--pct": `${(appearance().intensity / 1.5) * 100}%` }}
+                    aria-label={t.intensity}
+                    onInput={(e) => setAppearance({ intensity: Number(e.currentTarget.value) })}
+                  />
+                  <span class="setting-value">{Math.round(appearance().intensity * 100)} %</span>
+                </div>
+              </Row>
+              <div class="settings-css">
+                <div class="setting-text">
+                  <div class="setting-title">{t.customCss}</div>
+                  <div class="setting-hint">{t.customCssHint}</div>
+                </div>
+                <textarea
+                  class="css-editor"
+                  rows={6}
+                  spellcheck={false}
+                  autocapitalize="off"
+                  autocomplete="off"
+                  placeholder={".np-title {\n  font-style: italic;\n}"}
+                  value={appearance().css}
+                  onInput={(e) => setAppearance({ css: e.currentTarget.value })}
+                />
+              </div>
             </section>
 
             <section class="settings-group">
