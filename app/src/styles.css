@@ -643,19 +643,20 @@ html[data-vt="back"]::view-transition-new(page) { animation: blur-in-back 0.55s 
 @keyframes np-base-in { from { background-color: transparent; } }
 @keyframes np-base-out { to { background-color: transparent; } }
 .nowplaying .np-bg { animation: fade-in 0.6s var(--soft) both; }
-.nowplaying .np-close, .nowplaying .np-meta, .nowplaying .np-left .progress, .nowplaying .np-left .buttons, .nowplaying .np-right {
+.nowplaying .np-close, .nowplaying .np-meta, .nowplaying .np-left .progress, .nowplaying .np-left .buttons, .nowplaying .np-actions, .nowplaying .np-right {
   animation: np-item-in 0.6s var(--soft) both;
 }
 .nowplaying .np-right { animation-delay: 0.08s; }
 .nowplaying .np-meta { animation-delay: 0.12s; }
 .nowplaying .np-left .progress { animation-delay: 0.16s; }
 .nowplaying .np-left .buttons { animation-delay: 0.2s; }
+.nowplaying .np-actions { animation-delay: 0.24s; }
 @keyframes np-item-in { from { opacity: 0; filter: blur(10px); transform: translateY(14px); } }
 
 .nowplaying.leaving { animation: np-base-out 0.42s var(--soft-in) both; }
 .nowplaying.leaving .np-bg { animation: fade-out 0.38s var(--soft-in) both; }
 .nowplaying.leaving .np-close, .nowplaying.leaving .np-meta, .nowplaying.leaving .np-left .progress,
-.nowplaying.leaving .np-left .buttons, .nowplaying.leaving .np-right {
+.nowplaying.leaving .np-left .buttons, .nowplaying.leaving .np-actions, .nowplaying.leaving .np-right {
   animation: np-item-out 0.3s var(--soft-in) both;
 }
 @keyframes np-item-out { to { opacity: 0; filter: blur(8px); transform: translateY(10px); } }
@@ -1025,6 +1026,16 @@ textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; f
    les zones système d'Android (barre d'état, barre de navigation) : `--sat` / `--sab`.
    ========================================================================= */
 .m-brand, .tabbar, .np-actions, .row-handle { display: none; }
+
+/* Ordinateur, vue « En lecture » : la barre du lecteur est cachée, on garde file d'attente et
+   volume sous les boutons (les paroles sont déjà à droite, pas besoin du bouton « Paroles »). */
+@media (min-width: 761px) {
+  .np-actions { display: flex; align-items: center; justify-content: center; gap: 14px; }
+  .np-actions .np-toggle { display: none; }
+  .np-actions .volume .slider { display: block; width: 160px; }
+  /* Le bouton est à gauche de l'écran : la file s'ouvre vers la droite. */
+  .np-actions .queue-popover { right: auto; left: -8px; transform-origin: bottom left; }
+}
 
 @media (max-width: 760px) {
   :root {

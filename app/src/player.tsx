@@ -410,7 +410,7 @@ export function NowPlaying(props: { snap: Snapshot; position: number; run: Run; 
               </div>
               <Progress snap={props.snap} position={props.position} run={props.run} />
               <Transport snap={props.snap} run={props.run} playing={props.snap.status === "playing"} big />
-              {/* Téléphone seulement (caché sur ordinateur) : paroles et volume. */}
+              {/* Paroles (téléphone seulement), file d'attente et volume. */}
               <div class="np-actions">
                 <button
                   classList={{ "np-toggle": true, on: lyricsMode() }}
