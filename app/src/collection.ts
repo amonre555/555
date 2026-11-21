@@ -172,6 +172,43 @@ const [trackMenu, setTrackMenu] = createSignal<TrackMenu | null>(null);
 export { trackMenu };
 export const closeTrackMenu = () => setTrackMenu(null);
 
+/**
+ * Téléphone : appui long (½ s sans bouger) = clic droit. iOS n'envoie jamais `contextmenu` au
+ * toucher ; sans ça, « Lire ensuite » et « Ajouter à la file » étaient introuvables sur les cartes.
+ * Le toucher qui ouvre le menu ne compte pas comme un tap (pas de lecture en plus).
+ */
+export function longPressMenu(tracks: () => Track[]) {
+  let timer: number | undefined;
+  let start: { x: number; y: number } | null = null;
+  const cancel = () => {
+    clearTimeout(timer);
+    start = null;
+  };
+  return {
+    onTouchStart: (e: TouchEvent) => {
+      if (e.touches.length !== 1) return cancel();
+      const { clientX: x, clientY: y } = e.touches[0];
+      start = { x, y };
+      timer = window.setTimeout(() => {
+        start = null;
+        navigator.vibrate?.(10);
+        setTrackMenu({ x, y, align: "left", tracks: tracks() });
+        // Le doigt se lève ensuite : on avale le « click » qui suit.
+        const swallow = (ev: Event) => (ev.preventDefault(), ev.stopPropagation());
+        window.addEventListener("click", swallow, { capture: true, once: true });
+        setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 800);
+      }, 500);
+    },
+    onTouchMove: (e: TouchEvent) => {
+      if (!start) return;
+      const t = e.touches[0];
+      if (Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10) cancel();
+    },
+    onTouchEnd: cancel,
+    onTouchCancel: cancel,
+  };
+}
+
 /** Ouvre le menu sous le bouton cliqué, ou à la position de la souris (clic droit). */
 export function openTrackMenu(e: MouseEvent, tracks: Track[], playlist?: string) {
   e.preventDefault();

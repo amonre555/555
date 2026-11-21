@@ -1432,3 +1432,6 @@ textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; f
 }
 .gallery-by { display: flex; align-items: center; gap: 6px; }
 .gallery-by img { width: 18px; height: 18px; border-radius: 50%; }
+
+/* Appui long (menu du morceau) : pas de loupe ni de menu « Copier / Enregistrer l'image » d'iOS. */
+.card, .now-btn { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }

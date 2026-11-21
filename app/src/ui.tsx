@@ -6,7 +6,7 @@ import { IconBack, IconForward, IconGrip, IconHeart, IconMore, IconNote, IconPla
 import { t as tr } from "./i18n";
 import { isMobile } from "./mobile";
 import {
-  addToPlaylist, closeTrackMenu, collection, createPlaylist, enqueue, isLiked, openTrackMenu, playlistById, playlistCovers,
+  addToPlaylist, closeTrackMenu, collection, createPlaylist, enqueue, isLiked, longPressMenu, openTrackMenu, playlistById, playlistCovers,
   removeFromPlaylist, toggleLike, trackMenu, type TrackMenu,
 } from "./collection";
 
@@ -350,6 +350,7 @@ export function TrackCard(props: { track: Track; playing: boolean; onPlay: () =>
       style={{ "--i": Math.min(props.index ?? 0, 16) }}
       onClick={props.onPlay}
       onContextMenu={(e) => openTrackMenu(e, [props.track])}
+      {...longPressMenu(() => [props.track])}
       onMouseEnter={() => hoverPrefetch(props.track)}
       onMouseLeave={cancelHover}
     >

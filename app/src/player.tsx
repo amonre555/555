@@ -8,7 +8,7 @@ import { Visualizer, visualizerOn } from "./visualizer";
 import { EqButton } from "./eq";
 import { QueueButton } from "./queue";
 import { DeviceButton } from "./devices";
-import { openTrackMenu } from "./collection";
+import { longPressMenu, openTrackMenu } from "./collection";
 import { t as tr } from "./i18n";
 import { roundedSquare } from "./shapes";
 
@@ -77,7 +77,13 @@ export function PlayerBar(props: {
       <div class="now">
         <Show when={props.snap.track} fallback={<div class="muted small">{tr.nothingPlaying}</div>}>
           {(t) => (
-            <button class="now-btn" onClick={props.onExpand} onContextMenu={(e) => openTrackMenu(e, [t()])} title={tr.openNowPlaying}>
+            <button
+              class="now-btn"
+              onClick={props.onExpand}
+              onContextMenu={(e) => openTrackMenu(e, [t()])}
+              {...longPressMenu(() => [t()])}
+              title={tr.openNowPlaying}
+            >
               <Cover track={t()} size="md" />
               <div class="now-text">
                 <div class="now-title">
