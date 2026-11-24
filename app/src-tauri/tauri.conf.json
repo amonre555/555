@@ -23,7 +23,10 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data: blob: https: http://cover.localhost cover:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src ipc: http://ipc.localhost https://555.amon.lol; font-src 'self' data: https://fonts.gstatic.com"
+      "csp": "default-src 'self'; img-src 'self' data: blob: https: http://cover.localhost cover:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src ipc: http://ipc.localhost https://555.amon.lol; font-src 'self' data: https://fonts.gstatic.com",
+      "dangerousDisableAssetCspModification": [
+        "style-src"
+      ]
     }
   },
   "bundle": {
