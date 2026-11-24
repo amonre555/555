@@ -51,6 +51,17 @@ When **Settings → Appearance → Colors** is set to **Fixed**, 555 sets `--blu
 | `--md-outline-variant` | Thin separators. |
 | `--md-error-container`, `--md-on-error-container` | Error messages. |
 
+::: tip Lyrics colors
+Lyrics fill word by word: sung words use `--md-on-surface`, words still to come use `--md-on-surface-variant`. Set them on the current line to color it without `!important`:
+
+```css
+.lyric.on {
+  --md-on-surface: #2de2ff;
+  --md-on-surface-variant: #ff2bd6;
+}
+```
+:::
+
 ## Text and surfaces
 
 | Variable | Default | Used for |
