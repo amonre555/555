@@ -2,23 +2,26 @@
 layout: home
 hero:
   name: "555 Docs"
-  text: "Make 555 yours."
-  tagline: "555 is a free, open-source music player for macOS, Windows, Android, iPhone and iPad. These docs cover theming: custom CSS, theme files, and the community theme gallery."
+  text: "Everything about 555."
+  tagline: "Install it on every device, get the most out of it, and make it look the way you like. 555 is a free, open-source music player for macOS, Windows, Android, iPhone and iPad."
   actions:
     - theme: brand
-      text: Start theming
+      text: Get started
+      link: /guide/install
+    - theme: alt
+      text: Using 555
+      link: /guide/using
+    - theme: alt
+      text: Theming
       link: /theming/
-    - theme: alt
-      text: Browse the gallery
-      link: https://555.amon.lol/themes/
-    - theme: alt
-      text: Download 555
-      link: https://555.amon.lol/
 features:
-  - title: Custom CSS, live
-    details: "Settings → Appearance → Custom CSS. Every change applies while you type: no restart, no file to manage."
-  - title: Shareable themes
-    details: "A theme is a single .css file with a small header. Import one, export yours, send it to a friend."
-  - title: Community gallery
-    details: "Post your theme on GitHub, people vote, and the most liked ones show up in 555's built-in gallery with a live preview."
+  - title: Install
+    details: "macOS, Windows, Android, iPhone and iPad, and building from source on Linux. Plus what to do when your system warns you."
+    link: /guide/install
+  - title: Use
+    details: "Search, the queue, word-by-word lyrics, your own files, playlist imports, the equalizer, stats and every setting."
+    link: /guide/using
+  - title: Customize
+    details: "Colors, custom CSS live in the app, shareable theme files, and a community gallery with live previews."
+    link: /theming/
 ---

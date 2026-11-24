@@ -3,7 +3,7 @@ import { defineConfig } from "vitepress";
 // Published at https://555.amon.lol/docs/ by .github/workflows/pages.yml.
 export default defineConfig({
   title: "555 Docs",
-  description: "Documentation for 555, the free and open-source music player: theming, custom CSS and the theme gallery.",
+  description: "Documentation for 555, the free and open-source music player: installing, using and customizing it.",
   base: "/docs/",
   lang: "en",
   cleanUrls: true,
@@ -16,13 +16,22 @@ export default defineConfig({
   themeConfig: {
     logo: { src: "/logo.svg", alt: "555" },
     siteTitle: "Docs",
+    // Same links as the website's navigation bar (site/assets/nav.css).
     nav: [
-      { text: "Theming", link: "/theming/" },
-      { text: "Theme gallery", link: "https://555.amon.lol/themes/" },
-      { text: "Download", link: "https://555.amon.lol/" },
+      { text: "Features", link: "https://555.amon.lol/#features", target: "_self", noIcon: true },
+      { text: "Download", link: "https://555.amon.lol/#download", target: "_self", noIcon: true },
+      { text: "FAQ", link: "https://555.amon.lol/#faq", target: "_self", noIcon: true },
+      { text: "Themes", link: "https://555.amon.lol/themes/", target: "_self", noIcon: true },
+      { text: "Docs", link: "/", activeMatch: "^/" },
     ],
     sidebar: [
-      { text: "Introduction", items: [{ text: "What is 555?", link: "/" }] },
+      {
+        text: "Guide",
+        items: [
+          { text: "Install", link: "/guide/install" },
+          { text: "Using 555", link: "/guide/using" },
+        ],
+      },
       {
         text: "Theming",
         items: [
