@@ -1,0 +1,29 @@
+/* 555's look: black, electric blue, Unbounded titles, Manrope text. */
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400..800&family=Unbounded:wght@400..700&display=swap");
+
+:root {
+  --vp-font-family-base: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --vp-c-brand-1: #8f98ff;
+  --vp-c-brand-2: #6f7bff;
+  --vp-c-brand-3: #2433ff;
+  --vp-c-brand-soft: rgba(36, 51, 255, 0.18);
+  --vp-c-bg: #000;
+  --vp-c-bg-alt: #05050c;
+  --vp-c-bg-elv: #0b0b16;
+  --vp-c-bg-soft: #0b0b16;
+  --vp-c-divider: rgba(255, 255, 255, 0.09);
+  --vp-c-gutter: rgba(255, 255, 255, 0.06);
+  --vp-c-text-1: #f4f4f7;
+  --vp-c-text-2: #a3a5b8;
+  --vp-c-text-3: #686a7e;
+  --vp-button-brand-bg: #2433ff;
+  --vp-button-brand-hover-bg: #3a48ff;
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #ffffff, #9aa3ff 55%, #6f7bff);
+}
+.VPNavBarTitle .title, h1, h2, .VPHero .name, .VPHero .text {
+  font-family: "Unbounded", "Manrope", system-ui, sans-serif; letter-spacing: -0.02em;
+}
+.vp-doc h1 { font-weight: 600; }
+.vp-doc h2 { font-weight: 500; border-top: 0; }
+.VPNavBar, .VPNavBar.has-sidebar .content-body, .VPLocalNav { background: rgba(0, 0, 0, 0.72) !important; backdrop-filter: blur(16px); }

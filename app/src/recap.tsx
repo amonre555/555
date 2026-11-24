@@ -146,7 +146,7 @@ export function Recap(props: Props) {
               </For>
             </div>
             <div class="recap-bar">
-              <img src="/wordmark.svg" alt="555" height="16" />
+              <img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="555" height="16" />
               <span class="recap-year">{props.year}</span>
               <span class="spacer" />
               <Show when={index() < last()}>
@@ -553,7 +553,7 @@ function buildSlides(s: Stats, props: Props): Slide[] {
         <Waves />
         <div class="recap-poster rv" style={{ "--d": 1 }}>
           <div class="poster-head">
-            <img src="/wordmark.svg" alt="555" height="18" />
+            <img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="555" height="18" />
             <span>{y}</span>
           </div>
           <Show when={artist}>

@@ -1,15 +1,25 @@
-# Publishes the website (the `site/` folder) to GitHub Pages on every push to main that
-# touches it. One-time setup: Settings → Pages → Source: “GitHub Actions”.
+# Publishes the website to GitHub Pages: the `site/` folder, plus three generated parts:
+#   /docs/        the documentation (VitePress, from `docs/`)
+#   /demo/        the real 555 interface with sample data, for the theme gallery's live previews
+#   /themes.json  the theme gallery, gathered from the "Themes" category of GitHub Discussions
+# Runs on every push to main that touches them, when a Themes post changes, and every hour
+# (votes don't send events). One-time setup: Settings → Pages → Source: “GitHub Actions”, and
+# Settings → General → Features → Discussions, with a category named “Themes”.
 name: Publish the website
 
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "docs/**", "app/src/**", "app/index.html", "app/package*.json", "scripts/collect-themes.mjs", ".github/workflows/pages.yml"]
+  discussion:
+    types: [created, edited, deleted, locked, unlocked, category_changed]
+  schedule:
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
+  discussions: read
   pages: write
   id-token: write
 
@@ -25,6 +35,33 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            app/package-lock.json
+            docs/package-lock.json
+
+      - name: Documentation
+        working-directory: docs
+        run: |
+          npm ci
+          npx vitepress build
+          cp -R .vitepress/dist ../site/docs
+
+      - name: Demo of the app (theme previews)
+        working-directory: app
+        run: |
+          npm ci
+          npm run build:demo
+          cp -R dist-demo ../site/demo
+
+      - name: Theme gallery
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/collect-themes.mjs "$GITHUB_REPOSITORY" site/themes.json
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

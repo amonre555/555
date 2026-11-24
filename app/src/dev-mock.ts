@@ -1,6 +1,7 @@
-// Mode aperçu, pour travailler l'interface dans un simple navigateur (`npm run dev`).
+// Mode aperçu, pour travailler l'interface dans un simple navigateur (`npm run dev`), et démo du
+// site (https://555.amon.lol/demo/, aperçus de la galerie de thèmes).
 // Simule le cœur Rust : morceaux, lecture et paroles d'exemple.
-// Jamais inclus dans l'app : chargé seulement en développement, hors de Tauri.
+// Jamais inclus dans l'app : chargé seulement en développement ou dans la démo, hors de Tauri.
 import type { AlbumPage, ArtistPage, Collection, DiscoverSection, Lyrics, Period, Snapshot, Stats, Track } from "./api";
 import { openAlbum, openArtist } from "./nav";
 // Real metadata from Deezer's public API (VHS by Mattyeux, the artist, an album, the charts),
@@ -531,10 +532,33 @@ const handlers: Record<string, (args: any) => unknown> = {
 };
 (window as any).__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
 
-// Galerie de thèmes : deux thèmes d'exemple à la place de https://555.amon.lol/themes.json.
+// Démo du site : `?theme=<id>` applique un thème de la galerie, et la page de la galerie peut
+// envoyer du CSS à essayer (`postMessage({ type: "555-css", css })`).
+if (import.meta.env.VITE_DEMO === "1") {
+  const style = document.createElement("style");
+  style.id = "demo-theme";
+  document.head.appendChild(style);
+  const id = new URLSearchParams(location.search).get("theme");
+  if (id) {
+    fetch(new URL("../themes.json", location.href))
+      .then((r) => r.json())
+      .then((d: { themes?: { id: string; css: string }[] }) => {
+        style.textContent = d.themes?.find((t) => t.id === id)?.css ?? "";
+      })
+      .catch(() => {});
+  }
+  window.addEventListener("message", (e) => {
+    if (e.data?.type === "555-css" && typeof e.data.css === "string") {
+      style.textContent = e.data.css;
+      document.head.appendChild(style); // toujours en dernier
+    }
+  });
+}
+
+// Développement : deux thèmes d'exemple à la place de https://555.amon.lol/themes.json.
 const realFetch = window.fetch.bind(window);
 window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-  if (String(input).endsWith("/themes.json")) {
+  if (import.meta.env.DEV && String(input).endsWith("/themes.json")) {
     const themes = [
       {
         id: "D_sample1", name: "Sunset", author: "demo", votes: 12, url: "https://github.com/amonre555/555/discussions",

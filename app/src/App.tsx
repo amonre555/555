@@ -484,7 +484,7 @@ export default function App() {
 
       <aside class="sidebar">
         <button class="brand" onClick={() => goTo("discover")} title={t.home}>
-          <img src="/wordmark.svg" alt="555" height="26" />
+          <img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="555" height="26" />
         </button>
         <SideNav
           active={view() === "playlist" ? `pl:${playlistId()}` : view()}
@@ -525,7 +525,7 @@ export default function App() {
       <main class="main">
         <header class="topbar">
           <button class="brand m-brand" onClick={() => selectTab("discover")} title={t.home}>
-            <img src="/wordmark.svg" alt="555" height="22" />
+            <img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="555" height="22" />
           </button>
           <div class="search-wrap">
             <label class="search">
