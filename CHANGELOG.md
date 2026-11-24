@@ -2,6 +2,12 @@
 
 What's new in 555, version by version. The latest is at the top.
 
+## 0.5.1 — 2026-11-24
+
+### Fixes
+
+- Themes and custom CSS now work in the installed app: in 0.5.0, installing or trying a theme and typing custom CSS changed nothing (it only worked in development builds).
+
 ## 0.5.0 — 2026-11-24
 
 ### New
