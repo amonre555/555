@@ -17,6 +17,21 @@ const out = process.argv[3] ?? "site/themes.json";
 const token = process.env.GITHUB_TOKEN;
 const MAX_CSS = 256 * 1024;
 
+// Themes may only load from these hosts (fonts), or embed data: URIs. Anything else could track
+// who uses the theme (each image request tells that server your IP address). Same list as the app.
+const ALLOWED_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com"];
+
+/** External hosts a theme would contact (comments ignored), if any are not allowed. */
+export function blockedHosts(css) {
+  // Comments out, CSS escapes decoded (\\2f is "/"), so nothing hides an address.
+  const code = css
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\\([0-9a-f]{1,6})\s?/gi, (_, h) => String.fromCodePoint(Math.min(parseInt(h, 16) || 0x20, 0x10ffff)))
+    .replace(/\\(.)/g, "$1");
+  const hosts = [...code.matchAll(/(?:https?:)?\/\/([^/\s"'()\\]+)/gi)].map((m) => m[1].toLowerCase());
+  return [...new Set(hosts)].filter((h) => !ALLOWED_HOSTS.includes(h));
+}
+
 function write(themes, note) {
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, JSON.stringify({ generatedAt: new Date().toISOString(), themes }, null, 1) + "\n");
@@ -86,6 +101,11 @@ async function main() {
       if (p.locked) continue;
       const parsed = parsePost(p.body ?? "");
       if (!parsed || !parsed.css || parsed.css.length > MAX_CSS) continue;
+      const blocked = blockedHosts(parsed.css);
+      if (blocked.length) {
+        console.warn(`#${p.number} left out: loads from ${blocked.join(", ")}`);
+        continue;
+      }
       themes.push({
         id: String(p.number),
         name: (parsed.name ?? p.title).slice(0, 80),

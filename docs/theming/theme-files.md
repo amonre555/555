@@ -31,10 +31,14 @@ A theme is a plain `.css` file. Its first comment gives its name, author and des
 
 Your custom CSS stays applied on top of the active theme, so you can tweak a theme without editing it.
 
+## If a theme breaks the app
+
+Press **Ctrl+Shift+0** (**⌘⇧0** on a Mac) to turn the theme and your custom CSS off until the next launch, then pick **None** in **Settings → Appearance → Themes**, or fix your CSS.
+
 ## Limits
 
 - 256 KB per theme.
-- Images can come from any `https://` address, or be embedded as `data:` URIs.
+- Images can be embedded as `data:` URIs. In your own custom CSS you can also use any `https://` address, but [gallery themes](./share) can't: see the rules there.
 - Fonts: [Google Fonts](https://fonts.google.com) work (`@import url("https://fonts.googleapis.com/css2?family=…")`), as well as fonts installed on the device and `data:` fonts. Other font hosts are blocked by the app's security rules.
 - Themes can't run code: CSS only.
 - Class names can change between versions of 555. CSS variables are much more stable: prefer them when you can.

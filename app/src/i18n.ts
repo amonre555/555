@@ -771,6 +771,8 @@ const DICTS: Record<Lang, Dict> = { en, fr };
 const KEY = "yato.lang";
 
 function initial(): Lang {
+  // Website demo (theme gallery previews): always in English.
+  if (import.meta.env.VITE_DEMO === "1") return "en";
   try {
     const saved = localStorage.getItem(KEY);
     if (saved && saved in DICTS) return saved as Lang;

@@ -212,9 +212,15 @@
       }
     }, { rootMargin: "300px" });
 
+    // Safety net: never leave a preview stuck on the launch logo.
+    function clearSplash(e) {
+      const f = e.currentTarget;
+      setTimeout(() => f.contentDocument?.getElementById("splash")?.remove(), 1500);
+    }
+
     function card(t) {
       const preview = el("div", { class: "preview", title: "Open in the playground", onclick: () => loadInPlayground(t) },
-        el("iframe", { "data-src": `../demo/?theme=${encodeURIComponent(t.id)}`, title: `${t.name} preview`, tabindex: "-1", "aria-hidden": "true" }),
+        el("iframe", { "data-src": `../demo/?theme=${encodeURIComponent(t.id)}`, title: `${t.name} preview`, tabindex: "-1", "aria-hidden": "true", onload: clearSplash }),
         el("span", { class: "hint" }, "Edit live"));
       fit.observe(preview);
       lazy.observe(preview);
@@ -274,10 +280,10 @@
     const css = document.getElementById("css");
     const live = document.getElementById("live");
     fit.observe(document.getElementById("stage"));
-    const send = () => live.contentWindow?.postMessage({ type: "555-css", css: css.value }, "*");
+    const send = () => live.contentWindow?.postMessage({ type: "555-css", css: css.value }, location.origin);
     let timer;
     css.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(send, 150); });
-    live.addEventListener("load", () => setTimeout(send, 600));
+    live.addEventListener("load", (e) => { clearSplash(e); setTimeout(send, 600); });
     css.addEventListener("keydown", (e) => {
       if (e.key !== "Tab") return;
       e.preventDefault();

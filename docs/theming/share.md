@@ -37,5 +37,5 @@ Upvote a post on GitHub (the ▲ next to it) to vote for a theme. The gallery an
 ## Rules
 
 - CSS only, 256 KB max.
-- No tracking: don't load images or fonts from your own server to count visitors.
+- **Nothing loaded from other servers**, except [Google Fonts](https://fonts.google.com) (`fonts.googleapis.com` and `fonts.gstatic.com`). Embed images as `data:` URIs. Every request to another server would tell it who uses the theme, so themes that do it are left out of the gallery automatically.
 - Keep it friendly. Posts that break these rules are locked, and locked posts leave the gallery.

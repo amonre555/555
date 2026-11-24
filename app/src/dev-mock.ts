@@ -49,17 +49,17 @@ function playAt(i: number) {
 async function loadTrending(): Promise<Track[]> {
   if (demo !== null) return DEMO.chart as Track[];
   const names: [string, string][] = [
-    ["Néons sur la ville", "Les Cassettes"], ["Minuit à Lisbonne", "Clara Vent"], ["Rembobine", "VHS Club"],
-    ["Encore une fois", "Mattéo Rive"], ["Lumières basses", "Nuit Blanche"], ["Sweat (Snoop Dogg vs David Guetta Remix)", "Snoop Dogg, David Guetta"],
-    ["Autoroute", "Les Phares"], ["Été 98", "Sable Rose"], ["Pluie d'août", "Inès Marée"], ["Satellite", "Orbite"],
-    ["Ralenti", "Duo Polaroïd"], ["Fin de soirée", "Les Cassettes"], ["Néon bleu", "Clara Vent"],
+    ["Neon City Lights", "The Cassettes"], ["Midnight in Lisbon", "Clara Wind"], ["Rewind", "VHS Club"],
+    ["One More Time", "Matt Rivers"], ["Low Lights", "White Night"], ["Sweat (Snoop Dogg vs David Guetta Remix)", "Snoop Dogg, David Guetta"],
+    ["Highway", "The Headlights"], ["Summer '98", "Pink Sand"], ["August Rain", "Ines Tide"], ["Satellite", "Orbit"],
+    ["Slow Motion", "Polaroid Duo"], ["After Hours", "The Cassettes"], ["Blue Neon", "Clara Wind"],
   ];
   return names.map(([title, artist], i) => ({
     id: `deezer:demo${i}`, source: "deezer", title, artist, duration: 150 + i * 13,
     trackNumber: null, discNumber: null, artwork: `https://picsum.photos/seed/yato${i}/480`, hasCover: false,
     location: { kind: "remote", remoteId: `demo${i}` },
     artists: artist.split(", ").map((name) => ({ name, id: `demo-${name}` })),
-    album: i % 3 === 0 ? null : "Cassettes et néons",
+    album: i % 3 === 0 ? null : "Tapes and Neon",
     albumId: i % 3 === 0 ? null : "demo-album",
   }));
 }
@@ -73,12 +73,12 @@ async function demoArtist(name: string): Promise<ArtistPage> {
     id: `demo-${name}`, name, picture: `https://picsum.photos/seed/${seed}/600`,
     top: [...mine, ...all.filter((t) => !mine.includes(t)).slice(0, 7 - mine.length)],
     albums: [
-      { id: `${seed}-a1`, title: "Cassettes et néons", cover: `https://picsum.photos/seed/${seed}a1/480`, year: "2024", kind: "album" },
-      { id: `${seed}-a2`, title: "Premières lumières", cover: `https://picsum.photos/seed/${seed}a2/480`, year: "2019", kind: "album" },
-      { id: `${seed}-s1`, title: "Fin de soirée", cover: `https://picsum.photos/seed/${seed}s1/480`, year: "2025", kind: "single" },
+      { id: `${seed}-a1`, title: "Tapes and Neon", cover: `https://picsum.photos/seed/${seed}a1/480`, year: "2024", kind: "album" },
+      { id: `${seed}-a2`, title: "First Lights", cover: `https://picsum.photos/seed/${seed}a2/480`, year: "2019", kind: "album" },
+      { id: `${seed}-s1`, title: "After Hours", cover: `https://picsum.photos/seed/${seed}s1/480`, year: "2025", kind: "single" },
       { id: `${seed}-e1`, title: "Ralenti EP", cover: `https://picsum.photos/seed/${seed}e1/480`, year: "2022", kind: "ep" },
     ],
-    related: ["Clara Vent", "VHS Club", "Nuit Blanche", "Sable Rose", "Orbite"]
+    related: ["Clara Wind", "VHS Club", "White Night", "Pink Sand", "Orbit"]
       .filter((n) => n !== name)
       .map((n) => ({ id: `demo-${n}`, name: n, picture: `https://picsum.photos/seed/${encodeURIComponent(n)}/400` })),
   };
@@ -87,9 +87,9 @@ async function demoArtist(name: string): Promise<ArtistPage> {
 // ---------- Découvrir ----------
 // `?newcomer` : page d'un nouvel utilisateur (tendances, artistes et albums du moment).
 
-const WORDS = ["Néon", "Velours", "Rivage", "Comète", "Mirage", "Ruban", "Écho", "Vertige", "Lagune", "Orage", "Satin", "Prisme"];
-const PLACES = ["de minuit", "sur la ville", "d'août", "bleu", "en sourdine", "au ralenti", "des phares", "de verre"];
-const NEW_ARTISTS = ["Lune Sauvage", "Les Vitrines", "Marée Haute", "Polaire", "Odéon Club", "Ciel Rose", "Brume", "Kilomètre", "Les Échos", "Néréide", "Halo", "Station 9"];
+const WORDS = ["Neon", "Velvet", "Shoreline", "Comet", "Mirage", "Ribbon", "Echo", "Vertigo", "Lagoon", "Storm", "Satin", "Prism"];
+const PLACES = ["at Midnight", "over the City", "in August", "Blue", "on Mute", "in Slow Motion", "in the Headlights", "of Glass"];
+const NEW_ARTISTS = ["Wild Moon", "The Windows", "High Tide", "Polar", "Odeon Club", "Pink Sky", "Haze", "Mile Marker", "The Echoes", "Nereid", "Halo", "Station 9"];
 
 /** Morceaux inventés (pochettes aléatoires), variés d'une section à l'autre. */
 function fakeTracks(prefix: string, n: number, artists: string[]): Track[] {
@@ -97,7 +97,7 @@ function fakeTracks(prefix: string, n: number, artists: string[]): Track[] {
     const artist = artists[i % artists.length];
     const title = `${WORDS[(i * 7 + prefix.length) % WORDS.length]} ${PLACES[(i * 3 + prefix.length) % PLACES.length]}`;
     return {
-      id: `deezer:${prefix}${i}`, source: "deezer", title, artist, album: "Cassettes et néons", albumId: "demo-album",
+      id: `deezer:${prefix}${i}`, source: "deezer", title, artist, album: "Tapes and Neon", albumId: "demo-album",
       duration: 160 + ((i * 17) % 90), trackNumber: null, discNumber: null, artwork: `https://picsum.photos/seed/${prefix}${i}/480`,
       hasCover: false, location: { kind: "remote", remoteId: `${prefix}${i}` }, artists: [{ name: artist, id: `demo-${artist}` }],
     };
@@ -114,12 +114,12 @@ async function demoDiscover(): Promise<DiscoverSection[]> {
     id, kind, tracks: [], albums: [], artists: [], ready: false, at: 0, ...more,
   });
   const iso = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10);
-  const releases = ["Clara Vent", "Les Cassettes", "VHS Club", "Nuit Blanche", "Sable Rose", "Orbite"].map((artist, i) => ({
+  const releases = ["Clara Wind", "The Cassettes", "VHS Club", "White Night", "Pink Sand", "Orbit"].map((artist, i) => ({
     id: `demo-rel${i}`, title: `${WORDS[i + 2]} ${PLACES[i]}`, cover: `https://picsum.photos/seed/rel${i}/480`,
     year: iso(i * 9).slice(0, 4), kind: ["album", "single", "ep"][i % 3], artist, date: iso(i * 9),
   }));
   const suggestions = NEW_ARTISTS.map((name, i) => ({
-    id: `demo-${name}`, name, picture: `https://picsum.photos/seed/${encodeURIComponent(name)}/400`, near: ["Clara Vent", "Les Cassettes", "VHS Club"][i % 3],
+    id: `demo-${name}`, name, picture: `https://picsum.photos/seed/${encodeURIComponent(name)}/400`, near: ["Clara Wind", "The Cassettes", "VHS Club"][i % 3],
   }));
   let full: DiscoverSection[];
   if (new URLSearchParams(location.search).has("newcomer")) {
@@ -131,8 +131,8 @@ async function demoDiscover(): Promise<DiscoverSection[]> {
   } else {
     full = [
       section(`mix:${day}`, "mix", { tracks: [...fakeTracks("mix", 28, NEW_ARTISTS), ...chart.slice(0, 12)].sort((a, b) => a.id.localeCompare(b.id)) }),
-      section("because:clara vent", "because", { artist: { name: "Clara Vent", id: "demo-Clara Vent" }, tracks: fakeTracks("bcv", 15, NEW_ARTISTS.slice(0, 6)) }),
-      section("because:les cassettes", "because", { artist: { name: "Les Cassettes", id: "demo-Les Cassettes" }, tracks: fakeTracks("blc", 15, NEW_ARTISTS.slice(4)) }),
+      section("because:clara vent", "because", { artist: { name: "Clara Wind", id: "demo-Clara Wind" }, tracks: fakeTracks("bcv", 15, NEW_ARTISTS.slice(0, 6)) }),
+      section("because:the cassettes", "because", { artist: { name: "The Cassettes", id: "demo-The Cassettes" }, tracks: fakeTracks("blc", 15, NEW_ARTISTS.slice(4)) }),
       section("releases", "releases", { albums: releases }),
       section("artists", "artists", { artists: suggestions }),
       section("rediscover", "rediscover", { tracks: chart.slice(4, 13), ready: true }),
@@ -156,9 +156,9 @@ const LYRICS: Lyrics = {
   plain: null,
   instrumental: false,
   lines: [
-    "", "Les néons s'allument sur la ville", "On roule sans savoir où l'on va", "Ta main dans la mienne, tout est facile",
-    "Et la nuit ne finit pas", "", "On danse au ralenti", "Comme dans une vieille cassette", "Les souvenirs en couleurs",
-    "Que le temps ne rembobine pas", "", "Encore une fois", "Encore une fois",
+    "", "The neon lights wake up the city", "We're driving with nowhere to go", "Your hand in mine, it all feels easy",
+    "And the night won't let us go", "", "We're dancing in slow motion", "Like an old cassette tape", "Memories in color",
+    "That time will never rewind", "", "One more time", "One more time",
   ].map((text, i) => {
     // Mots répartis sur 2,4 s, au prorata de leur longueur (comme l'estimation du cœur).
     const time = i * 3.2;
@@ -360,7 +360,7 @@ const handlers: Record<string, (args: any) => unknown> = {
       emit("import-progress", [k, 6]);
       await new Promise((r) => setTimeout(r, 300));
     }
-    const p = { id: `pl-${++plCounter}`, name: "Playlist importée", tracks: all.slice(2, 8), created: Date.now() };
+    const p = { id: `pl-${++plCounter}`, name: "Imported playlist", tracks: all.slice(2, 8), created: Date.now() };
     coll.playlists.push(p);
     return { collection: copy(), id: p.id, added: p.tracks.length, missing: 1 };
   },
@@ -388,7 +388,7 @@ const handlers: Record<string, (args: any) => unknown> = {
     if (t) list.splice(Math.min(to, list.length), 0, t);
     return copy();
   },
-  list_sources: () => [{ id: "local", name: "Ma bibliothèque" }, { id: "deezer", name: "Titres" }, { id: "youtube", name: "YouTube Music" }],
+  list_sources: () => [{ id: "local", name: "My library" }, { id: "deezer", name: "Streaming" }, { id: "youtube", name: "YouTube Music" }],
   library_tracks: () => [],
   library_folders: () => [],
   discover: () => demoDiscover(),
@@ -496,7 +496,7 @@ const handlers: Record<string, (args: any) => unknown> = {
     const list = all.slice(0, 9).map((t) => ({ ...t, album: title, albumId: "demo-album", artwork: "https://picsum.photos/seed/album/600" }));
     return {
       id: "demo-album", title, cover: "https://picsum.photos/seed/album/600", year: "2024", kind: "album",
-      label: "Disques Exemple", artists: [{ name: "Les Cassettes", id: "demo-Les Cassettes" }, { name: "Clara Vent", id: "demo-Clara Vent" }],
+      label: "Example Records", artists: [{ name: "The Cassettes", id: "demo-The Cassettes" }, { name: "Clara Wind", id: "demo-Clara Wind" }],
       duration: list.reduce((a, t) => a + (t.duration ?? 0), 0), tracks: list,
     };
   },
@@ -526,7 +526,7 @@ const handlers: Record<string, (args: any) => unknown> = {
     }
     if (cmd === "plugin:event|unlisten") return null;
     const h = handlers[cmd];
-    if (!h) throw new Error(`aperçu : commande non simulée « ${cmd} »`);
+    if (!h) throw new Error(`preview: command not mocked "${cmd}"`);
     return h(args ?? {});
   },
 };
@@ -537,6 +537,9 @@ const handlers: Record<string, (args: any) => unknown> = {
 if (import.meta.env.VITE_DEMO === "1") {
   // Pas une page en soi : ouverte directement, elle renvoie vers la galerie.
   if (window.top === window) location.replace(new URL("../themes/", location.href));
+  // Pas d'écran de lancement dans un aperçu : son animation peut rester figée quand le navigateur
+  // met en pause les cadres hors de l'écran, et l'aperçu restait bloqué sur le logo.
+  document.getElementById("splash")?.remove();
   const style = document.createElement("style");
   style.id = "demo-theme";
   document.head.appendChild(style);
@@ -550,6 +553,7 @@ if (import.meta.env.VITE_DEMO === "1") {
       .catch(() => {});
   }
   window.addEventListener("message", (e) => {
+    if (e.origin !== location.origin) return; // seulement la galerie du site, pas une autre page
     if (e.data?.type === "555-css" && typeof e.data.css === "string") {
       style.textContent = e.data.css;
       document.head.appendChild(style); // toujours en dernier

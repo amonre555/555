@@ -44,6 +44,22 @@ export const SITE = "https://555.amon.lol";
 export const REPO = "https://github.com/amonre555/555";
 export const MAX_THEME_BYTES = 256 * 1024;
 
+/**
+ * Thèmes de la galerie : ils ne peuvent charger que des polices Google Fonts (ou des `data:`).
+ * Une image sur un autre serveur permettrait de savoir qui utilise le thème (adresse IP).
+ * Même liste que scripts/collect-themes.mjs ; le site écarte déjà ces thèmes, l'appli revérifie.
+ */
+const ALLOWED_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com"];
+export function blockedHosts(css: string): string[] {
+  // Comments out, CSS escapes decoded (\\2f is "/"), so nothing hides an address.
+  const code = css
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\\([0-9a-f]{1,6})\s?/gi, (_, h: string) => String.fromCodePoint(Math.min(parseInt(h, 16) || 0x20, 0x10ffff)))
+    .replace(/\\(.)/g, "$1");
+  const hosts = [...code.matchAll(/(?:https?:)?\/\/([^/\s"'()\\]+)/gi)].map((m) => m[1].toLowerCase());
+  return [...new Set(hosts)].filter((h) => !ALLOWED_HOSTS.includes(h));
+}
+
 const KEY = "yato.themes";
 
 type Stored = { themes: Theme[]; active: string | null };
@@ -74,6 +90,20 @@ function save(next: Stored) {
     localStorage.setItem(KEY, JSON.stringify(next));
   } catch {}
   applyTheme();
+
+/**
+ * Secours si un thème rend l'appli inutilisable : Ctrl+Maj+0 (⌘⇧0 sur Mac) coupe le thème et le
+ * CSS perso jusqu'au prochain lancement (rien n'est supprimé : il suffit ensuite de choisir
+ * « Aucun » dans les Réglages).
+ */
+window.addEventListener("keydown", (e) => {
+  if (!(e.metaKey || e.ctrlKey) || !e.shiftKey || e.code !== "Digit0") return;
+  e.preventDefault();
+  for (const id of ["theme-css", "user-css"]) {
+    const sheet = (document.getElementById(id) as HTMLStyleElement | null)?.sheet;
+    if (sheet) sheet.disabled = !sheet.disabled;
+  }
+});
 }
 
 export function setActiveTheme(id: string | null) {
@@ -130,7 +160,9 @@ export async function fetchGallery(): Promise<GalleryTheme[]> {
   const r = await fetch(`${SITE}/themes.json`, { cache: "no-cache" });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const data = (await r.json()) as { themes?: GalleryTheme[] };
-  return (data.themes ?? []).filter((t) => t.css && t.css.length <= MAX_THEME_BYTES).sort((a, b) => b.votes - a.votes);
+  return (data.themes ?? [])
+    .filter((t) => t.css && t.css.length <= MAX_THEME_BYTES && blockedHosts(t.css).length === 0)
+    .sort((a, b) => b.votes - a.votes);
 }
 
 /** Ouvre la page du thème dans la galerie du site (aperçu, votes). */
