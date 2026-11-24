@@ -2,6 +2,22 @@
 
 What's new in 555, version by version. The latest is at the top.
 
+## 0.5.0 — 2026-11-24
+
+### New
+
+- Appearance (Settings → Appearance): keep the colors of the cover playing, or pick a fixed color that also tints the buttons. A slider sets the color intensity, from black and white to very vivid.
+- Custom CSS: restyle anything in 555 from Settings → Appearance. Changes apply as you type.
+- Themes: a theme is a single .css file. Import one, switch between your themes, or share yours in the community gallery in one click.
+- Theme gallery: browse themes made by other people right inside 555, try one on the whole app, then keep it or not. Also on the website, with live previews and a playground: https://555.amon.lol/themes/
+- Documentation: installing, using and theming 555, with every CSS variable and class explained: https://555.amon.lol/docs/
+- On phones, a long press on a song card or on the mini player opens its menu: Play next, Add to queue, playlists.
+
+### Safety
+
+- Gallery themes can't load anything from other servers (only Google Fonts), so a theme can't track who uses it.
+- If a theme breaks the app, Ctrl+Shift+0 (⌘⇧0 on a Mac) turns themes and custom CSS off until the next launch.
+
 ## 0.4.2 — 2026-11-24
 
 ### New
