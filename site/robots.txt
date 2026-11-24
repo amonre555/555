@@ -1,0 +1,3 @@
+User-agent: *
+# Interface used only inside the theme gallery previews.
+Disallow: /demo/

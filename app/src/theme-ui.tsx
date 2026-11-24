@@ -117,7 +117,10 @@ function GalleryDialog(props: { onClose: () => void }) {
                     <div class="gallery-item">
                       <div class="gallery-text">
                         <div class="gallery-name">{g.name}</div>
-                        <div class="muted small">
+                        <div class="gallery-by muted small">
+                          <Show when={g.authorAvatar}>
+                            <img src={g.authorAvatar} alt="" width="18" height="18" loading="lazy" />
+                          </Show>
                           {t.byAuthor(g.author)} · {t.votes(g.votes)}
                         </div>
                         <Show when={g.description}>

@@ -75,7 +75,7 @@ async function main() {
         repository(owner: $owner, name: $name) {
           discussions(first: 100, after: $after, categoryId: $cat, orderBy: { field: CREATED_AT, direction: DESC }) {
             pageInfo { hasNextPage endCursor }
-            nodes { number title url body upvoteCount locked createdAt updatedAt author { login } }
+            nodes { number title url body upvoteCount locked createdAt updatedAt author { login avatarUrl(size: 64) url } }
           }
         }
       }`,
@@ -90,6 +90,8 @@ async function main() {
         id: String(p.number),
         name: (parsed.name ?? p.title).slice(0, 80),
         author: p.author?.login ?? "ghost",
+        authorAvatar: p.author?.avatarUrl,
+        authorUrl: p.author?.url,
         description: parsed.description,
         css: parsed.css,
         votes: p.upvoteCount,

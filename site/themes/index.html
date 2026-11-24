@@ -66,7 +66,9 @@
     .title-row { display: flex; align-items: baseline; gap: 10px; }
     .name { font-family: var(--display); font-weight: 500; font-size: 19px; letter-spacing: -0.01em; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .votes { font-weight: 800; color: var(--blue-light); font-size: 14px; white-space: nowrap; }
-    .by { color: var(--text-3); font-size: 13.5px; }
+    .by { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; color: var(--text-3); font-size: 13.5px; }
+    .by:hover { color: var(--text); }
+    .by img { width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line); }
     .desc { color: var(--text-2); font-size: 14.5px; }
     .buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 10px; }
 
@@ -156,7 +158,6 @@
           <div class="play-actions">
             <button class="btn btn-primary btn-sm" id="share">Share in the gallery</button>
             <button class="btn btn-ghost btn-sm" id="download">Download .css</button>
-            <a class="btn btn-ghost btn-sm" href="../demo/?demo=lyrics" target="_blank" rel="noopener">Open the demo full screen</a>
           </div>
         </div>
       </div>
@@ -221,7 +222,9 @@
         preview,
         el("div", { class: "info" },
           el("div", { class: "title-row" }, el("div", { class: "name" }, t.name), el("span", { class: "votes", title: "Upvotes on GitHub" }, `▲ ${t.votes}`)),
-          el("div", { class: "by" }, `by ${t.author}`),
+          el("a", { class: "by", href: t.authorUrl ?? `https://github.com/${encodeURIComponent(t.author)}`, target: "_blank", rel: "noopener", title: "GitHub profile" },
+            t.authorAvatar ? el("img", { src: t.authorAvatar, alt: "", width: "20", height: "20", loading: "lazy" }) : null,
+            `by ${t.author}`),
           t.description ? el("div", { class: "desc" }, t.description) : null,
           el("div", { class: "buttons" },
             el("a", { class: "btn btn-primary btn-sm", href: t.url, target: "_blank", rel: "noopener" }, "Vote on GitHub"),

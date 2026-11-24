@@ -535,6 +535,8 @@ const handlers: Record<string, (args: any) => unknown> = {
 // Démo du site : `?theme=<id>` applique un thème de la galerie, et la page de la galerie peut
 // envoyer du CSS à essayer (`postMessage({ type: "555-css", css })`).
 if (import.meta.env.VITE_DEMO === "1") {
+  // Pas une page en soi : ouverte directement, elle renvoie vers la galerie.
+  if (window.top === window) location.replace(new URL("../themes/", location.href));
   const style = document.createElement("style");
   style.id = "demo-theme";
   document.head.appendChild(style);

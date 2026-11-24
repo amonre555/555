@@ -29,6 +29,9 @@ export type GalleryTheme = {
   id: string;
   name: string;
   author: string;
+  /** Avatar et profil GitHub de l'auteur. */
+  authorAvatar?: string;
+  authorUrl?: string;
   description?: string;
   css: string;
   votes: number;

@@ -1430,3 +1430,5 @@ textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; f
   .gallery-item { flex-direction: column; align-items: stretch; }
   .gallery-buttons > * { flex: 1; }
 }
+.gallery-by { display: flex; align-items: center; gap: 6px; }
+.gallery-by img { width: 18px; height: 18px; border-radius: 50%; }
