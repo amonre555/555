@@ -2,6 +2,12 @@
 
 What's new in 555, version by version. The latest is at the top.
 
+## 0.4.2 — 2026-11-24
+
+### New
+
+- On computers, the lyrics and Now playing screen has a volume slider and the queue button under the playback controls, like on phones. No need to leave the lyrics to turn the music down.
+
 ## 0.4.1 — 2026-11-20
 
 ### New
