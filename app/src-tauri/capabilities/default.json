@@ -7,6 +7,17 @@
   ],
   "permissions": [
     "core:default",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://github.com/amonre555/555/*"
+        },
+        {
+          "url": "https://555.amon.lol/*"
+        }
+      ]
+    }
   ]
 }

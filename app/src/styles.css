@@ -1401,3 +1401,32 @@ textarea.dialog-input.multi { height: 130px; white-space: pre; overflow: auto; f
   background: rgba(255, 255, 255, 0.035); box-shadow: var(--hairline); border: 0; outline: none; tab-size: 2;
 }
 .css-editor:focus { box-shadow: var(--hairline), 0 0 0 2px color-mix(in srgb, var(--blue) 60%, transparent); }
+
+/* ---------- Réglages : thèmes et galerie ---------- */
+.themes { display: flex; flex-direction: column; gap: 10px; padding: 14px 0 6px; }
+.theme-list { display: flex; flex-direction: column; gap: 2px; }
+.theme-row { display: flex; align-items: center; gap: 6px; border-radius: var(--r-sm); }
+.theme-row:hover { background: rgba(255, 255, 255, 0.04); }
+.theme-pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 9px 10px; text-align: left; }
+.theme-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 2px var(--text-3); transition: box-shadow 0.2s; }
+.theme-row.on .theme-dot { box-shadow: inset 0 0 0 4px var(--blue), 0 0 12px -2px var(--blue); }
+.theme-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.theme-author { color: var(--text-3); font-size: 12.5px; white-space: nowrap; }
+.theme-actions { flex-wrap: wrap; }
+.dialog.gallery { width: min(620px, 100%); max-height: min(80vh, 720px); }
+.gallery-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 80px; }
+.gallery-item { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: var(--r-md); background: rgba(255, 255, 255, 0.04); box-shadow: var(--hairline); }
+.gallery-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gallery-name { font-weight: 700; }
+.gallery-desc { color: var(--text-2); }
+.gallery-buttons { display: flex; gap: 8px; flex: none; }
+.try-bar {
+  position: fixed; left: 50%; bottom: 112px; translate: -50% 0; z-index: 96; display: flex; align-items: center; gap: 16px;
+  padding: 10px 10px 10px 18px; border-radius: var(--r-pill); background: rgba(10, 10, 20, 0.92); box-shadow: var(--shadow), var(--hairline);
+  backdrop-filter: blur(20px); animation: pop-in 0.35s var(--soft) both; font-weight: 600; max-width: calc(100vw - 24px);
+}
+@media (max-width: 760px) {
+  .try-bar { bottom: calc(var(--sab) + 150px); }
+  .gallery-item { flex-direction: column; align-items: stretch; }
+  .gallery-buttons > * { flex: 1; }
+}

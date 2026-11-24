@@ -567,7 +567,7 @@ fn ios_audio_session() {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     yato_core::timing::start();
-    let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
+    let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init()).plugin(tauri_plugin_opener::init());
     // Mises à jour automatiques, publiées dans les Releases GitHub (voir .github/workflows).
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init());

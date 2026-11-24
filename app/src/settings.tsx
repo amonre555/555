@@ -5,6 +5,7 @@ import { api, FLAT_FX, type Settings } from "./api";
 import { EqPanel } from "./eq";
 import { fx, setFx } from "./fx-store";
 import { setVisualizerOn, visualizerOn } from "./visualizer";
+import { ThemesPanel } from "./theme-ui";
 import { appearance, resetAppearance, setAppearance, SWATCHES, type ColorMode } from "./appearance";
 import { clearHistory, collection, importPlaylist, notify } from "./collection";
 import { IconClose, IconLink } from "./icons";
@@ -167,6 +168,7 @@ export function SettingsView(props: { onImport: () => void; onLibrary: () => voi
                   <span class="setting-value">{Math.round(appearance().intensity * 100)} %</span>
                 </div>
               </Row>
+              <ThemesPanel />
               <div class="settings-css">
                 <div class="setting-text">
                   <div class="setting-title">{t.customCss}</div>

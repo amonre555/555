@@ -530,3 +530,24 @@ const handlers: Record<string, (args: any) => unknown> = {
   },
 };
 (window as any).__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
+
+// Galerie de thèmes : deux thèmes d'exemple à la place de https://555.amon.lol/themes.json.
+const realFetch = window.fetch.bind(window);
+window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+  if (String(input).endsWith("/themes.json")) {
+    const themes = [
+      {
+        id: "D_sample1", name: "Sunset", author: "demo", votes: 12, url: "https://github.com/amonre555/555/discussions",
+        description: "Warm orange accents and rounder corners.",
+        css: "/* @name Sunset\n * @author demo */\n:root { --blue: #ff6a2b; --blue-deep: #a8340a; }\n.cover, .card-art { border-radius: 22px; }",
+      },
+      {
+        id: "D_sample2", name: "Mono", author: "demo", votes: 5, url: "https://github.com/amonre555/555/discussions",
+        description: "Black and white, nothing else.",
+        css: "/* @name Mono */\n:root { --blue: #e8e8e8; --blue-deep: #8a8a8a; }\nimg { filter: grayscale(1); }",
+      },
+    ];
+    return Promise.resolve(new Response(JSON.stringify({ themes }), { headers: { "content-type": "application/json" } }));
+  }
+  return realFetch(input, init);
+};
